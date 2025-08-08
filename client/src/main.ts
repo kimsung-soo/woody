@@ -13,6 +13,10 @@ import { fakeBackend } from '@/utils/helpers/fake-backend';
 // print
 import print from 'vue3-print-nb';
 
+// Ag-Grid CSS 파일 임포트
+import 'ag-grid-community/styles/ag-grid.css'; // Core Grid CSS
+import 'ag-grid-community/styles/ag-theme-quartz.css'; // Theme CSS
+
 const app = createApp(App);
 fakeBackend();
 app.use(router);
