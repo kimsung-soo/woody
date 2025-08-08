@@ -130,11 +130,11 @@ const sidebarItem: menu[] = [
         children: [
           {
             title: '자재발주서 등록',
-            to: '/dashboard/default'
+            to: '/material/order'
           },
           {
             title: '자재발주서 조회',
-            to: '/dashboard/default'
+            to: '/material/order/Select'
           }
         ]
       },
