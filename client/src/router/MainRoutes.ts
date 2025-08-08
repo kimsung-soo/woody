@@ -54,7 +54,17 @@ const MainRoutes = {
     // 자재
 
     // 생산
+    {
+      name: 'ProductionPlan',
+      path: '/production/plan',
+      component: () => import('@/views/production/ProductionPlan.vue')
+    },
 
+    {
+      name: 'WorkOrder',
+      path: '/production/workorder',
+      component: () => import('@/views/production/WorkOrder.vue')
+    }
     // 설비
 
     // 품질
