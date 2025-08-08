@@ -7,6 +7,7 @@
 package-lock.json
 node_modules/
 dist/
+package-lock.json
 
 # Compiled Java class files
 *.class
@@ -49,3 +50,4 @@ Thumbs.db
 *.mov
 *.wmv
 
+package-lock.json

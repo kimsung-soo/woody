@@ -199,7 +199,7 @@ const sidebarItem: menu[] = [
         children: [
           {
             title: '계획관리',
-            to: '/dashboard/default'
+            to: '/production/plan'
           },
           {
             title: '계획조회',
@@ -216,7 +216,7 @@ const sidebarItem: menu[] = [
         children: [
           {
             title: '작업지시 관리',
-            to: '/dashboard/default'
+            to: '/production/workorder'
           },
           {
             title: '작업지시 조회',
@@ -320,7 +320,7 @@ const sidebarItem: menu[] = [
           },
           {
             title: '원자재 검수서 관리',
-            to: '/dashboard/default'
+            to: '/qm/matmng'
           }
         ]
       },
