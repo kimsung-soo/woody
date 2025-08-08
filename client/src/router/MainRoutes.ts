@@ -64,7 +64,7 @@ const MainRoutes = {
       name: 'WorkOrder',
       path: '/production/workorder',
       component: () => import('@/views/production/WorkOrder.vue')
-    }
+    },
     // 설비
 
     // 품질
