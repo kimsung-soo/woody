@@ -1,7 +1,7 @@
 <template>
   <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs"></BaseBreadcrumb>
 
-  <UiParentCard title="설비 정보조회">
+  <UiParentCard title="설비 상태조회">
     <v-row align="start" class="mb-2">
       <v-col cols="12" md="6">
         <v-row class="mb-2">
@@ -27,12 +27,10 @@
           <th>설비코드</th>
           <th>설비명</th>
           <th>설비유형</th>
-          <th>사용유무</th>
-          <th>제조사</th>
-          <th>설비제조일</th>
-          <th>설비설치일</th>
-          <th>점검주기(일)</th>
-          <th>고장유형</th>
+          <th>설비상태</th>
+          <th>비가동사유</th>
+          <th>점검완료일</th>
+          <th>다음점검일</th>
           <th>담당자</th>
         </tr>
       </thead>
@@ -42,12 +40,12 @@
           <td><v-text-field v-model="item.code" dense variant="plain" /></td>
           <td><v-text-field v-model="item.name" dense variant="plain" /></td>
           <td><v-text-field v-model="item.type" dense variant="plain" /></td>
-          <td><v-text-field v-model="item.useYn" dense variant="plain" /></td>
-          <td><v-text-field v-model="item.maker" dense variant="plain" /></td>
-          <td><v-text-field v-model="item.makeDate" dense variant="plain" /></td>
-          <td><v-text-field v-model="item.installDate" dense variant="plain" /></td>
-          <td><v-text-field v-model.number="item.checkCycle" dense variant="plain" /></td>
-          <td><v-text-field v-model="item.err" dense variant="plain" /></td>
+          <td>
+            <v-text-field v-model="item.status" dense variant="plain" :style="{ color: item.status === '가동' ? 'blue' : 'red' }" />
+          </td>
+          <td><v-text-field v-model="item.not" dense variant="plain" /></td>
+          <td><v-text-field v-model="item.done" dense variant="plain" /></td>
+          <td><v-text-field v-model="item.next" dense variant="plain" /></td>
           <td><v-text-field v-model="item.manager" dense variant="plain" /></td>
         </tr>
       </tbody>
@@ -60,10 +58,10 @@ import { ref, reactive, shallowRef } from 'vue';
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
 
-const page = ref({ title: '설비 정보 관리' });
+const page = ref({ title: '설비 상태관리' });
 const breadcrumbs = shallowRef([
   {
-    title: '설비',
+    title: '설비 상태',
     disabled: true,
     href: '#'
   },
@@ -85,28 +83,24 @@ const form = reactive({
   items: [
     {
       code: 'EQ-001',
-      name: '드릴 프레스',
-      type: '가공',
-      useYn: '사용',
-      maker: 'A사',
-      makeDate: '2025-01-15',
-      installDate: '2025-02-18',
-      checkCycle: '180',
-      err: '-',
+      name: '띠톱기계',
+      type: '재단공정',
+      status: '비가동',
+      not: '전기 이상',
+      done: '2025-01-15 17:00:53',
+      next: '2025-07-18',
       manager: '이동섭'
     },
 
     {
-      code: 'EQ-002',
+      code: 'EQ-001',
       name: '직각 왕복 판톱',
-      type: '재단설비',
-      useYn: '사용',
-      maker: 'A사',
-      makeDate: '2025-01-15',
-      installDate: '2025-02-18',
-      checkCycle: '180',
-      err: '-',
-      manager: '정경준'
+      type: '재단공정',
+      status: '가동',
+      not: '-',
+      done: '2025-01-15 19:00:00',
+      next: '2025-07-18',
+      manager: '이동섭'
     }
   ]
 });

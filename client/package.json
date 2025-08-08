@@ -17,6 +17,7 @@
     "@mdi/js": "^7.4.47",
     "@tsconfig/node22": "^22.0.0",
     "@typescript-eslint/parser": "^8.19.0",
+    "ag-grid-react": "^34.1.1",
     "ag-grid-vue3": "^34.1.1",
     "apexcharts": "4.3.0",
     "axios": "1.7.9",
