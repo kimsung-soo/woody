@@ -45,7 +45,7 @@ const MainRoutes = {
       name: 'Colors',
       path: '/utils/colors',
       component: () => import('@/views/utilities/colors/ColorPage.vue')
-    }
+    },
     // 페이지 생성 후 여기 아래 라우터 생성.
     // 기준정보
 
@@ -54,7 +54,17 @@ const MainRoutes = {
     // 자재
 
     // 생산
+    {
+      name: 'ProductionPlan',
+      path: '/production/plan',
+      component: () => import('@/views/production/ProductionPlan.vue')
+    },
 
+    {
+      name: 'WorkOrder',
+      path: '/production/workorder',
+      component: () => import('@/views/production/WorkOrder.vue')
+    }
     // 설비
 
     // 품질
