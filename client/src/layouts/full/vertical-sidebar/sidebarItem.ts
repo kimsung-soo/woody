@@ -320,7 +320,7 @@ const sidebarItem: menu[] = [
           },
           {
             title: '원자재 검수서 관리',
-            to: '/dashboard/default'
+            to: '/qm/matmng'
           }
         ]
       },
