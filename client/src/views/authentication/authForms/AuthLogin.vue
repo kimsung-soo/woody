@@ -1,20 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import Google from '@/assets/images/auth/social-google.svg';
+// import Google from '@/assets/images/auth/social-google.svg';
 import { useAuthStore } from '@/stores/auth';
 import { Form } from 'vee-validate';
 
-const checkbox = ref(false);
 const valid = ref(false);
 const show1 = ref(false);
-//const logform = ref();
-const password = ref('admin123');
-const username = ref('info@codedthemes.com');
-const passwordRules = ref([
-  (v: string) => !!v || 'Password is required',
-  (v: string) => (v && v.length <= 10) || 'Password must be less than 10 characters'
-]);
-const emailRules = ref([(v: string) => !!v || 'E-mail is required', (v: string) => /.+@.+\..+/.test(v) || 'E-mail must be valid']);
+// const logform = ref();
+const password = ref('');
+const username = ref('');
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function validate(values: any, { setErrors }: any) {
@@ -24,23 +18,19 @@ function validate(values: any, { setErrors }: any) {
 </script>
 
 <template>
-  <v-btn block color="primary" variant="outlined" class="text-lightText googleBtn">
+  <!-- <v-btn block color="primary" variant="outlined" class="text-lightText googleBtn">
     <img :src="Google" alt="google" />
-    <span class="ml-2">Sign in with Google</span></v-btn
-  >
+    <span class="ml-2">Sign in with Google</span></v-btn -->
+
   <v-row>
-    <v-col class="d-flex align-center">
-      <v-divider class="custom-devider" />
-      <v-btn variant="outlined" class="orbtn" rounded="md" size="small">OR</v-btn>
-      <v-divider class="custom-devider" />
-    </v-col>
+    <v-divider class="custom-devider" />
   </v-row>
-  <h5 class="text-h5 text-center my-4 mb-8">Sign in with Email address</h5>
+  <img src="../../../assets/images/logos/gg.svg" alt="" style="width: 20rem; margin: 0.5rem 0 0.5rem 2.4rem" />
   <Form @submit="validate" class="mt-7 loginForm" v-slot="{ errors, isSubmitting }">
     <v-text-field
       v-model="username"
-      :rules="emailRules"
-      label="Email Address / Username"
+      label="사원번호를 입력하세요."
+      :rules="[(v) => !!v || '필수 입력 항목입니다.', (v) => /^\d+$/.test(v) || '숫자만 입력하세요.']"
       class="mt-4 mb-8"
       required
       density="comfortable"
@@ -50,8 +40,8 @@ function validate(values: any, { setErrors }: any) {
     ></v-text-field>
     <v-text-field
       v-model="password"
-      :rules="passwordRules"
-      label="Password"
+      label="비밀번호를 입력하세요."
+      :rules="[(v) => !!v || '비밀번호를 입력해주세요.', (v) => v.length >= 6 || '6자 이상 입력해주세요.']"
       required
       density="comfortable"
       variant="outlined"
@@ -64,7 +54,7 @@ function validate(values: any, { setErrors }: any) {
     ></v-text-field>
 
     <div class="d-sm-flex align-center mt-2 mb-7 mb-sm-0">
-      <v-checkbox
+      <!-- <v-checkbox
         v-model="checkbox"
         :rules="[(v: any) => !!v || 'You must agree to continue!']"
         label="Remember me?"
@@ -72,23 +62,20 @@ function validate(values: any, { setErrors }: any) {
         color="primary"
         class="ms-n2"
         hide-details
-      ></v-checkbox>
+      ></v-checkbox> -->
       <div class="ml-auto">
-        <a href="javascript:void(0)" class="text-primary text-decoration-none">Forgot password?</a>
+        <!-- <a href="javascript:void(0)" class="text-primary text-decoration-none">Forgot password?</a> -->
       </div>
     </div>
     <v-btn color="secondary" :loading="isSubmitting" block class="mt-2" variant="flat" size="large" :disabled="valid" type="submit">
-      Sign In</v-btn
+      로그인</v-btn
     >
     <div v-if="errors.apiError" class="mt-2">
-      <v-alert color="error">{{ errors.apiError }}</v-alert>
+      <v-alert color="error">사원번호 및 비밀번호가 일치하지 않습니다.</v-alert>
     </div>
   </Form>
-  <div class="mt-5 text-right">
-    <v-divider />
-    <v-btn variant="plain" to="/register" class="mt-2 text-capitalize mr-n2">Don't Have an account?</v-btn>
-  </div>
 </template>
+
 <style lang="scss">
 .custom-devider {
   border-color: rgba(0, 0, 0, 0.08) !important;

@@ -46,12 +46,27 @@ const MainRoutes = {
       path: '/utils/colors',
       component: () => import('@/views/utilities/colors/ColorPage.vue')
     },
+    {
+      name: 'Modal',
+      path: '/modal',
+      component: () => import('@/views/common/MoDal.vue')
+    },
     // 페이지 생성 후 여기 아래 라우터 생성.
     // 기준정보
 
     // 영업
 
     // 자재
+    {
+      name: 'MaterialOrderInsert',
+      path: '/material/order',
+      component: () => import('@/views/Materials/MaterialOrderInsert.vue')
+    },
+    {
+      name: 'MaterialOrderSelect',
+      path: '/material/order/Select',
+      component: () => import('@/views/Materials/MaterialOrderSelect.vue')
+    },
 
     // 생산
     {
@@ -64,7 +79,7 @@ const MainRoutes = {
       name: 'WorkOrder',
       path: '/production/workorder',
       component: () => import('@/views/production/WorkOrder.vue')
-    }
+    },
     // 설비
     {
       name: 'Registration',
@@ -87,7 +102,7 @@ const MainRoutes = {
       name: 'modify',
       path: '/utils/modify',
       component: () => import('@/views/facility/EquipmentModify.vue')
-    }
+    },
 
     // 품질
     {
