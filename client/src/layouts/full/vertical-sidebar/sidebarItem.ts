@@ -255,15 +255,15 @@ const sidebarItem: menu[] = [
         children: [
           {
             title: '전체 조회',
-            to: '/dashboard/default'
+            to: '/utils/List'
           },
           {
             title: '설비 등록',
-            to: '/dashboard/default'
+            to: '/utils/Registration'
           },
           {
             title: '설비 수정',
-            to: '/dashboard/default'
+            to: '/utils/modify'
           }
         ]
       },
@@ -272,7 +272,7 @@ const sidebarItem: menu[] = [
         children: [
           {
             title: '전체 조회',
-            to: '/dashboard/default'
+            to: '/utils/status'
           },
           {
             title: '가동/비가동 관리',

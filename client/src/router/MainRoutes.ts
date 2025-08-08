@@ -66,6 +66,28 @@ const MainRoutes = {
       component: () => import('@/views/production/WorkOrder.vue')
     }
     // 설비
+    {
+      name: 'Registration',
+      path: '/utils/Registration',
+      component: () => import('@/views/facility/EquipmentRegistration.vue')
+    },
+
+    {
+      name: 'List',
+      path: '/utils/List',
+      component: () => import('@/views/facility/EquipmentList.vue')
+    },
+
+    {
+      name: 'status',
+      path: '/utils/status',
+      component: () => import('@/views/facility/EquipmentStatusList.vue')
+    },
+    {
+      name: 'modify',
+      path: '/utils/modify',
+      component: () => import('@/views/facility/EquipmentModify.vue')
+    }
 
     // 품질
     {

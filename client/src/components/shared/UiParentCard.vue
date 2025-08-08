@@ -13,7 +13,7 @@ const props = defineProps({
         <slot name="action"></slot>
       </div>
     </v-card-item>
-    <v-divider></v-divider>
+
     <v-card-text>
       <slot />
     </v-card-text>
