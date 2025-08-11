@@ -1,3 +1,4 @@
+<!-- 생산계획 관리 페이지 -->
 <template>
   <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs"></BaseBreadcrumb>
 
@@ -9,7 +10,7 @@
   </UiParentCard>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref, shallowRef } from 'vue';
 
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';

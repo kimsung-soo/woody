@@ -1,31 +1,29 @@
+<!-- 작업지시 관리 페이지 -->
 <template>
   <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs" />
-  <UiParentCard title="작업지시 등록">
-    <!-- 상단 기본정보 영역만 교체 -->
+
+  <!-- 제목줄 + 우측 버튼(커스텀 헤더) -->
+  <UiParentCard>
+    <div class="card-headline">
+      <h5 class="title">작업지시 등록</h5>
+      <v-btn color="warning" @click="openPlanDialog">계획서 조회</v-btn>
+    </div>
+
+    <!-- 상단 기본정보 -->
     <v-row class="mb-4">
-      <!-- 지시번호 -->
-      <v-col cols="3">
+      <v-col cols="4">
         <v-text-field label="지시번호" v-model="form.issueNumber" readonly dense outlined />
       </v-col>
 
-      <!-- 지시일자 -->
-      <v-col cols="3">
+      <v-col cols="4">
         <v-text-field label="지시일자" v-model="form.orderDate" type="date" dense outlined />
       </v-col>
 
-      <!-- 작성자 -->
-      <v-col cols="3">
+      <v-col cols="4">
         <v-text-field label="작성자" v-model="form.contact" dense outlined />
       </v-col>
 
-      <!-- 계획서 조회 버튼 -->
-      <v-col cols="3">
-        <div class="d-flex justify-end">
-          <v-btn color="warning" @click="openPlanDialog">계획서 조회</v-btn>
-        </div>
-      </v-col>
-
-      <!-- 아래 줄은 기존 그대로 -->
+      <!-- 다음 줄 -->
       <v-col cols="4">
         <v-text-field label="제품코드" v-model="form.productCode" readonly dense outlined />
       </v-col>
@@ -35,6 +33,7 @@
       <v-col cols="4">
         <v-text-field label="목표수량" v-model.number="form.targetQty" type="number" min="0" step="1" dense outlined @input="recalcNeed" />
       </v-col>
+
       <v-col cols="4">
         <v-text-field label="제품명칭" v-model="form.productName" readonly dense outlined />
       </v-col>
@@ -58,6 +57,7 @@
             />
           </div>
         </div>
+
         <ag-grid-vue
           class="ag-theme-quartz ag-no-wrap"
           :rowData="pagedProducts"
@@ -74,9 +74,8 @@
         />
       </section>
 
-      <!-- 우: 재공품현황 -> BOM목록 (버튼 없음) -->
+      <!-- 우: 재공품현황 -> BOM목록 -->
       <section class="pane right-pane">
-        <!-- 재공품현황 -->
         <div class="pane-head">
           <h5 class="pane-title">재공품현황</h5>
         </div>
@@ -93,12 +92,12 @@
           @grid-size-changed="sizeFitWip"
         />
 
-        <!-- BOM 목록 (아래, 우측 정렬) -->
+        <!-- BOM 목록 -->
         <div class="pane-head mt-6">
           <h5 class="pane-title">BOM목록</h5>
         </div>
         <ag-grid-vue
-          class="ag-theme-quartz ag-no-wrap"
+          class="ag-theme-quartz ag-no-wrap bom-grid"
           :rowData="pagedBom"
           :columnDefs="bomColDefs"
           :pagination="true"
@@ -119,7 +118,7 @@
     </v-row>
   </UiParentCard>
 
-  <!-- 계획서 모달 (그대로 사용 가능) -->
+  <!-- 계획서 모달 -->
   <v-dialog v-model="planDialog" width="90vw">
     <v-card class="plan-card">
       <v-card-title class="d-flex align-center justify-space-between">
@@ -141,34 +140,38 @@
           :columnDefs="planColDefs"
           :pagination="true"
           :paginationPageSize="PLAN_PAGE_SIZE"
+          :rowSelection="'multiple'"
+          :rowMultiSelectWithClick="true"
+          :suppressRowClickSelection="true"
           :domLayout="'autoHeight'"
           @grid-ready="onPlanGridReady"
           @first-data-rendered="sizeFitPlan"
           @grid-size-changed="sizeFitPlan"
+          @selection-changed="onPlanSelectionChanged"
         />
       </v-card-text>
       <v-card-actions class="justify-end">
-        <v-btn variant="tonal" @click="planDialog = false">닫기</v-btn>
-        <v-btn color="primary" @click="applyPlans">등록</v-btn>
+        <v-btn variant="flat" color="darkText" @click="planDialog = false">닫기</v-btn>
+        <v-btn variant="flat" color="success" @click="applyPlans">등록</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
 </template>
 
-<script setup lang="ts">
-import { ref, shallowRef, reactive, computed, watch, onMounted } from 'vue';
+<script setup>
+import { ref, shallowRef, reactive, computed, onMounted } from 'vue';
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
 import { AgGridVue } from 'ag-grid-vue3';
-import { themeQuartz } from 'ag-grid-community';
 
+/* ===== 페이지 타이틀 ===== */
 const page = ref({ title: '작업지시 관리' });
 const breadcrumbs = shallowRef([
   { title: '생산', disabled: true, href: '#' },
   { title: '작업지시 관리', disabled: false, href: '#' }
 ]);
 
-/* ===== 기본 폼 ===== */
+/* ===== 폼 ===== */
 const form = reactive({
   issueNumber: '',
   orderDate: '',
@@ -191,21 +194,8 @@ onMounted(() => {
   if (!form.orderDate) form.orderDate = new Date().toISOString().slice(0, 10);
 });
 
-/* ===== 데이터 & 페이지네이션 ===== */
-type Product = { code: string; name: string; uom: string; spec: string; type: string };
-type Wip = { type: string; qty: number; spec: string };
-type Bom = {
-  seq: number;
-  matCode: string;
-  matName: string;
-  matType: string;
-  perUnit: number;
-  spec: string;
-  wipQty: number;
-  needQty: number;
-};
-
-const products = ref<Product[]>([
+/* ===== 더미 데이터 ===== */
+const products = ref([
   { code: 'P001', name: '블랙 데스크', uom: 'EA', spec: '1200x600', type: '완제품' },
   { code: 'P002', name: '화이트 데스크', uom: 'EA', spec: '1200x600', type: '완제품' },
   { code: 'P003', name: '블랙 데스크(소형)', uom: 'EA', spec: '1000x600', type: '완제품' },
@@ -226,49 +216,51 @@ const products = ref<Product[]>([
   { code: 'P018', name: '유리 테이블', uom: 'EA', spec: '1000x600', type: '완제품' }
 ]);
 
-const bomMap: Record<string, Bom[]> = {
+const bomMap = {
   P001: [
     { seq: 1, matCode: 'PP12', matName: '상판', matType: '원자재', perUnit: 1, spec: '1200x600', wipQty: 3, needQty: 0 },
     { seq: 2, matCode: 'PP48', matName: '다리', matType: '부자재', perUnit: 4, spec: '-', wipQty: 8, needQty: 0 },
     { seq: 3, matCode: 'SC01', matName: '나사세트', matType: '부자재', perUnit: 12, spec: 'M6', wipQty: 30, needQty: 0 }
   ]
 };
-const wipMap: Record<string, Wip[]> = {
+const wipMap = {
   P001: [
     { type: '원목', qty: 10, spec: '800x400' },
     { type: '합판', qty: 12, spec: '1000x600' }
   ]
 };
-const makeDefaultBom = (p: Product): Bom[] => [
+const makeDefaultBom = (p) => [
   { seq: 1, matCode: `${p.code}-TOP`, matName: '상판', matType: '원자재', perUnit: 1, spec: p.spec, wipQty: 0, needQty: 0 },
   { seq: 2, matCode: `${p.code}-LEG`, matName: '다리', matType: '부자재', perUnit: 4, spec: '-', wipQty: 0, needQty: 0 }
 ];
-const makeDefaultWip = (p: Product): Wip[] => [{ type: '원목', qty: 0, spec: p.spec }];
+const makeDefaultWip = (p) => [{ type: '원목', qty: 0, spec: p.spec }];
 
+/* ===== 검색/페이징 ===== */
 const productKeyword = ref('');
 const PROD_PAGE_SIZE = 10;
+const SUB_PAGE_SIZE = 3;
+const PLAN_PAGE_SIZE = 10;
+
 const filteredProducts = computed(() => {
   const kw = productKeyword.value.trim().toLowerCase();
   if (!kw) return products.value;
   return products.value.filter((p) => p.code.toLowerCase().includes(kw) || p.name.toLowerCase().includes(kw));
 });
-const pagedProducts = computed(() => filteredProducts.value); // ag-grid 자체 pagination 사용
-function doProductSearch() {
-  /* 페이지는 AG가 관리 */
-}
+const pagedProducts = computed(() => filteredProducts.value);
+function doProductSearch() {}
 
-const wipRows = ref<Wip[]>([]);
-const bomRows = ref<Bom[]>([]);
-const SUB_PAGE_SIZE = 3;
+/* 목록 상태 */
+const wipRows = ref([]);
+const bomRows = ref([]);
 const pagedWip = computed(() => wipRows.value);
 const pagedBom = computed(() => bomRows.value);
 
+/* ===== 계산 ===== */
 function recalcNeed() {
   const target = Number(form.targetQty || 0);
   bomRows.value = bomRows.value.map((b) => ({ ...b, needQty: Math.max(0, target * b.perUnit - (b.wipQty || 0)) }));
 }
-
-function loadByProductCode(code: string) {
+function loadByProductCode(code) {
   const p = products.value.find((x) => x.code === code);
   if (!p) return;
   form.productCode = p.code;
@@ -278,23 +270,15 @@ function loadByProductCode(code: string) {
   recalcNeed();
 }
 
-/* 제품 선택 이벤트 */
-function onProductSelected(ev: any) {
-  const row = ev.api.getSelectedRows?.()[0];
-  if (row?.code) {
-    loadByProductCode(row.code);
-  }
-}
-
-/* ===== AG Grid 컬럼 정의 (말줄임 + 툴팁 + 정렬) ===== */
+/* ===== AG Grid 컬럼 ===== */
 const textCell = {
   cellStyle: { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  tooltipValueGetter: (p: any) => p.value
+  tooltipValueGetter: (p) => p.value
 };
 const numRight = {
   ...textCell,
   cellClass: 'ag-right-aligned-cell',
-  valueFormatter: (p: any) => ((p.value ?? p.value === 0) ? String(p.value) : '')
+  valueFormatter: (p) => (p.value == null ? '' : String(p.value))
 };
 
 const productColDefs = [
@@ -312,35 +296,50 @@ const wipColDefs = [
 ];
 
 const bomColDefs = [
-  { headerName: '순번', field: 'seq', flex: 0.5, minWidth: 70, ...numRight },
-  { headerName: '자재코드', field: 'matCode', flex: 1.2, minWidth: 120, ...textCell },
-  { headerName: '자재명', field: 'matName', flex: 1.4, minWidth: 140, ...textCell },
-  { headerName: '자재유형', field: 'matType', flex: 0.9, minWidth: 100, ...textCell },
-  { headerName: '단위별수량', field: 'perUnit', flex: 0.8, minWidth: 110, ...numRight },
+  { headerName: '순번', field: 'seq', flex: 0.5, minWidth: 60, ...numRight },
+  { headerName: '자재코드', field: 'matCode', flex: 1.1, minWidth: 110, ...textCell },
+  { headerName: '자재명', field: 'matName', flex: 1.2, minWidth: 110, ...textCell },
+  { headerName: '자재유형', field: 'matType', flex: 0.9, minWidth: 90, ...textCell },
+  { headerName: '단위별수량', field: 'perUnit', flex: 0.8, minWidth: 90, ...numRight },
   { headerName: '규격', field: 'spec', flex: 1.0, minWidth: 110, ...textCell },
-  { headerName: '재공수량', field: 'wipQty', flex: 0.8, minWidth: 100, ...numRight },
-  { headerName: '필요수량', field: 'needQty', flex: 0.8, minWidth: 100, ...numRight }
+  { headerName: '재공수량', field: 'wipQty', flex: 0.8, minWidth: 90, ...numRight },
+  { headerName: '필요수량', field: 'needQty', flex: 0.8, minWidth: 90, ...numRight }
 ];
 
-/* ===== 각 그리드 sizeToFit ===== */
-let productApi: any, wipApi: any, bomApi: any, planApi: any;
-function sizeFit(api: any) {
+const planColDefs = [
+  { headerName: '', checkboxSelection: true, headerCheckboxSelection: true, width: 70 },
+  { headerName: '순번', field: 'seq', width: 80, ...numRight },
+  { headerName: '계획번호', field: 'planNo', minWidth: 140, flex: 1, ...textCell },
+  { headerName: '계획명', field: 'planName', minWidth: 140, flex: 1, ...textCell },
+  { headerName: '주문코드', field: 'orderNo', minWidth: 120, ...textCell },
+  { headerName: '제품코드', field: 'productCode', minWidth: 120, ...textCell },
+  { headerName: '제품명', field: 'productName', minWidth: 140, flex: 1, ...textCell },
+  { headerName: '유형', field: 'productType', width: 100, ...textCell },
+  { headerName: '작성일시', field: 'createdAt', minWidth: 120, ...textCell },
+  { headerName: '작성자', field: 'writer', width: 100, ...textCell },
+  { headerName: '총수량', field: 'totalQty', width: 110, ...numRight },
+  { headerName: '납기일자', field: 'dueDate', minWidth: 120, ...textCell }
+];
+
+/* ===== sizeToFit ===== */
+let productApi, wipApi, bomApi, planApi;
+function sizeFit(api) {
   if (api) api.sizeColumnsToFit();
 }
-function onProductGridReady(params: any) {
-  productApi = params.api;
+function onProductGridReady(e) {
+  productApi = e.api;
   sizeFitProduct();
 }
-function onWipGridReady(params: any) {
-  wipApi = params.api;
+function onWipGridReady(e) {
+  wipApi = e.api;
   sizeFitWip();
 }
-function onBomGridReady(params: any) {
-  bomApi = params.api;
+function onBomGridReady(e) {
+  bomApi = e.api;
   sizeFitBom();
 }
-function onPlanGridReady(params: any) {
-  planApi = params.api;
+function onPlanGridReady(e) {
+  planApi = e.api;
   sizeFitPlan();
 }
 function sizeFitProduct() {
@@ -356,26 +355,16 @@ function sizeFitPlan() {
   sizeFit(planApi);
 }
 
-/* ===== 계획서 모달 (체크/연동) ===== */
-type PlanRow = {
-  id: string;
-  seq: number;
-  planNo: string;
-  planName: string;
-  orderNo: string;
-  productCode: string;
-  productName: string;
-  productType: string;
-  createdAt: string;
-  writer: string;
-  totalQty: number;
-  dueDate: string;
-};
+/* ===== 선택 이벤트 ===== */
+function onProductSelected(e) {
+  const row = (e.api.getSelectedRows?.() ?? [])[0];
+  if (row?.code) loadByProductCode(row.code);
+}
+
+/* ====== 계획서 모달 ====== */
 const planDialog = ref(false);
 const planKeyword = ref('');
-const PLAN_PAGE_SIZE = 10;
-
-const plans = ref<PlanRow[]>([
+const plans = ref([
   {
     id: '1',
     seq: 1,
@@ -418,8 +407,8 @@ const plans = ref<PlanRow[]>([
     totalQty: 150,
     dueDate: '2025-07-21'
   }
-  // ... (필요 시 더 추가)
 ]);
+
 const filteredPlans = computed(() => {
   const kw = planKeyword.value.trim().toLowerCase();
   if (!kw) return plans.value;
@@ -429,14 +418,30 @@ const filteredPlans = computed(() => {
 });
 const pagedPlans = computed(() => filteredPlans.value);
 
-const checkedPlanIds = ref<string[]>([]);
-function doPlanSearch() {
-  /* ag pagination */
-}
+const checkedPlanIds = ref([]);
+function doPlanSearch() {}
 function openPlanDialog() {
   checkedPlanIds.value = [];
   planKeyword.value = '';
   planDialog.value = true;
+}
+function onPlanSelectionChanged(e) {
+  const selected = e.api.getSelectedRows();
+  if (selected.length === 0) {
+    checkedPlanIds.value = [];
+    return;
+  }
+  const first = selected[0];
+  const invalid = selected.filter((r) => r.productCode !== first.productCode || r.productType !== first.productType);
+  if (invalid.length) {
+    e.api.forEachNode((node) => {
+      if (node.isSelected() && (node.data.productCode !== first.productCode || node.data.productType !== first.productType)) {
+        node.setSelected(false);
+      }
+    });
+    alert('같은 제품/유형만 복수 선택 가능합니다.');
+  }
+  checkedPlanIds.value = e.api.getSelectedRows().map((r) => r.id);
 }
 function applyPlans() {
   if (checkedPlanIds.value.length === 0) {
@@ -455,23 +460,24 @@ function applyPlans() {
   planDialog.value = false;
 }
 
-/* 저장/리셋 */
+/* ===== 저장/리셋 ===== */
 function submitForm() {
   if (!form.issueNumber) form.issueNumber = genIssueNo();
-  if (!form.orderDate || !form.productCode || !form.productName || !form.dueDate) {
-    alert('필수 항목이 비어있습니다. (지시일자, 제품, 납기일자)');
+  if (!form.orderDate || !form.productCode || !form.productName || !form.dueDate || !form.contact?.trim()) {
+    alert('필수 항목이 비어있습니다. (지시일자, 제품, 납기일자, 작성자)');
     return;
   }
   if (!form.targetQty || form.targetQty <= 0) {
     alert('목표수량을 1 이상으로 입력하세요.');
     return;
   }
-  console.log('저장', { form: { ...form }, wip: wipRows.value, bom: bomRows.value });
+  console.log('저장', { form: { ...form }, wip: wipRows.value, bom: bomRows.value, selectedPlanIds: checkedPlanIds.value });
   alert('저장(목업). 콘솔 확인!');
 }
 function resetForm() {
   form.issueNumber = genIssueNo();
   form.orderDate = new Date().toISOString().slice(0, 10);
+  form.contact = '';
   form.productCode = '';
   form.productName = '';
   form.dueDate = '';
@@ -482,6 +488,20 @@ function resetForm() {
 </script>
 
 <style scoped>
+/* 제목줄 + 버튼 */
+.card-headline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.card-headline .title {
+  margin: 0;
+  font-weight: 600;
+}
+
+/* 2열 레이아웃 */
 .main-2col {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -491,8 +511,9 @@ function resetForm() {
   width: 100%;
 }
 .right-pane {
-  justify-self: end; /* 우측 정렬 느낌 유지 */
+  justify-self: end;
 }
+
 .pane-head {
   display: flex;
   align-items: center;
@@ -512,8 +533,7 @@ function resetForm() {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
-/* Quartz 테마 높이 자동 */
+/* Quartz 테마 밀도 */
 .ag-theme-quartz {
   --ag-font-size: 12px;
   --ag-grid-size: 4px;
