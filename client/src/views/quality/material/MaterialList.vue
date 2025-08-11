@@ -206,17 +206,23 @@ const rowData: Ref<Row[]> = ref([
 ]);
 
 const colDefs: Ref<ColDef<Row>[]> = ref([
-  { headerName: '검사번호', field: 'inspectionNo', minWidth: 130 },
-  { headerName: '입고번호', field: 'receiptNo', minWidth: 120 },
-  { headerName: '자재코드', field: 'materialCode', minWidth: 120 },
-  { headerName: '자재명', field: 'materialName', minWidth: 120 },
-  { headerName: '수량', field: 'qty', type: 'rightAligned' },
-  { headerName: '단가', field: 'unitPrice', type: 'rightAligned', valueFormatter: (p) => (p.value ?? 0).toLocaleString() },
-  { headerName: '금액', field: 'amount', type: 'rightAligned', valueFormatter: (p) => (p.value ?? 0).toLocaleString() },
-  { headerName: '발주일자', field: 'orderDate', minWidth: 120 },
-  { headerName: '납기일자', field: 'dueDate', minWidth: 120 },
-  { headerName: '처리상태', field: 'status', minWidth: 100 },
-  { headerName: '검수확인인', field: 'inspector', minWidth: 110 }
+  { headerName: '검사번호', field: 'inspectionNo', minWidth: 130, resizable: false },
+  { headerName: '입고번호', field: 'receiptNo', minWidth: 120, resizable: false },
+  { headerName: '자재코드', field: 'materialCode', minWidth: 120, resizable: false },
+  { headerName: '자재명', field: 'materialName', minWidth: 120, resizable: false },
+  { headerName: '수량', field: 'qty', type: 'rightAligned', resizable: false },
+  {
+    headerName: '단가',
+    field: 'unitPrice',
+    type: 'rightAligned',
+    valueFormatter: (p) => (p.value ?? 0).toLocaleString(),
+    resizable: false
+  },
+  { headerName: '금액', field: 'amount', type: 'rightAligned', valueFormatter: (p) => (p.value ?? 0).toLocaleString(), resizable: false },
+  { headerName: '발주일자', field: 'orderDate', minWidth: 120, resizable: false },
+  { headerName: '납기일자', field: 'dueDate', minWidth: 120, resizable: false },
+  { headerName: '처리상태', field: 'status', minWidth: 100, resizable: false },
+  { headerName: '검수확인인', field: 'inspector', minWidth: 110, resizable: false }
 ]);
 
 // ----- 상단 필터를 적용한 그리드 데이터 -----

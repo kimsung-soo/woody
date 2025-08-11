@@ -1,143 +1,235 @@
 <template>
   <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs" />
-  <UiParentCard title="원자재 검수관리 등록">
-    <!-- 검사 기준표 -->
-    <v-table class="mb-4" density="compact">
-      <thead>
-        <tr>
-          <th class="text-center" width="120">검사명</th>
-          <th class="text-center">허용수치</th>
-          <th class="text-center">미달수치</th>
-          <th class="text-center" width="120">판정</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="(item, i) in criteria" :key="i">
-          <td class="text-center">{{ item.label }}</td>
-          <td>{{ item.allow }}</td>
-          <td>{{ item.reject }}</td>
-          <td>
-            <v-radio-group v-model="item.result" row>
-              <v-radio label="합격" value="합격" />
-              <v-radio label="불합격" value="불합격" />
-            </v-radio-group>
-          </td>
-        </tr>
-      </tbody>
-    </v-table>
-    <!-- 처리 상태 -->
-    <v-row dense>
-      <v-col>
-        <v-radio-group v-model="status" row>
-          <v-radio label="합격" value="합격" />
-          <v-radio label="불합격" value="불합격" />
-        </v-radio-group>
+
+  <UiParentCard>
+    <!-- 상단 버튼 -->
+    <v-row justify="end" class="mb-2">
+      <v-btn color="warning" class="top_btn_ser" variant="elevated" @click="goNext">다음</v-btn>
+      <v-btn color="error" class="top_btn_ser" variant="elevated" @click="resetForm">초기화</v-btn>
+      <v-btn color="primary" class="top_btn_ser" @click="saveForm">등록</v-btn>
+    </v-row>
+
+    <!-- 1) 검사기준 그리드 (체크박스=합격 여부) -->
+    <ag-grid-vue
+      :rowData="criteriaRows"
+      :columnDefs="criteriaCols"
+      :gridOptions="criteriaGridOptions"
+      :theme="quartz"
+      style="height: 280px; width: 100%"
+    />
+
+    <!-- 최종처리 (computed) -->
+    <v-row class="my-4">
+      <v-col cols="12" class="py-1">
+        <div class="d-flex align-center">
+          <h5 class="mr-4">최종처리</h5>
+          <!-- <v-radio-group :model-value="finalStatus" inline disabled>
+            <v-radio label="합격" value="합격" density="compact" />
+            <v-radio label="불합격" value="불합격" density="compact" />
+          </v-radio-group> -->
+          <!-- <div v-if="finalStatus">
+            <v-radio label="합격" value="합격" density="compact" disabled />
+            <v-else />
+            <v-radio label="불합격" value="불합격" density="compact" disabled />
+          </div> -->
+          <v-row class="my-4">
+            <v-col cols="12" class="py-1">
+              <div class="d-flex align-center">
+                <h5 class="mr-4">최종처리</h5>
+                <v-chip :color="finalStatus == '불합격' ? 'error' : finalStatus == '합격' ? 'primary' : undefined">
+                  {{ finalStatus || '' }}</v-chip
+                >
+              </div>
+            </v-col>
+          </v-row>
+        </div>
       </v-col>
     </v-row>
-    <!-- 입력폼 하단 -->
-    <v-table density="compact">
-      <thead>
-        <tr>
-          <th>원자재검사번호</th>
-          <th>입고번호</th>
-          <th>원자재코드</th>
-          <th>원자재명</th>
-          <th>총수량</th>
-          <th>합격수량</th>
-          <th>작성자</th>
-          <th>입고일자</th>
-          <th>검사완료일자</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><v-text-field v-model="form.id" dense readonly variant="plain" /></td>
-          <td><v-text-field v-model="form.inNo" dense readonly variant="plain" /></td>
-          <td><v-text-field v-model="form.materialCode" dense readonly variant="plain" /></td>
-          <td><v-text-field v-model="form.materialName" dense readonly variant="plain" /></td>
-          <td><v-text-field v-model="form.totalQty" dense readonly variant="plain" /></td>
-          <td><v-text-field v-model="form.passQty" dense readonly variant="plain" /></td>
-          <td><v-text-field v-model="form.user" dense readonly variant="plain" /></td>
-          <td><v-text-field v-model="form.inDate" dense readonly variant="plain" /></td>
-          <td><v-text-field v-model="form.doneDate" dense readonly variant="plain" /></td>
-        </tr>
-      </tbody>
-    </v-table>
-    <!-- 버튼 -->
-    <v-row class="mt-4" justify="end">
-      <v-btn color="error" variant="outlined" class="mr-2" @click="resetForm">초기화</v-btn>
-      <v-btn color="primary" @click="saveForm">등록</v-btn>
-    </v-row>
+
+    <!-- 2) 하단 입력 그리드(1행) -->
+    <ag-grid-vue
+      :rowData="detailRows"
+      :columnDefs="detailCols"
+      :gridOptions="detailGridOptions"
+      :theme="quartz"
+      style="height: 160px; width: 100%"
+    />
   </UiParentCard>
 </template>
 
 <script setup lang="ts">
-import { ref, shallowRef, reactive } from 'vue';
+import { ref, shallowRef, computed } from 'vue';
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
 
-const page = ref({ title: '원자재' });
+import { AgGridVue } from 'ag-grid-vue3';
+import {
+  ModuleRegistry,
+  themeQuartz,
+  type ColDef,
+  type GridOptions,
+  ClientSideRowModelModule,
+  RowSelectionModule,
+  ValidationModule,
+  CheckboxEditorModule
+} from 'ag-grid-community';
+
+// 모듈 등록 (Composition API)
+ModuleRegistry.registerModules([
+  ClientSideRowModelModule,
+  RowSelectionModule,
+  CheckboxEditorModule,
+
+  ...(import.meta.env.PROD ? [] : [ValidationModule])
+]);
+const quartz = themeQuartz;
+
+/* breadcrumb */
+const page = ref({ title: '원자재 검수관리 등록' });
 const breadcrumbs = shallowRef([
   { title: '품질', disabled: true, href: '#' },
   { title: '원자재 검수관리 등록', disabled: false, href: '#' }
 ]);
 
-// 검사 기준 항목 (여기서 직접 라벨, 허용/미달 값 세팅)
-const criteria = reactive([
+/* ------------ 1) 검사기준 그리드 ------------ */
+/** 체크박스: true=합격, false=불합격(기본) */
+type CriterionRow = {
+  label: string;
+  allow: string;
+  pass: number;
+};
+
+const criteriaRows = ref<CriterionRow[]>([
+  { label: '함수율', allow: '수분 함량 12~15% (KS범위)', pass: 0 },
+  { label: '외관결점', allow: '옹이≤150mm, 활결≤50%, 전체길이 1% 이내', pass: 0 },
+  { label: '치수정밀도', allow: '입고자재 ±2mm 이내', pass: 0 },
+  { label: '강도', allow: 'KS F 2207, 횡강도 ≥ 35MPa', pass: 0 },
+  { label: '외관/표면 결함', allow: '육안확인 시 결점 없음', pass: 0 }
+]);
+
+/** 컬럼: pass 칼럼만 체크박스 에디터/렌더러 */
+const criteriaCols = ref<ColDef<CriterionRow>[]>([
+  { headerName: '검사기준', field: 'label', width: 160, editable: false },
+  { headerName: '허용수치', field: 'allow', flex: 1, editable: false },
   {
-    label: '함수율',
-    allow: '수분 함량이 12 ~ 15% 이하(KS 기준 범위)',
-    reject: '수분 함량이 15% 초과',
-    result: ''
-  },
-  {
-    label: '외관결점',
-    allow: '옹이 지름 150MM 이하, 활결 길이 50% 이하, 활 전체길이의 1% 이하',
-    reject: '셋 수치 모두 해당 수치 초과',
-    result: ''
-  },
-  {
-    label: '치수정밀도',
-    allow: '입고자재에서 ± 2mm 이내',
-    reject: '입고자재에서 ± 2mm 초과',
-    result: ''
-  },
-  {
-    label: '강도',
-    allow: 'KS F 2207(압축, 인장, 휨 등 강도 시험법)에 의거 횡강도 35MPa 이상',
-    reject: '횡강도 35MPa 미만',
-    result: ''
-  },
-  {
-    label: '외관/표면 결함',
-    allow: '외관, 흠집, 기포, 오염에 대해 육안확인 시 결점이 없음',
-    reject: '외관, 흠집, 기포, 오염에 대해 육안확인 시 결점이 보임',
-    result: ''
+    headerName: '처리상태',
+    field: 'pass',
+    width: 150,
+    editable: false, // 숫자 토글은 클릭 이벤트로 처리
+    cellRenderer: (p: any) => {
+      const checked = p.value === 1 ? 'checked' : '';
+      return `<input type="checkbox" ${checked} />`;
+    },
+    onCellClicked: (p) => {
+      const cur = Number(p.value);
+      const next = cur === 1 ? 0 : 1; // 1 ↔ 0 토글
+      p.node.setDataValue('pass', next);
+    }
   }
 ]);
 
-// 하단 폼
-const form = reactive({
-  id: '(자동입력)',
-  inNo: '(자동입력)',
-  materialCode: '(자동입력)',
-  materialName: '(자동입력)',
-  totalQty: 40,
-  passQty: 30,
-  user: '사람1',
-  inDate: '2025-07-30',
-  doneDate: '2025-07-30'
+/** 그리드 옵션: 한 번 클릭으로 편집/토글 */
+const criteriaGridOptions = ref<GridOptions<CriterionRow>>({
+  defaultColDef: { resizable: true, minWidth: 120 },
+  autoSizeStrategy: { type: 'fitGridWidth' },
+  rowSelection: 'single',
+  singleClickEdit: true, // 한 번 클릭으로 체크
+  stopEditingWhenCellsLoseFocus: true
 });
 
-const status = ref('합격');
+/** 최종처리(computed): 하나라도 false면 불합격, 전부 true면 합격, 그 외 '' */
+const finalStatus = computed<'합격' | '불합격' | ''>(() => {
+  const rows = criteriaRows.value;
+  if (!rows.length) return '';
+  if (rows.some((r) => r.pass == 0)) return '불합격';
+  if (rows.every((r) => r.pass == 1)) return '합격';
+  return ''; // (ex. 일부 null 또는 섞여있으면 미정)
+});
 
+/* ------------ 2) 하단 입력 그리드(1행) ------------ */
+type DetailRow = {
+  id: string;
+  inNo: string;
+  materialCode: string;
+  materialName: string;
+  totalQty: number;
+  passQty: number;
+  user: string;
+  inDate: string;
+  doneDate: string;
+};
+
+const detailRows = ref<DetailRow[]>([
+  {
+    id: '(자동입력)',
+    inNo: '(자동입력)',
+    materialCode: '(자동입력)',
+    materialName: '(자동입력)',
+    totalQty: 40,
+    passQty: 30,
+    user: '사람1',
+    inDate: '2025-07-30',
+    doneDate: '2025-07-30'
+  }
+]);
+
+const detailCols = ref<ColDef<DetailRow>[]>([
+  { headerName: '원자재검사번호', field: 'id', width: 170, editable: false },
+  { headerName: '입고번호', field: 'inNo', width: 140, editable: false },
+  { headerName: '원자재코드', field: 'materialCode', width: 150, editable: false },
+  { headerName: '원자재명', field: 'materialName', width: 160, editable: false },
+  { headerName: '총수량', field: 'totalQty', width: 110, editable: true, valueParser: numParser },
+  { headerName: '합격수량', field: 'passQty', width: 110, editable: true, valueParser: numParser },
+  { headerName: '작성자', field: 'user', width: 120, editable: true },
+  { headerName: '입고일자', field: 'inDate', width: 140, editable: true },
+  { headerName: '검사완료일자', field: 'doneDate', width: 140, editable: true }
+]);
+
+function numParser(p: any) {
+  const v = Number(String(p.newValue).replace(/,/g, '').trim());
+  return Number.isFinite(v) ? v : p.oldValue;
+}
+
+const detailGridOptions = ref<GridOptions<DetailRow>>({
+  defaultColDef: { resizable: true, minWidth: 110 },
+  autoSizeStrategy: { type: 'fitGridWidth' }
+});
+
+/* ------------ 버튼 로직 ------------ */
 function resetForm() {
-  criteria.forEach((c) => (c.result = ''));
-  status.value = '합격';
+  criteriaRows.value.forEach((r) => r.pass == 0); // 기본값=불합격
+  const r = detailRows.value[0];
+  r.totalQty = 0;
+  r.passQty = 0;
+  r.user = '';
+  r.inDate = '';
+  r.doneDate = '';
 }
 
 function saveForm() {
-  // 실제 저장 로직
+  const r = detailRows.value[0];
+  if (r.passQty > r.totalQty) return alert('합격수량이 총수량을 초과할 수 없습니다.');
+  console.log('payload', {
+    criteria: criteriaRows.value,
+    status: finalStatus.value, // ← 자동 결과
+    detail: r
+  });
   alert('등록되었습니다!');
 }
+
+function goNext() {
+  alert('다음 단계로 이동합니다.');
+}
 </script>
+
+<style scoped>
+.top_btn_ser {
+  margin-left: 8px;
+}
+.fw-600 {
+  font-weight: 600;
+}
+.mr-4 {
+  margin-right: 16px;
+}
+</style>

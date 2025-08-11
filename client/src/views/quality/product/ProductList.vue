@@ -7,7 +7,6 @@
       :rowData="rowData"
       @grid-ready="onGridReady"
     >
-      <ag-grid-vue :rowData="rowData" :columnDefs="colDefs" :theme="quartz" style="height: 200px" />
     </ag-grid-vue>
   </div>
 </template>
@@ -20,7 +19,7 @@ import UiParentCard from '@/components/shared/UiParentCard.vue';
 import { AllCommunityModule, ModuleRegistry, themeQuartz, type ColDef } from 'ag-grid-community';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
-const quartz = themeQuartz;
+
 export default {
   components: {
     'ag-grid-vue': AgGridVue

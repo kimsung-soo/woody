@@ -19,7 +19,7 @@
         rowSelection="single"
         @cellValueChanged="onCellValueChanged"
         class="ag-theme-quartz"
-        style="height: 500px"
+        style="height: 360px"
       />
     </div>
 
