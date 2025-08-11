@@ -13,15 +13,14 @@
         >
           <!--  :defaultColDef="{ width: 150 }" 로 전체 width지정도가능-->
         </ag-grid-vue>
-        <br />
+        <br /><br />
         <h5>BOM목록</h5>
         <div class="btn-list">
-          <v-row justify="end">
+          <v-row justify="end" class="mb-2 w-100">
             <v-btn color="error" class="mr-2" @click="del">삭제</v-btn>
-            <v-btn color="primary" class="mr-4" @click="add">등록</v-btn>
+            <v-btn color="primary" @click="add">등록</v-btn>
           </v-row>
         </div>
-        <br />
         <ag-grid-vue
           :rowData="rowData2"
           :columnDefs="colDefs2"
@@ -48,18 +47,27 @@
         </div>
         <br />
         <h5>자재목록</h5>
-        <v-btn color="warning" class="mr-2" @click="openModal('자재 조회', materialRowData, materialColDefs)" style="margin-bottom: 2rem"
-          >자재 조회
-        </v-btn>
-        <MoDal ref="modalRef" :title="modalTitle" :rowData="modalRowData" :colDefs="modalColDefs" />
-        <ag-grid-vue
-          :rowData="rowData3"
-          :columnDefs="colDefs3"
-          :theme="quartz"
-          style="height: 200px; width: 100%"
-          @cell-value-changed="onCellValueChanged"
-        >
-        </ag-grid-vue>
+        <div class="btn-list">
+          <v-row justify="end">
+            <v-btn
+              color="warning"
+              class="mr-4"
+              @click="openModal('자재 조회', materialRowData, materialColDefs)"
+              style="margin-bottom: 2rem"
+              >자재 조회
+            </v-btn>
+          </v-row>
+
+          <MoDal ref="modalRef" :title="modalTitle" :rowData="modalRowData" :colDefs="modalColDefs" @confirm="modalConfirm" />
+          <ag-grid-vue
+            :rowData="rowData3"
+            :columnDefs="colDefs3"
+            :theme="quartz"
+            style="height: 200px; width: 100%"
+            @cell-value-changed="onCellValueChanged"
+          >
+          </ag-grid-vue>
+        </div>
       </div>
     </div>
   </UiParentCard>
@@ -78,24 +86,7 @@ const quartz = themeQuartz;
 
 const form = ref({ writer: '' }, { addDate: '' });
 
-//모달 value들
-const modalRef = ref(null);
-const modalTitle = ref('');
-const modalRowData = ref([]);
-const modalColDefs = ref([]);
-const materialColDefs = [
-  { field: 'code', headerName: '자재코드', flex: 2 },
-  { field: 'Name', headerName: '자재명', flex: 2 },
-  { field: 'Type', headerName: '자재유형', flex: 2 },
-  { field: 'Qty', headerName: '수량', flex: 1 },
-  { field: 'unit', headerName: '단위', flex: 1 }
-];
-const materialRowData = ref([
-  { code: 'ABC-001', Name: '나사', Type: '부자재', Qty: 100, unit: 'EA' },
-  { code: 'XYZ-002', Name: '강철판', Type: '원자재', Qty: 10, unit: 'KG' }
-]);
-
-// **수정 3: rowData1 데이터 통일 및 빈 객체 삭제**
+// 제품 리스트
 const rowData1 = ref([
   { 제품명: 'Tesla', model: 'Model Y', price: 64950, 등록일: '' },
   { 제품명: 'Ford', model: 'F-Series', price: 33850, 등록일: '' }
@@ -103,12 +94,13 @@ const rowData1 = ref([
 
 const colDefs1 = ref([
   { field: '✅', width: 50, cellRenderer: 'agCheckboxCellRenderer', cellEditor: 'agCheckboxCellEditor', editable: true },
-  { field: '제품명', editable: true, width: 100 },
-  { field: 'model', width: 100 },
-  { field: 'price', width: 100 },
+  { field: '제품명', editable: true, width: 150 },
+  { field: 'model', width: 150 },
+  { field: 'price', width: 150 },
   { field: '등록일', width: 110, editable: true }
 ]);
 
+// BOM 리스트
 const rowData2 = ref([
   { 제품명: 'Tesla', model: 'Model Y', price: 64950, 등록일: '' },
   { 제품명: 'Ford', model: 'F-Series', price: 33850, 등록일: '' }
@@ -119,9 +111,10 @@ const colDefs2 = ref([
   { field: '제품명', editable: true, width: 100 },
   { field: 'model', width: 100 },
   { field: 'price', width: 100 },
-  { field: '등록일', width: 100, editable: true, cellDataType: 'date' }
+  { field: '등록일', width: 100, editable: true }
 ]);
 
+// 자재 리스트
 const rowData3 = ref([
   { 자재코드: 'Tesla', 자재명: 'Model Y', 자재유형: '원자재', 수량: 1, 단위: 'EA' },
   { 자재코드: 'Ford', 자재명: 'F-Series', 자재유형: '부자재', 수량: 2, 단위: 'EA' }
@@ -156,6 +149,7 @@ const onCellValueChanged = (event) => {
 };
 
 const submitForm = () => {
+  // rowData1 배열에 새로운 행을 추가합니다.
   const newRow = {
     '✅': false,
     제품명: form.value.writer,
@@ -163,9 +157,7 @@ const submitForm = () => {
     price: 0, // 필요에 따라 기본값 설정
     등록일: form.value.addDate
   };
-
-  // rowData1 배열에 새로운 행을 추가합니다.
-  rowData1.value.push(newRow);
+  rowData2.value.push(newRow);
 
   // 폼 데이터를 초기화합니다.
   resetForm();
@@ -178,6 +170,25 @@ const resetForm = () => {
     addDate: ''
   };
 };
+
+//모달 value들
+const modalRef = ref(null);
+const modalTitle = ref('');
+const modalRowData = ref([]);
+const modalColDefs = ref([]);
+const materialColDefs = [
+  { field: '자재코드', headerName: '자재코드', flex: 2 },
+  { field: '자재명', headerName: '자재명', flex: 2 },
+  { field: '자재유형', headerName: '자재유형', flex: 2 },
+  { field: '수량', headerName: '수량', flex: 1 },
+  { field: '단위', headerName: '단위', flex: 1 }
+];
+const materialRowData = ref([
+  { 자재코드: 'ABC-001', 자재명: '나사', 자재유형: '부자재', 수량: 100, 단위: 'EA' },
+  { 자재코드: 'XYZ-002', 자재명: '강철판', 자재유형: '원자재', 수량: 10, 단위: 'KG' }
+]);
+
+//모달 열때 데이터값 자식컴포넌트로
 const openModal = (title, rowData, colDefs) => {
   modalTitle.value = title;
   modalRowData.value = rowData;
@@ -186,22 +197,37 @@ const openModal = (title, rowData, colDefs) => {
     modalRef.value.open();
   }
 };
+
+// 모달에서 확인시 행추가
+const modalConfirm = (selectedRow) => {
+  console.log(selectedRow);
+  rowData3.value.push(selectedRow);
+};
 </script>
 
 <style scoped>
 .main-container {
   display: flex;
-  gap: 20px; /* 목록과 폼 사이에 간격을 줍니다 */
-  margin-right: 20;
+  gap: 20px; /* 두 컨테이너 사이의 간격 */
+  padding: 0 10px;
 }
 
 .list-container {
-  width: 500px; /* 남은 공간을 모두 차지하도록 합니다 */
+  flex: 1 1 50%; /* flex-grow: 1, flex-shrink: 1, flex-basis: 50% */
+  min-width: 400px;
 }
+
+.form-wrapper {
+  flex: 1 1 50%; /* list-container와 동일하게 공간을 차지 */
+  min-width: 400px;
+}
+
+/* 아래는 필요에 따라 수정 */
 .add {
-  width: 500px;
+  /* 이 컨테이너는 부모인 .form-wrapper의 너비를 따릅니다. */
 }
+
 .btn-list {
-  margin-left: 20px;
+  /* 이 컨테이너도 부모의 너비를 따릅니다. */
 }
 </style>
