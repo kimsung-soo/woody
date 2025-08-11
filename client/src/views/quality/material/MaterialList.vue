@@ -1,163 +1,260 @@
 <template>
   <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs"></BaseBreadcrumb>
 
-  <UiParentCard title="원자재 검수 조회">
+  <UiParentCard>
     <v-row class="mb-4">
-      <v-col cols="6">
+      <v-col cols="3">
         <v-text-field label="원자재명" v-model="form.supplier" dense outlined />
       </v-col>
-      <v-col cols="6">
-        <v-text-field label="연락처" v-model="form.contact" dense outlined />
+      <v-col cols="3">
+        <v-text-field label="처리상태" v-model="form.contact" dense outlined />
       </v-col>
-      <v-col cols="6">
-        <v-text-field label="발행번호" v-model="form.issueNumber" :readonly="true" placeholder="발행번호" dense outlined />
-      </v-col>
-      <v-col cols="6">
+      <v-col cols="3">
         <v-text-field label="발주일자" v-model="form.orderDate" type="date" dense outlined />
       </v-col>
-      <v-col cols="6">
+      <v-col cols="3">
         <v-text-field label="납기일자" v-model="form.dueDate" type="date" dense outlined />
       </v-col>
+      <!-- 버튼 -->
+      <v-row justify="end">
+        <v-btn color="primary" class="mr-2" @click="resetForm" style="z-index: 2">조회</v-btn>
+      </v-row>
     </v-row>
-    <v-table class="mb-4" density="compact">
-      <thead>
-        <tr>
-          <th>자재명</th>
-          <th>자재코드</th>
-          <th>수량</th>
-          <th>규격</th>
-          <th>단위</th>
-          <th>단가</th>
-          <th>금액</th>
-          <th>비고</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="(item, index) in form.items" :key="index">
-          <td><v-text-field readonly v-model="item.name" dense variant="plain" /></td>
-          <td><v-text-field readonly v-model="item.code" dense variant="plain" /></td>
-          <td><v-text-field v-model.number="item.qty" type="number" dense variant="plain" @input="onQtyInput(index)" /></td>
-          <td><v-text-field readonly v-model="item.spec" dense variant="plain" /></td>
-          <td><v-text-field readonly v-model="item.unit" dense variant="plain" /></td>
-          <td><v-text-field readonly v-model.number="item.price" type="number" dense variant="plain" @input="calculateAmount(index)" /></td>
-          <td><v-text-field :value="item.qty * item.price" readonly dense variant="plain" /></td>
-          <td><v-text-field v-model="item.note" dense variant="plain" /></td>
-        </tr>
-      </tbody>
-    </v-table>
-
-    <!-- 총금액 / 담당자 -->
-    <v-row class="mb-4">
-      <v-col cols="6">
-        <v-text-field label="총금액" :value="totalAmount" readonly outlined />
-      </v-col>
-      <v-col cols="6">
-        <v-text-field label="담당자" v-model="form.manager" outlined />
-      </v-col>
-    </v-row>
-
-    <!-- 버튼 -->
-    <v-row justify="end">
-      <v-btn color="error" class="mr-2" @click="resetForm">초기화</v-btn>
-      <v-btn color="success" @click="submitForm">저장</v-btn>
-    </v-row>
+    <br />
+    <ag-grid-vue :rowData="gridData" :columnDefs="colDefs" :theme="quartz" :gridOptions="gridOptions" style="height: 400px" />
   </UiParentCard>
 </template>
 
 <script setup lang="ts">
-import { ref, shallowRef } from 'vue';
-
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
+import { ref, shallowRef, reactive, computed, type Ref } from 'vue';
+import { AgGridVue } from 'ag-grid-vue3';
+import { AllCommunityModule, ModuleRegistry, themeQuartz, type ColDef, PaginationModule, type GridOptions } from 'ag-grid-community';
+ModuleRegistry.registerModules([AllCommunityModule, PaginationModule]);
+const quartz = themeQuartz;
 
-const page = ref({ title: '자재발주서' });
+// ----- 기존 breadcrumb -----
+const page = ref({ title: '원자재검수조회' });
 const breadcrumbs = shallowRef([
-  {
-    title: '자재',
-    disabled: true,
-    href: '#'
-  },
-  {
-    title: '자재발주서 등록',
-    disabled: false,
-    href: '#'
-  }
+  { title: '품질', disabled: true, href: '#' },
+  { title: '원자재검수조히', disabled: false, href: '#' }
 ]);
 
-import { reactive, computed } from 'vue';
-
+// ----- 폼 상태(필터) -----
 interface Item {
   name: string;
   code: string;
   qty: number;
-  spec: string;
-  unit: string;
   price: number;
   note: string;
   amount?: number;
 }
-
 interface FormType {
-  supplier: string;
-  contact: string;
+  supplier: string; // 원자재명 검색어
+  contact: string; // 처리상태 검색어
   issueNumber: string;
-  orderDate: string;
-  dueDate: string;
-  manager: string;
+  orderDate: string; // 발주일자(From)
+  dueDate: string; // 납기일자(To)
   items: Item[];
 }
-
 const form = reactive<FormType>({
   supplier: '',
   contact: '',
   issueNumber: '',
   orderDate: '',
   dueDate: '',
-  manager: '',
   items: [
-    { name: '', code: '', qty: 0, spec: '', unit: '', price: 0, note: '', amount: 0 },
-    { name: '', code: '', qty: 0, spec: '', unit: '', price: 0, note: '', amount: 0 },
-    { name: '', code: '', qty: 0, spec: '', unit: '', price: 0, note: '', amount: 0 }
+    { name: '', code: '', qty: 0, price: 0, note: '', amount: 0 },
+    { name: '', code: '', qty: 0, price: 0, note: '', amount: 0 },
+    { name: '', code: '', qty: 0, price: 0, note: '', amount: 0 }
   ]
 });
 
-const totalAmount = computed(() => form.items.reduce((sum, item) => sum + item.qty * item.price, 0));
-
-function calculateAmount(index: number): void {
-  const item = form.items[index];
-  item.amount = item.qty * item.price;
+// ----- ag-Grid용 행 타입/데이터/컬럼 -----
+interface Row {
+  inspectionNo: string; // 검사번호
+  receiptNo: string; // 입고번호
+  materialCode: string; // 자재코드
+  materialName: string; // 자재명
+  qty: number; // 수량
+  unitPrice: number; // 단가
+  amount: number; // 금액
+  orderDate: string; // 발주일자 YYYY-MM-DD
+  dueDate: string; // 납기일자 YYYY-MM-DD
+  status: string; // 처리상태 (합격/불합격 등)
+  inspector: string; // 검수확인인
 }
-
-function onQtyInput(index: number) {
-  const item = form.items[index];
-  if (item.qty < 0) {
-    item.qty = 0;
+const rowData: Ref<Row[]> = ref([
+  {
+    inspectionNo: 'MITEST-A01',
+    receiptNo: 'RCPT-0001',
+    materialCode: 'MT1001',
+    materialName: '합판',
+    qty: 100,
+    unitPrice: 500,
+    amount: 50000,
+    orderDate: '2025-07-28',
+    dueDate: '2025-07-30',
+    status: '합격',
+    inspector: '한지수'
+  },
+  {
+    inspectionNo: 'MITEST-A02',
+    receiptNo: 'RCPT-0002',
+    materialCode: 'WD00003',
+    materialName: '원목',
+    qty: 50,
+    unitPrice: 700,
+    amount: 35000,
+    orderDate: '2025-07-29',
+    dueDate: '2025-08-01',
+    status: '불합격',
+    inspector: '박민수'
+  },
+  {
+    inspectionNo: 'MITEST-A03',
+    receiptNo: 'RCPT-0003',
+    materialCode: 'WD00005',
+    materialName: '합판',
+    qty: 150,
+    unitPrice: 500,
+    amount: 75000,
+    orderDate: '2025-07-30',
+    dueDate: '2025-08-02',
+    status: '합격',
+    inspector: '김하늘'
+  },
+  {
+    inspectionNo: 'MITEST-A03',
+    receiptNo: 'RCPT-0003',
+    materialCode: 'WD00005',
+    materialName: '합판',
+    qty: 150,
+    unitPrice: 500,
+    amount: 75000,
+    orderDate: '2025-07-30',
+    dueDate: '2025-08-02',
+    status: '합격',
+    inspector: '김하늘'
+  },
+  {
+    inspectionNo: 'MITEST-A03',
+    receiptNo: 'RCPT-0003',
+    materialCode: 'WD00005',
+    materialName: '합판',
+    qty: 150,
+    unitPrice: 500,
+    amount: 75000,
+    orderDate: '2025-07-30',
+    dueDate: '2025-08-02',
+    status: '합격',
+    inspector: '김하늘'
+  },
+  {
+    inspectionNo: 'MITEST-A03',
+    receiptNo: 'RCPT-0003',
+    materialCode: 'WD00005',
+    materialName: '합판',
+    qty: 150,
+    unitPrice: 500,
+    amount: 75000,
+    orderDate: '2025-07-30',
+    dueDate: '2025-08-02',
+    status: '합격',
+    inspector: '김하늘'
+  },
+  {
+    inspectionNo: 'MITEST-A03',
+    receiptNo: 'RCPT-0003',
+    materialCode: 'WD00005',
+    materialName: '합판',
+    qty: 150,
+    unitPrice: 500,
+    amount: 75000,
+    orderDate: '2025-07-30',
+    dueDate: '2025-08-02',
+    status: '합격',
+    inspector: '김하늘'
+  },
+  {
+    inspectionNo: 'MITEST-A03',
+    receiptNo: 'RCPT-0003',
+    materialCode: 'WD00005',
+    materialName: '합판',
+    qty: 150,
+    unitPrice: 500,
+    amount: 75000,
+    orderDate: '2025-07-30',
+    dueDate: '2025-08-02',
+    status: '합격',
+    inspector: '김하늘'
+  },
+  {
+    inspectionNo: 'MITEST-A03',
+    receiptNo: 'RCPT-0003',
+    materialCode: 'WD00005',
+    materialName: '합판',
+    qty: 150,
+    unitPrice: 500,
+    amount: 75000,
+    orderDate: '2025-07-30',
+    dueDate: '2025-08-02',
+    status: '합격',
+    inspector: '김하늘'
   }
-  calculateAmount(index);
-}
+]);
 
+const colDefs: Ref<ColDef<Row>[]> = ref([
+  { headerName: '검사번호', field: 'inspectionNo', minWidth: 130 },
+  { headerName: '입고번호', field: 'receiptNo', minWidth: 120 },
+  { headerName: '자재코드', field: 'materialCode', minWidth: 120 },
+  { headerName: '자재명', field: 'materialName', minWidth: 120 },
+  { headerName: '수량', field: 'qty', type: 'rightAligned' },
+  { headerName: '단가', field: 'unitPrice', type: 'rightAligned', valueFormatter: (p) => (p.value ?? 0).toLocaleString() },
+  { headerName: '금액', field: 'amount', type: 'rightAligned', valueFormatter: (p) => (p.value ?? 0).toLocaleString() },
+  { headerName: '발주일자', field: 'orderDate', minWidth: 120 },
+  { headerName: '납기일자', field: 'dueDate', minWidth: 120 },
+  { headerName: '처리상태', field: 'status', minWidth: 100 },
+  { headerName: '검수확인인', field: 'inspector', minWidth: 110 }
+]);
+
+// ----- 상단 필터를 적용한 그리드 데이터 -----
+const gridData = computed(() => {
+  const name = form.supplier.trim().toLowerCase();
+  const status = form.contact.trim().toLowerCase();
+  const from = form.orderDate || '';
+  const to = form.dueDate || '';
+
+  return rowData.value.filter((r) => {
+    const byName = !name || r.materialName.toLowerCase().includes(name);
+    const byStatus = !status || r.status.toLowerCase().includes(status);
+    const byFrom = !from || r.orderDate >= from;
+    const byTo = !to || r.dueDate <= to;
+    return byName && byStatus && byFrom && byTo;
+  });
+});
+
+// 페이지네이션, 컬럼 사이즈조절
+const gridOptions = ref<GridOptions<Row>>({
+  defaultColDef: { flex: 1, minWidth: 100, resizable: true },
+  // columnDefs: colDefs,
+  pagination: true,
+  paginationPageSize: 10, // 고정 페이지 크기
+  paginationAutoPageSize: true // 위 한 줄 대신, 화면 높이에 맞춰 자동 분량 원하면 이 줄 사용
+});
+
+// ----- 버튼 핸들러 -----
 function resetForm(): void {
   form.supplier = '';
   form.contact = '';
   form.orderDate = '';
   form.dueDate = '';
-  form.manager = '';
-  form.items.forEach((item) => {
-    Object.assign(item, {
-      name: '',
-      code: '',
-      qty: 0,
-      spec: '',
-      unit: '',
-      price: 0,
-      note: '',
-      amount: 0
-    });
-  });
-}
-
-function submitForm(): void {
-  console.log('제출된 폼:', JSON.stringify(form, null, 2));
-  alert('폼 제출 성공');
 }
 </script>
+
+<style scoped>
+.mr2 {
+  margin-right: 100px;
+}
+</style>

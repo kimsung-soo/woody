@@ -110,17 +110,17 @@ const MainRoutes = {
 
     // 품질
     {
-      name: 'Quality',
+      name: 'QualityMatList',
       path: '/qm/matlst',
-      component: () => import('../views/quality/material/MaterialList.vue')
+      component: () => import('@/views/quality/material/MaterialList.vue')
     },
     {
-      name: 'Quality',
+      name: 'QualityMatManagement',
       path: '/qm/matmng',
-      component: () => import('../views/quality/material/MaterialManagement.vue')
+      component: () => import('@/views/quality/material/MaterialManagement.vue')
     },
     {
-      name: 'Quality',
+      name: 'QualityPrdList',
       path: '/qm/prdlst',
       component: () => import('@/views/quality/product/ProductList.vue')
     }

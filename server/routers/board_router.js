@@ -8,4 +8,9 @@ router.get("/boards", async (req, res) => {
   res.send(list);
 });
 
+router.get("/bom", async (req, res) => {
+  let list = await boardService.findBOM();
+  res.send(list);
+});
+
 module.exports = router;
