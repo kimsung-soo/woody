@@ -57,7 +57,7 @@ const sidebarItem: menu[] = [
       },
       {
         title: 'BOM 관리',
-        to: '/dashboard/default'
+        to: '/master/masterBom'
       }
     ]
   },

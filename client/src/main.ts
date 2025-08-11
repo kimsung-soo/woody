@@ -9,13 +9,12 @@ import VueApexCharts from 'vue3-apexcharts';
 import VueTablerIcons from 'vue-tabler-icons';
 
 import { fakeBackend } from '@/utils/helpers/fake-backend';
+import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 
+// AG Grid 모듈 한번 등록
+ModuleRegistry.registerModules([AllCommunityModule]);
 // print
 import print from 'vue3-print-nb';
-
-// Ag-Grid CSS 파일 임포트
-import 'ag-grid-community/styles/ag-grid.css'; // Core Grid CSS
-import 'ag-grid-community/styles/ag-theme-quartz.css'; // Theme CSS
 
 const app = createApp(App);
 fakeBackend();
