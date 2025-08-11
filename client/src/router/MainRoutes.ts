@@ -58,6 +58,16 @@ const MainRoutes = {
       path: '/master/MasterBom',
       component: () => import('@/views/master/MasterBom.vue')
     },
+    {
+      name: 'MasterDiagram',
+      path: '/master/MasterDiagram',
+      component: () => import('@/views/master/MasterDiagram.vue')
+    },
+    {
+      name: 'MasterEMP',
+      path: '/master/MasterEmp',
+      component: () => import('@/views/master/MasterEmp.vue')
+    },
     // 영업
 
     // 자재
