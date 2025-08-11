@@ -316,7 +316,7 @@ const sidebarItem: menu[] = [
         children: [
           {
             title: '원자재 검수 조회',
-            to: '/dashboard/default'
+            to: '/qm/matlst'
           },
           {
             title: '원자재 검수서 관리',
