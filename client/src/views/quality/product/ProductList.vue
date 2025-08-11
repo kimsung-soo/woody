@@ -11,7 +11,7 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { AgGridVue } from 'ag-grid-vue3';
 import { ref, shallowRef, type Ref, type ShallowRef } from 'vue';
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
