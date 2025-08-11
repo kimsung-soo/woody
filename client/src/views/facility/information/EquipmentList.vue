@@ -6,7 +6,7 @@
       <v-col cols="12" md="6" class="d-flex justify-start">
         <v-text-field
           v-model.trim="productKeyword"
-          placeholder="공정코드"
+          placeholder="공정선택"
           hide-details
           density="compact"
           variant="outlined"
@@ -98,6 +98,18 @@ const form = reactive({
       useYn: '사용',
       maker: 'A사',
       makeDate: '2025-01-15',
+      installDate: '2025-02-18',
+      checkCycle: 180,
+      err: '-',
+      manager: '정경준'
+    },
+    {
+      code: 'EQ-003',
+      name: 'CNC조각기',
+      type: '재단설비',
+      useYn: '정지',
+      maker: 'B사',
+      makeDate: '2024-11-15',
       installDate: '2025-02-18',
       checkCycle: 180,
       err: '-',

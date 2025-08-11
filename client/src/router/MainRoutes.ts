@@ -150,6 +150,11 @@ const MainRoutes = {
       path: '/utils/Registration',
       component: () => import('@/views/facility/information/EquipmentRegistration.vue')
     },
+    {
+      name: 'CheckManagement',
+      path: '/utils/CheckManagement',
+      component: () => import('@/views/facility/check/CheckManagement.vue')
+    },
 
     {
       name: 'List',

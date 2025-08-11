@@ -6,7 +6,7 @@
       <v-col cols="12" md="6" class="d-flex justify-start">
         <v-text-field
           v-model.trim="productKeyword"
-          placeholder="공정코드"
+          placeholder="공정선택"
           hide-details
           density="compact"
           variant="outlined"
