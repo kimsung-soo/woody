@@ -220,11 +220,11 @@ const sidebarItem: menu[] = [
           },
           {
             title: '작업지시 조회',
-            to: '/dashboard/default'
+            to: '/production/ordercheck'
           },
           {
             title: '작업지시 수정/삭제',
-            to: '/dashboard/default'
+            to: '/production/ordermodify'
           }
         ]
       },
@@ -233,7 +233,7 @@ const sidebarItem: menu[] = [
         children: [
           {
             title: '공정 진행 관리',
-            to: '/dashboard/default'
+            to: '/production/processcontrol'
           },
           {
             title: '작업 진행 현황',

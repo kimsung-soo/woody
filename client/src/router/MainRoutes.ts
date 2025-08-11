@@ -129,6 +129,21 @@ const MainRoutes = {
       path: '/production/workorder',
       component: () => import('@/views/production/WorkOrder.vue')
     },
+    {
+      name: 'OrderCheck',
+      path: '/production/ordercheck',
+      component: () => import('@/views/production/OrderCheck.vue')
+    },
+    {
+      name: 'OrderModify',
+      path: '/production/ordermodify',
+      component: () => import('@/views/production/OrderModify.vue')
+    },
+    {
+      name: 'ProcessManagement',
+      path: '/production/processcontrol',
+      component: () => import('@/views/production/ProcessControl.vue')
+    },
     // 설비
     {
       name: 'Registration',
@@ -162,20 +177,25 @@ const MainRoutes = {
       path: '/utils/checkhistory',
       component: () => import('@/views/facility/check/CheckHistory.vue')
     },
+    {
+      name: 'RepairManagement',
+      path: '/utils/RepairManagement',
+      component: () => import('@/views/facility/repair/RepairManagement.vue')
+    },
 
     // 품질
     {
-      name: 'QualityMatList',
+      name: 'Quality',
       path: '/qm/matlst',
-      component: () => import('@/views/quality/material/MaterialList.vue')
+      component: () => import('../views/quality/material/MaterialList.vue')
     },
     {
       name: 'QualityMatManagement',
       path: '/qm/matmng',
-      component: () => import('@/views/quality/material/MaterialManagement.vue')
+      component: () => import('../views/quality/material/MaterialManagement.vue')
     },
     {
-      name: 'QualityPrdList',
+      name: 'Quality',
       path: '/qm/prdlst',
       component: () => import('@/views/quality/product/ProductList.vue')
     }
