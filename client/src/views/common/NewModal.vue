@@ -12,6 +12,8 @@
           :rowData="internalRowData"
           :columnDefs="internalColDefs"
           :theme="quartz"
+          rowSelection="single"
+          @rowClicked="onRowClicked"
           style="height: 300px; width: 100%"
         ></ag-grid-vue>
 
@@ -49,6 +51,8 @@ const props = defineProps({
 // props의 데이터를 받을 내부 ref 변수 선언
 const internalRowData = ref([]);
 const internalColDefs = ref([]);
+// 선택된 행
+const selectedRow = ref(null);
 
 // props가 변경될 때마다 내부 ref 변수를 업데이트
 watch(
@@ -74,8 +78,19 @@ const close = () => {
   dialog.value = false;
 };
 
+function onRowClicked(event) {
+  selectedRow.value = event.data;
+  console.log(selectedRow.value);
+}
+
+const emit = defineEmits(['confirm']);
+
 // '확인' 버튼 클릭 시 로직
 const confirm = () => {
+  if (selectedRow.value) {
+    emit('confirm', selectedRow.value);
+    //confirm이라는 이름으로 selectedRow.value 데이터를 부모에게 전달.
+  }
   close();
 };
 
