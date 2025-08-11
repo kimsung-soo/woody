@@ -1,7 +1,10 @@
 <template>
   <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs"></BaseBreadcrumb>
-  <UiParentCard>
-    <h5>제품목록</h5>
+  <UiParentCard title="제품 목록">
+    <div class="d-flex align-center mb-4">
+      <v-text-field label="제품 검색" v-model="searchKeyword" hide-details class="mr-2" style="max-width: 280px"></v-text-field>
+      <v-btn color="darkText" @click="searchData">검색</v-btn>
+    </div>
     <div class="main-container">
       <div class="list-container">
         <ag-grid-vue
@@ -13,12 +16,12 @@
         >
           <!--  :defaultColDef="{ width: 150 }" 로 전체 width지정도가능-->
         </ag-grid-vue>
+
         <br /><br />
         <h5>BOM목록</h5>
         <div class="btn-list">
           <v-row justify="end" class="mb-2 w-100">
-            <v-btn color="error" class="mr-2" @click="del">삭제</v-btn>
-            <v-btn color="primary" @click="add">등록</v-btn>
+            <v-btn color="error" class="mr-1" @click="del">삭제</v-btn>
           </v-row>
         </div>
         <ag-grid-vue
@@ -27,12 +30,20 @@
           :theme="quartz"
           style="height: 200px; width: 100%"
           @cell-value-changed="onCellValueChanged"
+          :rowSelection="rowSelection"
+          @rowClicked="onRowClicked"
         >
         </ag-grid-vue>
       </div>
       <div class="form-wrapper">
         <div class="add">
           <v-row class="mb-4">
+            <v-col cols="6">
+              <v-text-field label="BOM코드" v-model="form.bomCode" dense outlined />
+            </v-col>
+            <v-col cols="6">
+              <v-text-field label="BOM버젼" v-model="form.bomVer" dense outlined />
+            </v-col>
             <v-col cols="6">
               <v-text-field label="작성자" v-model="form.writer" dense outlined />
             </v-col>
@@ -41,6 +52,7 @@
               <v-text-field label="등록일자" v-model="form.addDate" type="date" dense outlined />
             </v-col>
             <v-row justify="end">
+              <v-btn color="error" class="mr-3" @click="resetForm">초기화</v-btn>
               <v-btn color="primary" class="mr-6" @click="submitForm">저장</v-btn>
             </v-row>
           </v-row>
@@ -48,7 +60,7 @@
         <br />
         <h5>자재목록</h5>
         <div class="btn-list">
-          <v-row justify="end">
+          <v-row justify="center">
             <v-btn
               color="warning"
               class="mr-4"
@@ -56,6 +68,7 @@
               style="margin-bottom: 2rem"
               >자재 조회
             </v-btn>
+            <v-btn color="error" class="mr-1" @click="delMat">삭제</v-btn>
           </v-row>
 
           <MoDal ref="modalRef" :title="modalTitle" :rowData="modalRowData" :colDefs="modalColDefs" @confirm="modalConfirm" />
@@ -65,6 +78,7 @@
             :theme="quartz"
             style="height: 200px; width: 100%"
             @cell-value-changed="onCellValueChanged"
+            :rowSelection="rowSelection"
           >
           </ag-grid-vue>
         </div>
@@ -84,34 +98,37 @@ import UiParentCard from '@/components/shared/UiParentCard.vue';
 import MoDal from '../common/NewModal.vue'; // 수정된 부분: 모달 컴포넌트 임포트
 const quartz = themeQuartz;
 
-const form = ref({ writer: '' }, { addDate: '' });
+const form = ref({ writer: '' }, { addDate: '' }, { bomVer: '' }, { bomCode: '' });
 
 // 제품 리스트
 const rowData1 = ref([
-  { 제품명: 'Tesla', model: 'Model Y', price: 64950, 등록일: '' },
-  { 제품명: 'Ford', model: 'F-Series', price: 33850, 등록일: '' }
+  { 제품명: 'Tesla', 제품유형: '완제품', BOM코드: 'BOM_121', 작성자: '김태완', 등록일: '2025-12-31' },
+  { 제품명: 'Ford', 제품유형: '반제품', BOM코드: 'BOM_122', 작성자: '김태완', 등록일: '2025-12-31' }
 ]);
 
 const colDefs1 = ref([
-  { field: '✅', width: 50, cellRenderer: 'agCheckboxCellRenderer', cellEditor: 'agCheckboxCellEditor', editable: true },
-  { field: '제품명', editable: true, width: 150 },
-  { field: 'model', width: 150 },
-  { field: 'price', width: 150 },
+  { field: '제품명', editable: true, width: 120 },
+  { field: '제품유형', width: 150 },
+  { field: 'BOM코드', width: 150 },
+  { field: '작성자', width: 110, editable: true },
   { field: '등록일', width: 110, editable: true }
 ]);
 
 // BOM 리스트
+const rowSelection = ref({
+  mode: 'multiRow'
+});
 const rowData2 = ref([
-  { 제품명: 'Tesla', model: 'Model Y', price: 64950, 등록일: '' },
-  { 제품명: 'Ford', model: 'F-Series', price: 33850, 등록일: '' }
+  { BOM코드: 'Tesla', 제품명: 'Model Y', BOM버젼: 1.01, 작성자: '경준', 등록일: '2025-07-01' },
+  { BOM코드: 'Ford', 제품명: 'F-Series', BOM버젼: 1.02, 작성자: '덩섭', 등록일: '2025-08-12' }
 ]);
 
 const colDefs2 = ref([
-  { field: '✅', width: 50, cellRenderer: 'agCheckboxCellRenderer', cellEditor: 'agCheckboxCellEditor', editable: true },
-  { field: '제품명', editable: true, width: 100 },
-  { field: 'model', width: 100 },
-  { field: 'price', width: 100 },
-  { field: '등록일', width: 100, editable: true }
+  { field: 'BOM코드', editable: true, width: 120 },
+  { field: '제품명', width: 150 },
+  { field: 'BOM버젼', width: 150 },
+  { field: '작성자', width: 110 },
+  { field: '등록일', width: 110 }
 ]);
 
 // 자재 리스트
@@ -121,12 +138,11 @@ const rowData3 = ref([
 ]);
 
 const colDefs3 = ref([
-  { field: '✅', width: 50, cellRenderer: 'agCheckboxCellRenderer', cellEditor: 'agCheckboxCellEditor', editable: true },
-  { field: '자재코드', editable: true, width: 100 },
-  { field: '자재명', width: 100 },
-  { field: '자재유형', width: 100 },
-  { field: '수량', width: 70, editable: true },
-  { field: '단위', width: 70, editable: true }
+  { field: '자재코드', editable: true, width: 150 },
+  { field: '자재명', width: 150 },
+  { field: '자재유형', width: 150 },
+  { field: '수량', width: 110, editable: true },
+  { field: '단위', width: 110, editable: true }
 ]);
 
 const page = ref({ title: 'BOM관리' });
@@ -152,9 +168,10 @@ const submitForm = () => {
   // rowData1 배열에 새로운 행을 추가합니다.
   const newRow = {
     '✅': false,
-    제품명: form.value.writer,
-    model: 'new model', // 필요에 따라 기본값 설정
-    price: 0, // 필요에 따라 기본값 설정
+    BOM코드: form.value.bomCode,
+    제품명: '하얀책상', // 필요에 따라 기본값 설정
+    BOM버젼: form.value.bomVer, // 필요에 따라 기본값 설정
+    작성자: form.value.writer,
     등록일: form.value.addDate
   };
   rowData2.value.push(newRow);
@@ -170,7 +187,32 @@ const resetForm = () => {
     addDate: ''
   };
 };
-
+// 행선택시 등록 폼으로
+const onRowClicked = (event) => {
+  form.value.bomCode = event.data.BOM코드;
+  form.value.bomVer = event.data.BOM버젼;
+  form.value.writer = event.data.작성자;
+  form.value.addDate = event.data.등록일;
+};
+// db연결시 필요없는 삭제 함수 => delete문 실행후 select문 실행하기때문에
+//BOM 버젼 삭제
+const del = () => {
+  const checkedRows = rowData2.value.filter((row) => row['✅']);
+  if (checkedRows.length == false) {
+    alert('삭제항목을 선택하세요');
+    return;
+  }
+  rowData2.value = rowData2.value.filter((row) => !row['✅']);
+};
+// 자재 목록 선택삭제
+const delMat = () => {
+  const checkedRows = rowData3.value.filter((row) => row['✅']);
+  if (checkedRows.length == false) {
+    alert('삭제항목을 선택하세요');
+    return;
+  }
+  rowData3.value = rowData3.value.filter((row) => !row['✅']);
+};
 //모달 value들
 const modalRef = ref(null);
 const modalTitle = ref('');
@@ -180,8 +222,8 @@ const materialColDefs = [
   { field: '자재코드', headerName: '자재코드', flex: 2 },
   { field: '자재명', headerName: '자재명', flex: 2 },
   { field: '자재유형', headerName: '자재유형', flex: 2 },
-  { field: '수량', headerName: '수량', flex: 1 },
-  { field: '단위', headerName: '단위', flex: 1 }
+  { field: '수량', headerName: '수량', flex: 1, editable: true },
+  { field: '단위', headerName: '단위', flex: 1, editable: true }
 ];
 const materialRowData = ref([
   { 자재코드: 'ABC-001', 자재명: '나사', 자재유형: '부자재', 수량: 100, 단위: 'EA' },
@@ -220,14 +262,5 @@ const modalConfirm = (selectedRow) => {
 .form-wrapper {
   flex: 1 1 50%; /* list-container와 동일하게 공간을 차지 */
   min-width: 400px;
-}
-
-/* 아래는 필요에 따라 수정 */
-.add {
-  /* 이 컨테이너는 부모인 .form-wrapper의 너비를 따릅니다. */
-}
-
-.btn-list {
-  /* 이 컨테이너도 부모의 너비를 따릅니다. */
 }
 </style>

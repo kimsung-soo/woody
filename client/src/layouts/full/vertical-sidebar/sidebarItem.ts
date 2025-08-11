@@ -33,7 +33,7 @@ const sidebarItem: menu[] = [
     children: [
       {
         title: '사원 관리',
-        to: '/dashboard/default'
+        to: '/master/MasterEmp'
       },
       {
         title: '제품 관리',
@@ -53,11 +53,11 @@ const sidebarItem: menu[] = [
       },
       {
         title: '공정흐름도 관리',
-        to: '/dashboard/default'
+        to: '/master/MasterDiagram'
       },
       {
         title: 'BOM 관리',
-        to: '/master/masterBom'
+        to: '/master/MasterBom'
       }
     ]
   },
