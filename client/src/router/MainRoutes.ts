@@ -59,7 +59,26 @@ const MainRoutes = {
       component: () => import('@/views/master/MasterBom.vue')
     },
     // 영업
-
+    {
+      name: 'OrderForm',
+      path: '/marketing/OrderForm',
+      component: () => import('@/views/marketing/OrderForm.vue')
+    },
+    {
+      name: 'OrderFormList',
+      path: '/marketing/OrderFormList',
+      component: () => import('@/views/marketing/OrderFormList.vue')
+    },
+     {
+      name: 'MfOrderForm',
+      path: '/marketing/MfOrderForm',
+      component: () => import('@/views/marketing/MfOrderForm.vue')
+    },
+     {
+      name: 'MfOrderFormList',
+      path: '/marketing/MfOrderFormList',
+      component: () => import('@/views/marketing/MfOrderFormList.vue')
+    },
     // 자재
     {
       name: 'MaterialOrderInsert',

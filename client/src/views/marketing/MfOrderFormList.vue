@@ -1,0 +1,120 @@
+<template>
+  <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs"></BaseBreadcrumb>
+  <UiParentCard>
+    <h5>생산의뢰서 목록</h5>
+    <div class="main-container">
+      <div class="list-container">
+        <ag-grid-vue
+          :rowData="rowData1"
+          :columnDefs="colDefs1"
+          :theme="quartz"
+          style="height: 700px; width: 100%"
+          @cell-value-changed="onCellValueChanged"
+        >
+          <!--  :defaultColDef="{ width: 150 }" 로 전체 width지정도가능-->
+        </ag-grid-vue>
+        <br /><br />
+       
+      
+      </div>
+    </div>
+  </UiParentCard>
+</template>
+
+<script setup>
+// 기존 스크립트 내용은 동일합니다.
+import { ref, shallowRef } from 'vue';
+import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
+import { themeQuartz } from 'ag-grid-community';
+import { AgGridVue } from 'ag-grid-vue3';
+import UiParentCard from '@/components/shared/UiParentCard.vue';
+
+const quartz = themeQuartz;
+
+const form = ref({ writer: '' }, { addDate: '' });
+
+// 제품 리스트
+const rowData1 = ref([
+  { 생산의뢰번호: '불러오기', 제품코드:'불러오기', 제품명:'불러오기', 수량:'불러오기', 납기일자:'불러오기', 비고:'불러오기', 생산의뢰유형:'불러오기', 등록일자:'불러오기', 생산의뢰상태:'자동변환' },
+  { 생산의뢰번호: '', 제품코드:'', 제품명:'', 수량:'', 납기일자:'', 비고:'', 생산의뢰유형:'', 등록일자:'', 생산의뢰상태:'' },
+  { 생산의뢰번호: '', 제품코드:'', 제품명:'', 수량:'', 납기일자:'', 비고:'', 생산의뢰유형:'', 등록일자:'', 생산의뢰상태:'' },
+  { 생산의뢰번호: '', 제품코드:'', 제품명:'', 수량:'', 납기일자:'', 비고:'', 생산의뢰유형:'', 등록일자:'', 생산의뢰상태:'' },
+  { 생산의뢰번호: '', 제품코드:'', 제품명:'', 수량:'', 납기일자:'', 비고:'', 생산의뢰유형:'', 등록일자:'', 생산의뢰상태:'' },
+  { 생산의뢰번호: '', 제품코드:'', 제품명:'', 수량:'', 납기일자:'', 비고:'', 생산의뢰유형:'', 등록일자:'', 생산의뢰상태:'' },
+  { 생산의뢰번호: '', 제품코드:'', 제품명:'', 수량:'', 납기일자:'', 비고:'', 생산의뢰유형:'', 등록일자:'', 생산의뢰상태:'' },
+  { 생산의뢰번호: '', 제품코드:'', 제품명:'', 수량:'', 납기일자:'', 비고:'', 생산의뢰유형:'', 등록일자:'', 생산의뢰상태:'' },
+  { 생산의뢰번호: '', 제품코드:'', 제품명:'', 수량:'', 납기일자:'', 비고:'', 생산의뢰유형:'', 등록일자:'', 생산의뢰상태:'' },
+  { 생산의뢰번호: '', 제품코드:'', 제품명:'', 수량:'', 납기일자:'', 비고:'', 생산의뢰유형:'', 등록일자:'', 생산의뢰상태:'' },
+  { 생산의뢰번호: '', 제품코드:'', 제품명:'', 수량:'', 납기일자:'', 비고:'', 생산의뢰유형:'', 등록일자:'', 생산의뢰상태:'' },
+  { 생산의뢰번호: '', 제품코드:'', 제품명:'', 수량:'', 납기일자:'', 비고:'', 생산의뢰유형:'', 등록일자:'', 생산의뢰상태:'' },
+  { 생산의뢰번호: '', 제품코드:'', 제품명:'', 수량:'', 납기일자:'', 비고:'', 생산의뢰유형:'', 등록일자:'', 생산의뢰상태:'' },
+  { 생산의뢰번호: '', 제품코드:'', 제품명:'', 수량:'', 납기일자:'', 비고:'', 생산의뢰유형:'', 등록일자:'', 생산의뢰상태:'' },
+  { 생산의뢰번호: '', 제품코드:'', 제품명:'', 수량:'', 납기일자:'', 비고:'', 생산의뢰유형:'', 등록일자:'', 생산의뢰상태:'' },
+
+]);
+
+const colDefs1 = ref([
+   {
+    headerName: '번호',
+    valueGetter: params => params.node.rowIndex + 1, // 페이지 내 번호
+    width: 90,
+    editable: false,
+    sortable: false,
+    filter: false,
+    // pinned: 'left', // 왼쪽 고정 원하면 주석 해제
+  },
+  { field: '생산의뢰번호', width: 150 },
+  { field: '제품코드', width: 150 },
+  { field: '제품명', width: 200 },
+  { field: '수량', width: 150 },
+  { field: '납기일자', width: 200 },
+  { field: '비고', width: 300 },
+  { field: '생산의뢰유형', width: 200 },
+  { field: '등록일자', width: 200 },
+  { field: '생산의뢰상태', width: 200 },
+]);
+
+
+const page = ref({ title: '생산의뢰서 조회' });
+const breadcrumbs = shallowRef([
+  {
+    title: '영업',
+    disabled: true,
+    href: '#'
+  },
+  {
+    title: '생산의뢰서',
+    disabled: true,
+    href: '#'
+  },
+  {
+    title: '생산의뢰서 조회',
+    disabled: false,
+    href: '#'
+  }
+]);
+
+const onCellValueChanged = (event) => {
+  console.log(event.value);
+  console.log(rowData1.value);
+};
+
+
+
+</script>
+
+<style scoped>
+.main-container {
+  display: flex;
+  gap: 20px; /* 두 컨테이너 사이의 간격 */
+  padding: 0 10px;
+}
+
+.list-container {
+  flex: 1 1 50%; /* flex-grow: 1, flex-shrink: 1, flex-basis: 50% */
+  min-width: 300px;
+}
+
+
+
+</style>
