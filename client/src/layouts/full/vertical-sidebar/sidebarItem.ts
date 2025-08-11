@@ -82,11 +82,11 @@ const sidebarItem: menu[] = [
         children: [
           {
             title: '주문서 등록',
-            to: '/dashboard/default'
+            to: '/marketing/OrderForm'
           },
           {
             title: '주문서 조회',
-            to: '/dashboard/default'
+            to: '/marketing/OrderFormList'
           }
         ]
       },
@@ -95,11 +95,11 @@ const sidebarItem: menu[] = [
         children: [
           {
             title: '생산 의뢰서 등록',
-            to: '/dashboard/default'
+            to: '/marketing/MfOrderForm'
           },
           {
-            title: '거래처 조회',
-            to: '/dashboard/default'
+            title: '생산 의뢰서 조회',
+            to: '/marketing/MfOrderFormList'
           }
         ]
       },
