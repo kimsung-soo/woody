@@ -285,7 +285,7 @@ const sidebarItem: menu[] = [
         children: [
           {
             title: '수리 관리',
-            to: '/dashboard/default'
+            to: '/utils/RepairManagement'
           },
           {
             title: '수리 내역',
@@ -298,7 +298,7 @@ const sidebarItem: menu[] = [
         children: [
           {
             title: '점검 관리',
-            to: '/dashboard/default'
+            to: '/utils/CheckManagement'
           },
           {
             title: '점검 내역',

@@ -100,6 +100,11 @@ const MainRoutes = {
       path: '/utils/Registration',
       component: () => import('@/views/facility/information/EquipmentRegistration.vue')
     },
+    {
+      name: 'CheckManagement',
+      path: '/utils/CheckManagement',
+      component: () => import('@/views/facility/check/CheckManagement.vue')
+    },
 
     {
       name: 'List',
@@ -126,6 +131,11 @@ const MainRoutes = {
       name: 'checkhistory',
       path: '/utils/checkhistory',
       component: () => import('@/views/facility/check/CheckHistory.vue')
+    },
+    {
+      name: 'RepairManagement',
+      path: '/utils/RepairManagement',
+      component: () => import('@/views/facility/repair/RepairManagement.vue')
     },
 
     // 품질
