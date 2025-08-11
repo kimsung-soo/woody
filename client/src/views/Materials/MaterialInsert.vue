@@ -14,14 +14,14 @@
       >
         자재 조회
       </v-btn>
-      <MoDal ref="modalRef" :title="modalTitle" :rowData="modalRowData" :colDefs="modalColDefs" />
+      <MoDal ref="modalRef" :title="modalTitle" :rowData="modalRowData" :colDefs="modalColDefs" @confirm="onModalConfirm" />
     </v-row>
     <v-row class="mb-4">
       <v-col cols="6">
         <v-text-field label="입고일자" v-model="form.insertDate" type="date" dense outlined />
       </v-col>
       <v-col cols="6">
-        <v-text-field label="공급처" v-model="form.dueDate" dense outlined readonly />
+        <v-text-field label="업체명" v-model="form.name" dense outlined readonly />
       </v-col>
     </v-row>
 
@@ -62,8 +62,8 @@ const quartz = themeQuartz;
 // ----------------- 그리드 데이터 (독립) -----------------
 const rowData = ref([
   // 초기 샘플. 필요하면 빈 배열 [] 로 시작해도 됨.
-  { 자재명: '합판', 자재코드: 'MLT-00123', 규격: 'SD400', 단위: 'EA', 단가: 1200000, 수량: 10, 비고: '' },
-  { 자재명: '원목', 자재코드: 'MLT-00124', 규격: 'SD400', 단위: 'EA', 단가: 800000, 수량: 5, 비고: '' }
+  // { 자재명: '합판', 자재코드: 'MLT-00123', 규격: 'SD400', 단위: 'EA', 단가: 1200000, 수량: 10, 비고: '' },
+  // { 자재명: '원목', 자재코드: 'MLT-00124', 규격: 'SD400', 단위: 'EA', 단가: 800000, 수량: 5, 비고: '' }
 ]);
 
 const colDefs = ref([
@@ -78,11 +78,9 @@ const colDefs = ref([
 
 // ----------------- 폼 입력 필드 (유지) -----------------
 const form = reactive({
-  supplier: '',
-  contact: '',
   issueNumber: '',
-  orderDate: '',
-  dueDate: '',
+  insertDate: '',
+  name: '',
   manager: ''
 });
 
@@ -102,18 +100,36 @@ const modalRowData = ref([]);
 const modalColDefs = ref([]);
 
 const materialColDefs = [
-  { field: '발행번호', headerName: '발행번호', flex: 1 },
+  { field: '발행번호', headerName: '발행번호', flex: 1.2 },
   { field: '업체', headerName: '공급업체', flex: 1 },
-  { field: '자재명', headerName: '자재명', flex: 1 },
-  { field: '자재코드', headerName: '자재코드', flex: 1 },
+  { field: '자재명', headerName: '자재명', flex: 0.8 },
+  { field: '자재코드', headerName: '자재코드', flex: 0.8 },
+  { field: '규격', headerName: '규격', flex: 0.6 },
   { field: '발주일자', headerName: '발주일자', flex: 1 },
-  { field: '수량', headerName: '수량', flex: 1 },
-  { field: '상태', headerName: '상태', flex: 1 }
+  { field: '수량', headerName: '수량', flex: 0.6 },
+  { field: '상태', headerName: '상태', flex: 0.6 }
 ];
 const materialRowData = ref([
-  { 발행번호: '20250808-001', 업체: '원목세상', 자재명: '원목', 자재코드: 'ZCB-558', 발주일자: '2025-08-08', 수량: 10, 상태: '완료' },
-  { 발행번호: '20250808-001', 업체: '원목세상', 자재명: '원목', 자재코드: 'ZCB-558', 발주일자: '2025-08-08', 수량: 10, 상태: '완료' },
-  { 발행번호: '20250808-001', 업체: '원목세상', 자재명: '원목', 자재코드: 'ZCB-558', 발주일자: '2025-08-08', 수량: 10, 상태: '완료' }
+  {
+    발행번호: '20250808-001',
+    업체: '원목세상',
+    자재명: '원목',
+    규격: 'mm',
+    자재코드: 'ZCB-558',
+    발주일자: '2025-08-08',
+    수량: 10,
+    상태: '완료'
+  },
+  {
+    발행번호: '20250808-001',
+    업체: '원목세상',
+    자재명: '원목',
+    규격: 'mm',
+    자재코드: 'ZCB-558',
+    발주일자: '2025-08-08',
+    수량: 10,
+    상태: '완료'
+  }
 ]);
 
 const openModal = (title, rowData, colDefs) => {
@@ -125,14 +141,30 @@ const openModal = (title, rowData, colDefs) => {
   }
 };
 
+function onModalConfirm(selectedRow) {
+  // 폼에 발행번호 / 업체명 반영
+  form.issueNumber = selectedRow.발행번호 || '';
+  form.name = selectedRow.업체 || '';
+
+  const today = new Date();
+  form.insertDate = today.toISOString().slice(0, 10);
+
+  // 그리드 데이터에 추가
+  rowData.value.push({
+    자재명: selectedRow.자재명 || '',
+    자재코드: selectedRow.자재코드 || '',
+    규격: selectedRow.규격 || '',
+    단위: selectedRow.단위 || 'EA',
+    자재유형: selectedRow.자재유형 || '',
+    발주수량: selectedRow.수량 || 0
+  });
+}
+
 // ----------------- 리셋 / 제출 -----------------
 function resetForm() {
   // 폼 필드 초기화
-  form.supplier = '';
-  form.contact = '';
   form.issueNumber = '';
-  form.orderDate = '';
-  form.dueDate = '';
+  form.insertDate = '';
   form.manager = '';
   alert('초기화 되었습니다.');
 }

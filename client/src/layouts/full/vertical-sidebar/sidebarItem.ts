@@ -156,15 +156,15 @@ const sidebarItem: menu[] = [
         children: [
           {
             title: '불량품 조회',
-            to: '/dashboard/default'
+            to: '/failMaterial/select'
           },
           {
             title: '자재반품요청서 등록',
-            to: '/dashboard/default'
+            to: '/failMaterial/equest'
           },
           {
             title: '자재반품요청서 조회',
-            to: '/dashboard/default'
+            to: '/failMaterial/equest/select'
           }
         ]
       },
@@ -173,19 +173,19 @@ const sidebarItem: menu[] = [
         children: [
           {
             title: '자재 LOT 등록',
-            to: '/dashboard/default'
+            to: '/material/LOT'
           },
           {
             title: '재공품 등록',
-            to: '/dashboard/default'
+            to: '/material/retrial'
           },
           {
-            title: '재고 수량 조회',
-            to: '/dashboard/default'
+            title: '재고 조회',
+            to: '/stock'
           },
           {
             title: '재고 입출고 조회',
-            to: '/dashboard/default'
+            to: '/stock/status'
           }
         ]
       }
