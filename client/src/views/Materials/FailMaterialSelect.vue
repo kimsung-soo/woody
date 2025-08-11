@@ -1,15 +1,10 @@
 <template>
   <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs"></BaseBreadcrumb>
-  <UiParentCard title="자재발주서 검색조건">
+  <UiParentCard title="불량품 검색조건">
     <v-row class="mb-4">
       <v-col cols="3">
-        <v-text-field label="발행번호" v-model="issueNumber" placeholder="발행번호" dense outlined readonly>
-          <i class="fa-solid fa-magnifying-glass fa-xl icons" @click="openModal('자재발주서 조회', materialRowData, materialColDefs)"></i>
-        </v-text-field>
-      </v-col>
-      <v-col cols="3">
         <v-text-field label="자재명" v-model="materialName" placeholder="자재명" dense outlined readonly>
-          <i class="fa-solid fa-magnifying-glass fa-xl icons" @click="openModal('자재 조회', materialRowData2, materialColDefs2)"></i>
+          <i class="fa-solid fa-magnifying-glass fa-xl icons" @click="openModal('불량품 조회', materialRowData, materialColDefs)"></i>
         </v-text-field>
       </v-col>
       <v-col cols="3">
@@ -18,19 +13,12 @@
       <v-col cols="3">
         <v-text-field label="담당자" v-model="manager" placeholder="담당자" dense outlined />
       </v-col>
-      <v-col cols="3">
-        <v-text-field label="발주일자" v-model="orderDate" type="date" dense outlined />
-      </v-col>
-      <v-col cols="3">
-        <v-text-field label="납기일자" v-model="dueDate" type="date" dense outlined />
-      </v-col>
-      <v-col cols="6">
+      <v-col>
         <div class="radioDiv">
           <span class="mr-2">상태:</span>
           <v-radio-group v-model="status" inline hide-details>
-            <v-radio label="대기" value="대기" />
-            <v-radio label="진행중" value="진행중" />
-            <v-radio label="완료" value="완료" />
+            <v-radio label="등록" value="등록" />
+            <v-radio label="반품 완료" value="반품 완료" />
           </v-radio-group>
         </div>
       </v-col>
@@ -41,7 +29,7 @@
     </v-row>
   </UiParentCard>
   <div class="div"></div>
-  <UiParentCard title="자재발주서 목록">
+  <UiParentCard title="불량품 목록">
     <ag-grid-vue
       :rowData="rowData"
       :columnDefs="colDefs"
@@ -94,66 +82,44 @@ const openModal = (title, rowData, colDefs) => {
   }
 };
 
-// 모달 2
-const materialColDefs2 = [
-  { field: 'code', headerName: '자재코드', flex: 2 },
-  { field: 'Name', headerName: '자재명', flex: 2 },
-  { field: 'Type', headerName: '자재유형', flex: 2 },
-  { field: 'Qty', headerName: '수량', flex: 1 },
-  { field: 'unit', headerName: '단위', flex: 1 }
-];
-const materialRowData2 = ref([
-  { code: 'ABC-001', Name: '나사', Type: '부자재', Qty: 100, unit: 'EA' },
-  { code: 'XYZ-002', Name: '강철판', Type: '원자재', Qty: 10, unit: 'KG' }
-]);
-
 const rowData = ref([
   {
-    발행번호: 'ORD-20250808-001',
-    공급업체: '합판세상',
-    자재명: '합판',
-    자재코드: 'MLT-00123',
-    규격: 'SD400',
-    단위: 'EA',
-    금액: '1,200,000원',
-    발주일자: '2025-08-08',
-    납기일자: '2025-08-20',
-    담당자: '이동섭',
-    수량: '10',
-    상태: '대기'
-  },
-  {
-    발행번호: 'ORD-20250808-002',
+    입고번호: '20250808-0012',
     공급업체: '원목세상',
     자재명: '원목',
     자재코드: 'MLT-00123',
     규격: 'SD400',
     단위: 'EA',
-    금액: '1,200,000원',
-    발주일자: '2025-08-08',
-    납기일자: '2025-08-20',
+    불량품수량: '100',
     담당자: '이동섭',
-    수량: '10',
-    상태: '진행 중'
+    상태: '등록'
+  },
+  {
+    입고번호: '20250808-0012',
+    공급업체: '원목세상',
+    자재명: '원목',
+    자재코드: 'MLT-00123',
+    규격: 'SD400',
+    단위: 'EA',
+    불량품수량: '100',
+    담당자: '이동섭',
+    상태: '반품 완료'
   }
 ]);
 
 const colDefs = ref([
-  { field: '발행번호', flex: 2 },
+  { field: '입고번호', flex: 1.5 },
   { field: '공급업체', flex: 1 },
   { field: '자재명', flex: 1 },
   { field: '자재코드', flex: 1 },
   { field: '규격', flex: 1 },
   { field: '단위', flex: 1 },
-  { field: '금액', flex: 1 },
-  { field: '발주일자', flex: 1.5 },
-  { field: '납기일자', flex: 1.5 },
-  { field: '담당자', flex: 1 },
-  { field: '수량', flex: 1 },
-  { field: '상태', flex: 1 }
+  { field: '불량품수량', flex: 1 },
+  { field: '담당자', flex: 1.5 },
+  { field: '상태', flex: 1.5 }
 ]);
 
-const page = ref({ title: '자재발주서' });
+const page = ref({ title: '불량품' });
 const breadcrumbs = shallowRef([
   {
     title: '자재',
@@ -161,27 +127,21 @@ const breadcrumbs = shallowRef([
     href: '#'
   },
   {
-    title: '자재발주서 조회',
+    title: '불량품 조회',
     disabled: false,
     href: '#'
   }
 ]);
 
-const issueNumber = ref('');
 const materialName = ref('');
 const materialCode = ref('');
 const manager = ref('');
-const orderDate = ref('');
-const dueDate = ref('');
 const status = ref('');
 
 function inputReset() {
-  issueNumber.value = '';
   materialName.value = '';
   materialCode.value = '';
   manager.value = '';
-  orderDate.value = '';
-  dueDate.value = '';
   status.value = '';
   alert('초기화 되었습니다.');
 }

@@ -81,6 +81,41 @@ const MainRoutes = {
       path: '/material/select',
       component: () => import('@/views/Materials/MaterialSelect.vue')
     },
+    {
+      name: 'FailMaterialSelect',
+      path: '/failMaterial/select',
+      component: () => import('@/views/Materials/FailMaterialSelect.vue')
+    },
+    {
+      name: 'MaterialEquest',
+      path: '/failMaterial/equest',
+      component: () => import('@/views/Materials/MaterialEquest.vue')
+    },
+    {
+      name: 'MaterialEquestSelect',
+      path: '/failMaterial/equest/select',
+      component: () => import('@/views/Materials/MaterialEqusetSelect.vue')
+    },
+    {
+      name: 'InsertLOT',
+      path: '/material/LOT',
+      component: () => import('@/views/Materials/InsertLOT.vue')
+    },
+    {
+      name: 'InsertRetrial',
+      path: '/material/retrial',
+      component: () => import('@/views/Materials/RetrialInsert.vue')
+    },
+    {
+      name: 'StockSelect',
+      path: '/stock',
+      component: () => import('@/views/Materials/StockSelect.vue')
+    },
+    {
+      name: 'StockStatus',
+      path: '/stock/status',
+      component: () => import('@/views/Materials/StockStatus.vue')
+    },
 
     // 생산
     {
