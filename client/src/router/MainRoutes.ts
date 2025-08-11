@@ -88,24 +88,34 @@ const MainRoutes = {
     {
       name: 'Registration',
       path: '/utils/Registration',
-      component: () => import('@/views/facility/EquipmentRegistration.vue')
+      component: () => import('@/views/facility/information/EquipmentRegistration.vue')
     },
 
     {
       name: 'List',
       path: '/utils/List',
-      component: () => import('@/views/facility/EquipmentList.vue')
+      component: () => import('@/views/facility/information/EquipmentList.vue')
     },
 
     {
       name: 'status',
       path: '/utils/status',
-      component: () => import('@/views/facility/EquipmentStatusList.vue')
+      component: () => import('@/views/facility/state/EquipmentStatusList.vue')
     },
     {
       name: 'modify',
       path: '/utils/modify',
-      component: () => import('@/views/facility/EquipmentModify.vue')
+      component: () => import('@/views/facility/information/EquipmentModify.vue')
+    },
+    {
+      name: 'repairhistory',
+      path: '/utils/repairhistory',
+      component: () => import('@/views/facility/repair/RepairHistory.vue')
+    },
+    {
+      name: 'checkhistory',
+      path: '/utils/checkhistory',
+      component: () => import('@/views/facility/check/CheckHistory.vue')
     },
 
     // 품질

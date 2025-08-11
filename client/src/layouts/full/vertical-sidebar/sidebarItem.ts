@@ -289,7 +289,7 @@ const sidebarItem: menu[] = [
           },
           {
             title: '수리 내역',
-            to: '/dashboard/default'
+            to: '/utils/repairhistory'
           }
         ]
       },
@@ -302,7 +302,7 @@ const sidebarItem: menu[] = [
           },
           {
             title: '점검 내역',
-            to: '/dashboard/default'
+            to: '/utils/checkhistory'
           }
         ]
       }
