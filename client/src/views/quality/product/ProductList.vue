@@ -7,15 +7,20 @@
       :rowData="rowData"
       @grid-ready="onGridReady"
     >
+      <ag-grid-vue :rowData="rowData" :columnDefs="colDefs" :theme="quartz" style="height: 200px" />
     </ag-grid-vue>
   </div>
 </template>
 
 <script>
-import { AgGridVue } from 'ag-grid-vue3'; // ag-grid-vue3 for Vue 3
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
+import { AgGridVue } from 'ag-grid-vue3';
+import { ref, shallowRef, type Ref, type ShallowRef } from 'vue';
+import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
+import UiParentCard from '@/components/shared/UiParentCard.vue';
+import { AllCommunityModule, ModuleRegistry, themeQuartz, type ColDef } from 'ag-grid-community';
 
+ModuleRegistry.registerModules([AllCommunityModule]);
+const quartz = themeQuartz;
 export default {
   components: {
     'ag-grid-vue': AgGridVue
