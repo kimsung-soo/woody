@@ -1,36 +1,38 @@
 <template>
   <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs"></BaseBreadcrumb>
-  <UiParentCard title="자재발주서 검색조건">
+  <UiParentCard title="입고 검색조건">
     <v-row class="mb-4">
-      <v-col cols="3">
-        <v-text-field label="발행번호" v-model="issueNumber" placeholder="발행번호" dense outlined readonly>
-          <i class="fa-solid fa-magnifying-glass fa-xl icons" @click="openModal('자재발주서 조회', materialRowData, materialColDefs)"></i>
-        </v-text-field>
-      </v-col>
-      <v-col cols="3">
+      <v-col cols="4">
         <v-text-field label="자재명" v-model="materialName" placeholder="자재명" dense outlined readonly>
-          <i class="fa-solid fa-magnifying-glass fa-xl icons" @click="openModal('자재 조회', materialRowData2, materialColDefs2)"></i>
+          <i class="fa-solid fa-magnifying-glass fa-xl icons" @click="openModal('자재 조회', materialRowData, materialColDefs)"></i>
         </v-text-field>
       </v-col>
-      <v-col cols="3">
-        <v-text-field label="자재코드" v-model="materialCode" placeholder="자재코드" dense outlined readonly></v-text-field>
+      <v-col cols="4">
+        <v-text-field label="자재코드" v-model="orderDate" dense outlined readonly />
       </v-col>
-      <v-col cols="3">
-        <v-text-field label="담당자" v-model="issueNumber" placeholder="담당자" dense outlined />
+      <v-col cols="4">
+        <div class="radioDiv">
+          <span class="mr-2">자재유형:</span>
+          <v-radio-group v-model="status" inline hide-details>
+            <v-radio label="원자재" value="원자재" />
+            <v-radio label="부자재" value="부자재" />
+            <v-radio label="소모품" value="소모품" />
+          </v-radio-group>
+        </div>
       </v-col>
-      <v-col cols="3">
-        <v-text-field label="발주일자" v-model="orderDate" type="date" dense outlined />
+    </v-row>
+    <v-row class="mb-4">
+      <v-col cols="4">
+        <v-text-field label="입고일자" v-model="orderDate" type="date" dense outlined />
       </v-col>
-      <v-col cols="3">
-        <v-text-field label="납기일자" v-model="dueDate" type="date" dense outlined />
-      </v-col>
-      <v-col cols="6">
+      <v-col cols="4"></v-col>
+      <v-col cols="4">
         <div class="radioDiv">
           <span class="mr-2">상태:</span>
           <v-radio-group v-model="status" inline hide-details>
-            <v-radio label="대기" value="대기" />
-            <v-radio label="진행중" value="진행중" />
-            <v-radio label="완료" value="완료" />
+            <v-radio label="입고" value="입고" />
+            <v-radio label="검수 대기" value="검수 대기" />
+            <v-radio label="입고 완료" value="입고 완료" />
           </v-radio-group>
         </div>
       </v-col>
@@ -41,7 +43,7 @@
     </v-row>
   </UiParentCard>
   <div class="div"></div>
-  <UiParentCard title="자재발주서 목록">
+  <UiParentCard title="입고 목록">
     <ag-grid-vue
       :rowData="rowData"
       :columnDefs="colDefs"
@@ -94,19 +96,6 @@ const openModal = (title, rowData, colDefs) => {
   }
 };
 
-// 모달 2
-const materialColDefs2 = [
-  { field: 'code', headerName: '자재코드', flex: 2 },
-  { field: 'Name', headerName: '자재명', flex: 2 },
-  { field: 'Type', headerName: '자재유형', flex: 2 },
-  { field: 'Qty', headerName: '수량', flex: 1 },
-  { field: 'unit', headerName: '단위', flex: 1 }
-];
-const materialRowData2 = ref([
-  { code: 'ABC-001', Name: '나사', Type: '부자재', Qty: 100, unit: 'EA' },
-  { code: 'XYZ-002', Name: '강철판', Type: '원자재', Qty: 10, unit: 'KG' }
-]);
-
 const rowData = ref([
   {
     발행번호: 'ORD-20250808-001',
@@ -153,7 +142,7 @@ const colDefs = ref([
   { field: '상태', flex: 1 }
 ]);
 
-const page = ref({ title: '자재발주서' });
+const page = ref({ title: '입고' });
 const breadcrumbs = shallowRef([
   {
     title: '자재',
@@ -161,7 +150,7 @@ const breadcrumbs = shallowRef([
     href: '#'
   },
   {
-    title: '자재발주서 조회',
+    title: '입고 조회',
     disabled: false,
     href: '#'
   }
@@ -191,7 +180,7 @@ function fileSelect() {
 
 <style scoped>
 .icons {
-  margin-left: 19rem;
+  margin-left: 27rem;
   margin-bottom: 1rem;
 }
 

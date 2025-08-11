@@ -143,11 +143,11 @@ const sidebarItem: menu[] = [
         children: [
           {
             title: '입고 등록',
-            to: '/dashboard/default'
+            to: '/material/insert'
           },
           {
             title: '입고 조회',
-            to: '/dashboard/default'
+            to: '/material/select'
           }
         ]
       },

@@ -71,6 +71,16 @@ const MainRoutes = {
       path: '/material/order/Select',
       component: () => import('@/views/Materials/MaterialOrderSelect.vue')
     },
+    {
+      name: 'MaterialInsert',
+      path: '/material/insert',
+      component: () => import('@/views/Materials/MaterialInsert.vue')
+    },
+    {
+      name: 'MaterialSelect',
+      path: '/material/select',
+      component: () => import('@/views/Materials/MaterialSelect.vue')
+    },
 
     // 생산
     {
