@@ -316,7 +316,7 @@ const sidebarItem: menu[] = [
     title: '품질',
     children: [
       {
-        title: '원자재',
+        title: '원자재 검수',
         children: [
           {
             title: '원자재 검수 조회',
@@ -332,12 +332,16 @@ const sidebarItem: menu[] = [
         title: '제품성적서',
         children: [
           {
-            title: '조회',
-            to: '/dashboard/default'
+            title: '제품성적서조회',
+            to: '/qm/prdlst'
           },
           {
-            title: '관리',
-            to: '/dashboard/default'
+            title: '제품성적서단건조회',
+            to: '/qm/prdlstdtl'
+          },
+          {
+            title: '제품성적서관리',
+            to: '/qm/prdmng'
           }
         ]
       },
@@ -345,12 +349,12 @@ const sidebarItem: menu[] = [
         title: '품질 기준',
         children: [
           {
-            title: '조회',
-            to: '/dashboard/default'
+            title: '기준조회',
+            to: '/qm/qslist'
           },
           {
-            title: '관리',
-            to: '/dashboard/default'
+            title: '기준관리',
+            to: '/qm/qsmng'
           }
         ]
       }

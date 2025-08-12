@@ -206,11 +206,11 @@ const rowData: Ref<Row[]> = ref([
 ]);
 
 const colDefs: Ref<ColDef<Row>[]> = ref([
-  { headerName: '검사번호', field: 'inspectionNo', minWidth: 130, resizable: false },
-  { headerName: '입고번호', field: 'receiptNo', minWidth: 120, resizable: false },
-  { headerName: '자재코드', field: 'materialCode', minWidth: 120, resizable: false },
-  { headerName: '자재명', field: 'materialName', minWidth: 120, resizable: false },
-  { headerName: '수량', field: 'qty', type: 'rightAligned', resizable: false },
+  { headerName: '검사번호', field: 'inspectionNo', minWidth: 130, resizable: true },
+  { headerName: '입고번호', field: 'receiptNo', minWidth: 120, resizable: true },
+  { headerName: '자재코드', field: 'materialCode', minWidth: 120, resizable: true },
+  { headerName: '자재명', field: 'materialName', minWidth: 120, resizable: true },
+  { headerName: '수량', field: 'qty', type: 'rightAligned', resizable: true },
   {
     headerName: '단가',
     field: 'unitPrice',
@@ -218,11 +218,11 @@ const colDefs: Ref<ColDef<Row>[]> = ref([
     valueFormatter: (p) => (p.value ?? 0).toLocaleString(),
     resizable: false
   },
-  { headerName: '금액', field: 'amount', type: 'rightAligned', valueFormatter: (p) => (p.value ?? 0).toLocaleString(), resizable: false },
-  { headerName: '발주일자', field: 'orderDate', minWidth: 120, resizable: false },
-  { headerName: '납기일자', field: 'dueDate', minWidth: 120, resizable: false },
-  { headerName: '처리상태', field: 'status', minWidth: 100, resizable: false },
-  { headerName: '검수확인인', field: 'inspector', minWidth: 110, resizable: false }
+  { headerName: '금액', field: 'amount', type: 'rightAligned', valueFormatter: (p) => (p.value ?? 0).toLocaleString(), resizable: true },
+  { headerName: '발주일자', field: 'orderDate', minWidth: 120, resizable: true },
+  { headerName: '납기일자', field: 'dueDate', minWidth: 120, resizable: true },
+  { headerName: '처리상태', field: 'status', minWidth: 100, resizable: true },
+  { headerName: '검수확인인', field: 'inspector', minWidth: 110, resizable: true }
 ]);
 
 // ----- 상단 필터를 적용한 그리드 데이터 -----
@@ -246,8 +246,8 @@ const gridOptions = ref<GridOptions<Row>>({
   defaultColDef: { flex: 1, minWidth: 100, resizable: true },
   // columnDefs: colDefs,
   pagination: true,
-  paginationPageSize: 10, // 고정 페이지 크기
-  paginationAutoPageSize: true // 위 한 줄 대신, 화면 높이에 맞춰 자동 분량 원하면 이 줄 사용
+  paginationAutoPageSize: true, // 위 한 줄 대신, 화면 높이에 맞춰 자동 분량 원하면 이 줄 사용
+  paginationPageSizeSelector: true
 });
 
 // ----- 버튼 핸들러 -----
