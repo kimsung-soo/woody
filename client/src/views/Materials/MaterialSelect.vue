@@ -3,8 +3,14 @@
   <UiParentCard title="입고 검색조건">
     <v-row class="mb-4">
       <v-col cols="4">
-        <v-text-field label="자재명" v-model="materialName" placeholder="자재명" dense outlined readonly>
-          <i class="fa-solid fa-magnifying-glass fa-xl icons" @click="openModal('자재 조회', materialRowData, materialColDefs)"></i>
+        <v-text-field label="자재명" v-model="materialName" dense outlined readonly>
+          <template #append-inner>
+            <i
+              class="fa-solid fa-magnifying-glass"
+              style="cursor: pointer; font-size: large; margin-right: 0.5rem"
+              @click="openModal('자재 조회', materialRowData, materialColDefs)"
+            ></i>
+          </template>
         </v-text-field>
       </v-col>
       <v-col cols="4">
@@ -52,7 +58,7 @@
       @cell-value-changed="onCellValueChanged"
     >
     </ag-grid-vue>
-    <MoDal ref="modalRef" :title="modalTitle" :rowData="modalRowData" :colDefs="modalColDefs" />
+    <MoDal ref="modalRef" :title="modalTitle" :rowData="modalRowData" :colDefs="modalColDefs" @confirm="onModalConfirm" />
   </UiParentCard>
 </template>
 
@@ -66,7 +72,7 @@ import { themeQuartz } from 'ag-grid-community';
 import MoDal from '../common/NewModal.vue';
 const quartz = themeQuartz;
 
-// 모달 1
+// 모달
 const modalRef = ref(null);
 const modalTitle = ref('');
 const modalRowData = ref([]);
@@ -95,7 +101,9 @@ const openModal = (title, rowData, colDefs) => {
     modalRef.value.open();
   }
 };
+//
 
+// ag grid
 const rowData = ref([
   {
     발행번호: 'ORD-20250808-001',
@@ -104,12 +112,11 @@ const rowData = ref([
     자재코드: 'MLT-00123',
     규격: 'SD400',
     단위: 'EA',
-    금액: '1,200,000원',
     발주일자: '2025-08-08',
     납기일자: '2025-08-20',
     담당자: '이동섭',
     수량: '10',
-    상태: '대기'
+    상태: '입고'
   },
   {
     발행번호: 'ORD-20250808-002',
@@ -118,12 +125,24 @@ const rowData = ref([
     자재코드: 'MLT-00123',
     규격: 'SD400',
     단위: 'EA',
-    금액: '1,200,000원',
     발주일자: '2025-08-08',
     납기일자: '2025-08-20',
     담당자: '이동섭',
     수량: '10',
-    상태: '진행 중'
+    상태: '검수 대기'
+  },
+  {
+    발행번호: 'ORD-20250808-002',
+    공급업체: '원목세상',
+    자재명: '원목',
+    자재코드: 'MLT-00123',
+    규격: 'SD400',
+    단위: 'EA',
+    발주일자: '2025-08-08',
+    납기일자: '2025-08-20',
+    담당자: '이동섭',
+    수량: '10',
+    상태: '완료'
   }
 ]);
 
@@ -134,12 +153,24 @@ const colDefs = ref([
   { field: '자재코드', flex: 1 },
   { field: '규격', flex: 1 },
   { field: '단위', flex: 1 },
-  { field: '금액', flex: 1 },
   { field: '발주일자', flex: 1.5 },
   { field: '납기일자', flex: 1.5 },
   { field: '담당자', flex: 1 },
   { field: '수량', flex: 1 },
-  { field: '상태', flex: 1 }
+  {
+    field: '상태',
+    flex: 1,
+    cellStyle: (params) => {
+      if (params.value == '입고') {
+        return { color: 'black', fontWeight: 'bold' };
+      } else if (params.value == '검수 대기') {
+        return { color: 'blue', fontWeight: 'bold' };
+      } else if (params.value == '완료') {
+        return { color: 'red', fontWeight: 'bold' };
+      }
+      return null;
+    }
+  }
 ]);
 
 const page = ref({ title: '입고' });
@@ -174,18 +205,16 @@ function inputReset() {
 function fileSelect() {
   alert('검색하는 버튼');
 }
+
+function onModalConfirm(selectedRow) {
+  if (!selectedRow) return;
+
+  materialName.value = selectedRow['자재명'] || '';
+  materialCode.value = selectedRow['자재코드'] || '';
+}
 </script>
 
 <style scoped>
-.icons {
-  margin-left: 27rem;
-  margin-bottom: 1rem;
-}
-
-.icons:hover {
-  cursor: pointer;
-}
-
 .radioDiv {
   margin-left: 1rem;
 }

@@ -4,7 +4,13 @@
     <v-row class="mb-4">
       <v-col cols="3">
         <v-text-field label="자재명" v-model="materialName" placeholder="자재명" dense outlined readonly>
-          <i class="fa-solid fa-magnifying-glass fa-xl icons" @click="openModal('불량품 조회', materialRowData, materialColDefs)"></i>
+          <template #append-inner>
+            <i
+              class="fa-solid fa-magnifying-glass"
+              style="cursor: pointer; font-size: large; margin-right: 0.5rem"
+              @click="openModal('불량품 조회', materialRowData, materialColDefs)"
+            ></i>
+          </template>
         </v-text-field>
       </v-col>
       <v-col cols="3">
@@ -38,7 +44,7 @@
       @cell-value-changed="onCellValueChanged"
     >
     </ag-grid-vue>
-    <MoDal ref="modalRef" :title="modalTitle" :rowData="modalRowData" :colDefs="modalColDefs" />
+    <MoDal ref="modalRef" :title="modalTitle" :rowData="modalRowData" :colDefs="modalColDefs" @confirm="onModalConfirm" />
   </UiParentCard>
 </template>
 
@@ -82,6 +88,7 @@ const openModal = (title, rowData, colDefs) => {
   }
 };
 
+// ag grid
 const rowData = ref([
   {
     입고번호: '20250808-0012',
@@ -116,7 +123,18 @@ const colDefs = ref([
   { field: '단위', flex: 1 },
   { field: '불량품수량', flex: 1 },
   { field: '담당자', flex: 1.5 },
-  { field: '상태', flex: 1.5 }
+  {
+    field: '상태',
+    flex: 1,
+    cellStyle: (params) => {
+      if (params.value === '등록') {
+        return { color: 'black', fontWeight: 'bold' };
+      } else if (params.value === '반품 완료') {
+        return { color: 'red', fontWeight: 'bold' };
+      }
+      return null;
+    }
+  }
 ]);
 
 const page = ref({ title: '불량품' });
@@ -148,6 +166,13 @@ function inputReset() {
 
 function fileSelect() {
   alert('검색하는 버튼');
+}
+
+function onModalConfirm(selectedRow) {
+  if (!selectedRow) return;
+
+  materialName.value = selectedRow['자재명'] || '';
+  materialCode.value = selectedRow['자재코드'] || '';
 }
 </script>
 
