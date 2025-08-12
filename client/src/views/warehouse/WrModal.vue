@@ -2,19 +2,18 @@
   <v-dialog v-model="dialog" max-width="800">
     <v-card>
       <v-card-title class="headline">{{ title }}</v-card-title>
+      <v-card-actions class="justify-end">
+        <v-btn color="darkText" variant="flat" class="mr-3" @click="submitForm">추가</v-btn>
+        <v-btn color="error" variant="flat" class="mr-4" @click="resetForm">삭제</v-btn>
+      </v-card-actions>
       <v-card-text>
-        <div class="d-flex align-center mb-4">
-          <v-text-field label="검색어" v-model="searchKeyword" dense outlined hide-details class="mr-2"></v-text-field>
-          <v-btn color="darkText" @click="searchData">검색</v-btn>
-        </div>
-
         <ag-grid-vue
           :rowData="internalRowData"
           :columnDefs="internalColDefs"
           :theme="quartz"
           rowSelection="single"
           @rowClicked="onRowClicked"
-          style="height: 300px; width: 100%"
+          style="height: 400px; width: 100%"
           :pagination="true"
           :pagination-page-size="10"
         ></ag-grid-vue>
@@ -36,7 +35,6 @@ import { themeQuartz } from 'ag-grid-community';
 
 const quartz = themeQuartz;
 const dialog = ref(false);
-const searchKeyword = ref('');
 
 const props = defineProps({
   title: String,
@@ -89,9 +87,6 @@ const confirm = () => {
   }
   close();
 };
-
-// 검색
-const searchData = () => {};
 
 defineExpose({
   open

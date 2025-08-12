@@ -37,19 +37,19 @@ const sidebarItem: menu[] = [
       },
       {
         title: '제품 관리',
-        to: '/dashboard/default'
+        to: '/master/MasterProduct'
       },
       {
         title: '자재 관리',
-        to: '/dashboard/default'
+        to: '/master/MasterMaterials'
       },
       {
         title: '재공품 관리',
-        to: '/dashboard/default'
+        to: '/master/MasterWIP'
       },
       {
         title: '공정 관리',
-        to: '/dashboard/default'
+        to: '/master/MasterProcess'
       },
       {
         title: '공정흐름도 관리',
@@ -357,15 +357,24 @@ const sidebarItem: menu[] = [
     children: [
       {
         title: '창고관리',
-        to: '/dashboard/default'
+        to: '/warehouse/WareInfo'
       },
       {
         title: '물류 출하',
-        to: '/dashboard/default'
+        to: '/warehouse/ShipmentSelect'
       },
       {
         title: '폐기 처리',
-        to: '/dashboard/default'
+        children: [
+          {
+            title: '폐기 일정 등록',
+            to: '/warehouse/ScrapInsert'
+          },
+          {
+            title: '폐기 처리 조회',
+            to: '/warehouse/ScrapSelect'
+          }
+        ]
       }
     ]
   }

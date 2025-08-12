@@ -68,6 +68,26 @@ const MainRoutes = {
       path: '/master/MasterEmp',
       component: () => import('@/views/master/MasterEmp.vue')
     },
+    {
+      name: 'MasterProduct',
+      path: '/master/MasterProduct',
+      component: () => import('@/views/master/MasterProduct.vue')
+    },
+    {
+      name: 'MasterMaterials',
+      path: '/master/MasterMaterials',
+      component: () => import('@/views/master/MasterMaterials.vue')
+    },
+    {
+      name: 'MasterWIP',
+      path: '/master/MasterWIP',
+      component: () => import('@/views/master/MasterWIP.vue')
+    },
+    {
+      name: 'MasterProcess',
+      path: '/master/MasterProcess',
+      component: () => import('@/views/master/MasterProcess.vue')
+    },
     // 영업
     {
       name: 'OrderForm',
@@ -79,12 +99,12 @@ const MainRoutes = {
       path: '/marketing/OrderFormList',
       component: () => import('@/views/marketing/OrderFormList.vue')
     },
-     {
+    {
       name: 'MfOrderForm',
       path: '/marketing/MfOrderForm',
       component: () => import('@/views/marketing/MfOrderForm.vue')
     },
-     {
+    {
       name: 'MfOrderFormList',
       path: '/marketing/MfOrderFormList',
       component: () => import('@/views/marketing/MfOrderFormList.vue')
@@ -219,7 +239,7 @@ const MainRoutes = {
 
     // 품질
     {
-      name: 'Quality',
+      name: 'Quality123',
       path: '/qm/matlst',
       component: () => import('../views/quality/material/MaterialList.vue')
     },
@@ -232,8 +252,28 @@ const MainRoutes = {
       name: 'Quality',
       path: '/qm/prdlst',
       component: () => import('@/views/quality/product/ProductList.vue')
-    }
+    },
     // 물류
+    {
+      name: 'ScrapInsert',
+      path: '/warehouse/ScrapInsert',
+      component: () => import('@/views/warehouse/ScrapInsert.vue')
+    },
+    {
+      name: 'ScrapSelect',
+      path: '/warehouse/ScrapSelect',
+      component: () => import('@/views/warehouse/ScrapSelect.vue')
+    },
+    {
+      name: 'WareInfo',
+      path: '/warehouse/WareInfo',
+      component: () => import('@/views/warehouse/WareInfo.vue')
+    },
+    {
+      name: 'ShipmentSelect',
+      path: '/warehouse/ShipmentSelect',
+      component: () => import('@/views/warehouse/ShipmentSelect.vue')
+    }
   ]
 };
 
