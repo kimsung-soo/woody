@@ -17,8 +17,8 @@
     "nodemon": "^3.1.10",
     "router": "^2.2.0"
   },
-  "description": "",
   "devDependencies": {
     "nodemon": "^3.1.10"
-  }
+  },
+  "description": ""
 }

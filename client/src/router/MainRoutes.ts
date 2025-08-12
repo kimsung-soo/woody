@@ -229,7 +229,7 @@ const MainRoutes = {
       component: () => import('../views/quality/material/MaterialManagement.vue')
     },
     {
-      name: 'Quality',
+      name: 'QualityPrdList',
       path: '/qm/prdlst',
       component: () => import('@/views/quality/product/ProductList.vue')
     }
