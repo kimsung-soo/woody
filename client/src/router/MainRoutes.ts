@@ -89,6 +89,36 @@ const MainRoutes = {
       path: '/marketing/MfOrderFormList',
       component: () => import('@/views/marketing/MfOrderFormList.vue')
     },
+     {
+      name: 'MkInbound',
+      path: '/marketing/MkInbound',
+      component: () => import('@/views/marketing/MkInbound.vue')
+    },
+     {
+      name: 'MkOutbound',
+      path: '/marketing/MkOutbound',
+      component: () => import('@/views/marketing/MkOutbound.vue')
+    },
+    {
+      name: 'MkLotList',
+      path: '/marketing/MkLotList',
+      component: () => import('@/views/marketing/MkLotList.vue')
+    },
+    {
+      name: 'MkOutboundForm',
+      path: '/marketing/MkOutboundForm',
+      component: () => import('@/views/marketing/MkOutboundForm.vue')
+    },
+    {
+      name: 'MkOutboundFormList',
+      path: '/marketing/MkOutboundFormList',
+      component: () => import('@/views/marketing/MkOutboundFormList.vue')
+    },
+    {
+      name: 'MkAccount',
+      path: '/marketing/MkAccount',
+      component: () => import('@/views/marketing/MkAccount.vue')
+    },
     // 자재
     {
       name: 'MaterialOrderInsert',
