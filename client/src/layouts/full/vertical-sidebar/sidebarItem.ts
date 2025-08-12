@@ -37,19 +37,19 @@ const sidebarItem: menu[] = [
       },
       {
         title: '제품 관리',
-        to: '/dashboard/default'
+        to: '/master/MasterProduct'
       },
       {
         title: '자재 관리',
-        to: '/dashboard/default'
+        to: '/master/MasterMaterials'
       },
       {
         title: '재공품 관리',
-        to: '/dashboard/default'
+        to: '/master/MasterWIP'
       },
       {
         title: '공정 관리',
-        to: '/dashboard/default'
+        to: '/master/MasterProcess'
       },
       {
         title: '공정흐름도 관리',
@@ -68,12 +68,8 @@ const sidebarItem: menu[] = [
         title: '거래처',
         children: [
           {
-            title: '거래처 등록',
-            to: '/dashboard/default'
-          },
-          {
-            title: '거래처 조회',
-            to: '/dashboard/default'
+            title: '거래처등록 및 조회',
+            to: '/marketing/MkAccount'
           }
         ]
       },
@@ -108,15 +104,23 @@ const sidebarItem: menu[] = [
         children: [
           {
             title: '입고 및 LOT 생성',
-            to: '/dashboard/default'
+            to: '/marketing/MkInbound'
+          },
+          {
+            title: '출고',
+            to: '/marketing/MkOutbound'
+          },
+          {
+            title: 'LOT 조회',
+            to: '/marketing/MkLotList'
           },
           {
             title: '출하지시서 등록',
-            to: '/dashboard/default'
+            to: '/marketing/MkOutboundForm'
           },
           {
-            title: '출하지시서 조회',
-            to: '/dashboard/default'
+            title: '출하이력 조회',
+            to: '/marketing/MkOutboundFormList'
           }
         ]
       }
@@ -237,11 +241,11 @@ const sidebarItem: menu[] = [
           },
           {
             title: '작업 진행 현황',
-            to: '/dashboard/default'
+            to: '/production/workstatus'
           },
           {
             title: '생산 실적 조회',
-            to: '/dashboard/default'
+            to: '/production/performancecheck'
           }
         ]
       }
@@ -276,7 +280,7 @@ const sidebarItem: menu[] = [
           },
           {
             title: '가동/비가동 관리',
-            to: '/dashboard/default'
+            to: '/utils/StatusOperational'
           }
         ]
       },
@@ -361,15 +365,24 @@ const sidebarItem: menu[] = [
     children: [
       {
         title: '창고관리',
-        to: '/dashboard/default'
+        to: '/warehouse/WareInfo'
       },
       {
         title: '물류 출하',
-        to: '/dashboard/default'
+        to: '/warehouse/ShipmentSelect'
       },
       {
         title: '폐기 처리',
-        to: '/dashboard/default'
+        children: [
+          {
+            title: '폐기 일정 등록',
+            to: '/warehouse/ScrapInsert'
+          },
+          {
+            title: '폐기 처리 조회',
+            to: '/warehouse/ScrapSelect'
+          }
+        ]
       }
     ]
   }

@@ -29,7 +29,7 @@
     "express": "^5.1.0",
     "lodash": "4.17.21",
     "mysql2": "^3.14.3",
-    "pinia": "2.3.0",
+    "pinia": "^2.3.0",
     "remixicon": "4.6.0",
     "router": "^2.2.0",
     "vee-validate": "4.15.0",

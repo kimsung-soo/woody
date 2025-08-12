@@ -10,6 +10,7 @@ import VueTablerIcons from 'vue-tabler-icons';
 
 import { fakeBackend } from '@/utils/helpers/fake-backend';
 import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
+import { startSimTicker } from '@/sim/simTicker.js';
 
 // AG Grid 모듈 한번 등록
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -25,3 +26,8 @@ app.use(VueTablerIcons);
 app.use(print);
 app.use(VueApexCharts);
 app.use(vuetify).mount('#app');
+app.use(createPinia());
+
+const pinia = createPinia();
+app.use(pinia);
+startSimTicker();

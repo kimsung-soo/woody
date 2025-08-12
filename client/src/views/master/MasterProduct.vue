@@ -1,10 +1,12 @@
 <template>
   <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs"></BaseBreadcrumb>
-  <UiParentCard>
-    <h5>제품 목록</h5>
+  <UiParentCard title="제품 목록">
     <div class="d-flex align-center mb-4">
       <v-text-field label="제품 검색" v-model="searchKeyword" hide-details class="mr-2" style="max-width: 280px"></v-text-field>
       <v-btn color="darkText" @click="searchData">검색</v-btn>
+      <v-row justify="end" class="mr-3">
+        <v-btn color="error" class="mr-1" @click="del">삭제</v-btn>
+      </v-row>
     </div>
     <div class="main-container">
       <div class="list-container">
@@ -12,9 +14,9 @@
           :rowData="rowData1"
           :columnDefs="colDefs1"
           :theme="quartz"
-          style="height: 550px; width: 100%"
+          style="height: 500px; width: 100%"
           @cell-value-changed="onCellValueChanged"
-          rowSelection="single"
+          :rowSelection="rowSelection"
           @rowClicked="onRowClicked"
         >
           <!--  :defaultColDef="{ width: 150 }" 로 전체 width지정도가능-->
@@ -24,36 +26,42 @@
         <div class="add">
           <v-row class="mb-4">
             <v-col cols="6">
-              <v-text-field label="사원번호" v-model="form.empNo" dense outlined />
+              <v-text-field label="제품코드" v-model="form.prdCode" dense outlined />
             </v-col>
             <v-col cols="6">
-              <v-text-field label="사원명" v-model="form.empName" dense outlined />
+              <v-text-field label="제품명" v-model="form.prdName" dense outlined />
             </v-col>
             <v-col cols="6">
-              <v-text-field label="연락처" v-model="form.phone" dense outlined />
+              <v-text-field label="작성자" v-model="form.writer" dense outlined />
             </v-col>
             <v-col cols="6">
-              <v-text-field label="이메일" v-model="form.email" dense outlined />
+              <v-text-field label="등록일자" v-model="form.date" type="date" dense outlined />
             </v-col>
-            <v-col cols="6">
-              <v-text-field label="부서명" v-model="form.dept" dense outlined />
+            <v-col cols="4">
+              <v-text-field label="규격(가로)" v-model="form.horr" dense outlined />
             </v-col>
-            <v-col cols="6">
-              <v-text-field label="직급" v-model="form.auth" dense outlined />
+            <v-col cols="4">
+              <v-text-field label="규격(세로)" v-model="form.vert" dense outlined />
+            </v-col>
+            <v-col cols="4">
+              <v-text-field label="규격(높이)" v-model="form.height" dense outlined />
+            </v-col>
+            <v-col cols="4">
+              <v-text-field label="단위" v-model="form.unit" dense outlined />
+            </v-col>
+            <v-col cols="4">
+              <div class="radioDiv">
+                <span class="mr-2">제품 유형:</span>
+                <v-radio-group v-model="form.type" inline hide-details>
+                  <v-radio label="완제품" value="완제품" />
+                  <v-radio label="반제품" value="반제품" />
+                </v-radio-group>
+              </div>
             </v-col>
             <v-col cols="12">
-              <v-text-field label="주소" v-model="form.addr" dense outlined />
+              <v-text-field label="비고" v-model="form.addr" dense outlined />
             </v-col>
 
-            <v-col cols="6">
-              <v-text-field label="입사일자" v-model="form.hireDate" type="date" dense outlined />
-            </v-col>
-            <v-col cols="6">
-              <v-radio-group label="재직상태" v-model="form.status" dense outlined>
-                <v-radio label="재직" value="재직"></v-radio>
-                <v-radio label="퇴사" value="퇴사"></v-radio>
-              </v-radio-group>
-            </v-col>
             <v-row justify="center">
               <v-btn color="error" class="mr-3" @click="resetForm">초기화</v-btn>
               <v-btn color="primary" class="mr-6" @click="submitForm">저장</v-btn>
@@ -75,37 +83,38 @@ import { AgGridVue } from 'ag-grid-vue3';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
 
 const quartz = themeQuartz;
-
+const rowSelection = ref({
+  mode: 'multiRow'
+});
 const form = ref(
-  { empNo: '' }, //
-  { phone: '' },
-  { empName: '' },
-  { hireDate: '' },
-  { auth: '' },
-  { dept: '' },
-  { addr: '' },
-  { status: '재직' }
+  { prdCode: '' }, //
+  { prdName: '' },
+  { writer: '' },
+  { date: '' },
+  { horr: '' },
+  { vert: '' },
+  { height: '' },
+  { type: '' }
 );
 
 // 제품 리스트
 const rowData1 = ref([
-  { 사원번호: 'Tesla', 사원명: 'Model Y', 부서: '완제품', 직급: 'prc_010', 재직상태: '재직', 입사일자: '2025-12-31' },
-  { 사원번호: 'Ford', 사원명: 'F-Series', 부서: '완제품', 직급: 'prc_010', 재직상태: '재직', 입사일자: '2025-12-31' },
-  { 사원번호: '빨간책상', 사원명: 'Model Y', 부서: '완제품', 직급: 'prc_010', 재직상태: '재직', 입사일자: '2025-12-31' },
-  { 사원번호: '하얀책상', 사원명: 'Model Y', 부서: '완제품', 직급: 'prc_010', 재직상태: '재직', 입사일자: '2025-12-31' },
-  { 사원번호: '멋진책상', 사원명: 'Model Y', 부서: '완제품', 직급: 'prc_010', 재직상태: '재직', 입사일자: '2025-12-31' },
-  { 사원번호: '지린책상', 사원명: 'Model Y', 부서: '완제품', 직급: 'prc_010', 재직상태: '재직', 입사일자: '2025-12-31' },
-  { 사원번호: 'Tesla', 사원명: 'Model Y', 부서: '완제품', 직급: 'prc_010', 재직상태: '재직', 입사일자: '2025-12-31' },
-  { 사원번호: 'Tesla', 사원명: 'Model Y', 부서: '완제품', 직급: 'prc_010', 재직상태: '재직', 입사일자: '2025-12-31' }
+  { 제품코드: 1, 제품명: '이동섭', 제품유형: '완제품', 규격: '660*400*720', 단위: 'EA', 입사일자: '2025-08-29' },
+  { 제품코드: 2, 제품명: '김태완', 제품유형: '반제품', 규격: '660*400*720', 단위: 'EA', 입사일자: '2025-07-29' },
+  { 제품코드: 3, 제품명: '김성수', 제품유형: '완제품', 규격: '660*400*720', 단위: 'EA', 입사일자: '2025-06-29' },
+  { 제품코드: 4, 제품명: '정경준', 제품유형: '반제품', 규격: '660*400*720', 단위: 'EA', 입사일자: '2025-05-29' },
+  { 제품코드: 5, 제품명: '최은수', 제품유형: '완제품', 규격: '660*400*720', 단위: 'EA', 입사일자: '2025-04-29' },
+  { 제품코드: 6, 제품명: '제갈은경', 제품유형: '반제품', 규격: '660*400*720', 단위: 'EA', 입사일자: '2025-03-29' }
 ]);
 
 const colDefs1 = ref([
-  { field: '사원번호', editable: true, width: 120 },
-  { field: '사원명', width: 130 },
-  { field: '부서', width: 130 },
-  { field: '직급', width: 130 },
-  { field: '입사일자', width: 110, editable: true },
-  { field: '재직상태', width: 110, editable: true }
+  { field: '제품코드', editable: true, width: 140 },
+  { field: '제품명', width: 140, editable: true },
+  { field: '제품유형', width: 140, editable: true },
+  { field: '규격', width: 140, editable: true },
+  { field: '단위', width: 130, editable: true },
+  { field: '작성자', width: 130 },
+  { field: '등록일자', width: 130 }
 ]);
 
 const page = ref({ title: '사원 관리' });
@@ -131,7 +140,6 @@ const onCellValueChanged = (event) => {
 // rowData1 배열에 새로운 행 추가
 const submitForm = () => {
   const newRow = {
-    사원번호: form.value.empNo,
     제품코드: 'DK-112', // 필요에 따라 기본값 설정
     공정흐름도: form.value.diagram, // 필요에 따라 기본값 설정
     사원명: form.value.empName,
@@ -155,15 +163,16 @@ const resetForm = () => {
 
 // 행선택시 등록 폼으로
 const onRowClicked = (event) => {
-  form.value.empNo = event.data.사원번호;
-  form.value.empName = event.data.사원명;
-  form.value.hireDate = event.data.입사일자;
-  form.value.addr = event.data.주소;
-  form.value.dept = event.data.부서;
-  form.value.auth = event.data.직급;
-  form.value.phone = event.data.연락처;
-  form.value.email = event.data.이메일;
-  form.value.status = event.data.재직상태;
+  form.value.prdCode = event.data.제품코드;
+  form.value.prdName = event.data.제품명;
+  form.value.writer = event.data.작성자;
+  form.value.date = event.data.등록일;
+  const [horr, vert, height] = event.data.규격.split('*');
+  form.value.horr = horr;
+  form.value.vert = vert;
+  form.value.height = height;
+  form.value.unit = event.data.단위;
+  form.value.type = event.data.제품유형;
 };
 </script>
 
@@ -182,5 +191,8 @@ const onRowClicked = (event) => {
 .form-wrapper {
   flex: 1 1 50%; /* list-container와 동일하게 공간을 차지 */
   min-width: 400px;
+}
+.radioDiv {
+  margin-left: 1rem;
 }
 </style>

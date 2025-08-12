@@ -1,12 +1,10 @@
 <template>
   <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs"></BaseBreadcrumb>
-  <UiParentCard title="공정 목록">
+  <UiParentCard title="불량품 목록">
     <div class="d-flex align-center mb-4">
-      <v-text-field label="공정 검색" v-model="searchKeyword" hide-details class="mr-2" style="max-width: 280px"></v-text-field>
+      <v-text-field label="검사 일자" type="date" v-model="searchKeyword" hide-details class="mr-2" style="max-width: 180px"></v-text-field>
+      <v-text-field label="검사 일자" type="date" v-model="searchKeyword" hide-details class="mr-2" style="max-width: 180px"></v-text-field>
       <v-btn color="darkText" @click="searchData">검색</v-btn>
-      <v-row justify="end" class="mr-3">
-        <v-btn color="error" class="mr-1" @click="del">삭제</v-btn>
-      </v-row>
     </div>
     <div class="main-container">
       <div class="list-container">
@@ -16,8 +14,9 @@
           :theme="quartz"
           style="height: 500px; width: 100%"
           @cell-value-changed="onCellValueChanged"
-          :rowSelection="rowSelection"
           @rowClicked="onRowClicked"
+          :pagination="true"
+          pagination-page-size="20"
         >
           <!--  :defaultColDef="{ width: 150 }" 로 전체 width지정도가능-->
         </ag-grid-vue>
@@ -26,28 +25,26 @@
         <div class="add">
           <v-row class="mb-4">
             <v-col cols="6">
-              <v-text-field label="공정코드" v-model="form.prcCode" dense outlined />
+              <v-text-field label="창고번호" v-model="form.wrNo" dense outlined />
             </v-col>
             <v-col cols="6">
-              <v-text-field label="공정명" v-model="form.prcName" dense outlined />
+              <v-text-field label="구역번호" v-model="form.areaNo" dense outlined />
             </v-col>
             <v-col cols="6">
-              <v-text-field label="작성자" v-model="form.writer" dense outlined />
+              <v-text-field label="섹션 코드" v-model="form.secCode" dense outlined />
             </v-col>
             <v-col cols="6">
-              <v-text-field label="등록일자" v-model="form.date" type="date" dense outlined />
+              <v-text-field label="수량" v-model="form.qty" dense outlined />
             </v-col>
             <v-col cols="6">
-              <v-text-field label="설비 유형" v-model="form.type" dense outlined />
+              <v-text-field label="폐기 업체" v-model="form.company" dense outlined />
             </v-col>
-            <v-col cols="4"> </v-col>
-            <v-col cols="12">
-              <v-text-field label="비고" v-model="form.addr" dense outlined />
+            <v-col cols="6">
+              <v-text-field label="차량 번호" v-model="form.carNo" dense outlined />
             </v-col>
-
             <v-row justify="center">
               <v-btn color="error" class="mr-3" @click="resetForm">초기화</v-btn>
-              <v-btn color="primary" class="mr-6" @click="submitForm">저장</v-btn>
+              <v-btn color="primary" class="mr-6" @click="submitForm">등록</v-btn>
             </v-row>
           </v-row>
         </div>
@@ -66,9 +63,7 @@ import { AgGridVue } from 'ag-grid-vue3';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
 
 const quartz = themeQuartz;
-const rowSelection = ref({
-  mode: 'multiRow'
-});
+
 const form = ref(
   { prcCode: '' }, //
   { prcName: '' },
@@ -79,31 +74,32 @@ const form = ref(
 
 // 제품 리스트
 const rowData1 = ref([
-  { 공정코드: 1, 공정명: '재단공정', 설비유형: '절단기', 작성자: '이동섭', 등록일자: '2025-08-29' },
-  { 공정코드: 2, 공정명: '가공공정', 설비유형: '가공기', 작성자: '김태완', 등록일자: '2025-07-29' },
-  { 공정코드: 3, 공정명: '연마공정', 설비유형: '연마기', 작성자: '김성수', 등록일자: '2025-06-29' },
-  { 공정코드: 4, 공정명: '재단공정', 설비유형: '절단기', 작성자: '정경준', 등록일자: '2025-05-29' },
-  { 공정코드: 5, 공정명: '도장공정', 설비유형: '도장기', 작성자: '최은수', 등록일자: '2025-04-29' },
-  { 공정코드: 6, 공정명: '조립공정', 설비유형: '조립기', 작성자: '제갈은경', 등록일자: '2025-03-29' }
+  { 불량품코드: 1, 제품유형: '완제품', 제품명: '절단기', 수량: 1, 폐기기한: '2025-08-29' },
+  { 불량품코드: 2, 제품유형: '반제품', 제품명: '가공기', 수량: 2, 폐기기한: '2025-07-29' },
+  { 불량품코드: 3, 제품유형: '완제품', 제품명: '연마기', 수량: 3, 폐기기한: '2025-06-29' },
+  { 불량품코드: 4, 제품유형: '반제품', 제품명: '절단기', 수량: 4, 폐기기한: '2025-05-29' },
+  { 불량품코드: 5, 제품유형: '완제품', 제품명: '도장기', 수량: 5, 폐기기한: '2025-04-29' },
+  { 불량품코드: 6, 제품유형: '반제품', 제품명: '조립기', 수량: 6, 폐기기한: '2025-03-29' }
 ]);
 
+// 폐기 기한은 검사일 + 180일로 설정해야됨.
 const colDefs1 = ref([
-  { field: '공정코드', editable: true, width: 140 },
-  { field: '공정명', width: 140, editable: true },
-  { field: '설비유형', width: 140, editable: true },
-  { field: '작성자', width: 130, editable: true },
-  { field: '등록일자', width: 130, editable: true }
+  { field: '불량품코드', editable: true, flex: 1 },
+  { field: '제품유형', flex: 1, editable: true },
+  { field: '제품명', flex: 1, editable: true },
+  { field: '수량', flex: 1, editable: true },
+  { field: '폐기기한', flex: 1, editable: true }
 ]);
 
-const page = ref({ title: '사원 관리' });
+const page = ref({ title: '폐기 처리' });
 const breadcrumbs = shallowRef([
   {
-    title: '기준정보',
+    title: '물류',
     disabled: true,
     href: '#'
   },
   {
-    title: '사원 관리',
+    title: '폐기 일정 등록',
     disabled: false,
     href: '#'
   }
@@ -124,6 +120,9 @@ const submitForm = () => {
     등록일: form.value.addDate
   };
   rowData1.value.push(newRow);
+
+  // 폼 데이터를 초기화합니다.
+  resetForm();
 };
 
 // 폼 데이터를 초기화하는 함수
@@ -138,11 +137,12 @@ const resetForm = () => {
 
 // 행선택시 등록 폼으로
 const onRowClicked = (event) => {
-  form.value.prcCode = event.data.공정코드;
-  form.value.prcName = event.data.공정명;
-  form.value.writer = event.data.작성자;
-  form.value.date = event.data.등록일;
-  form.value.type = event.data.설비유형;
+  form.value.carNo = event.data.차량번호;
+  form.value.qty = event.data.등록일;
+  form.value.company = event.data.설비유형;
+  form.value.wrNo = '';
+  form.value.areaNo = '';
+  form.value.secCode = '';
 };
 </script>
 

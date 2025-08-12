@@ -68,6 +68,26 @@ const MainRoutes = {
       path: '/master/MasterEmp',
       component: () => import('@/views/master/MasterEmp.vue')
     },
+    {
+      name: 'MasterProduct',
+      path: '/master/MasterProduct',
+      component: () => import('@/views/master/MasterProduct.vue')
+    },
+    {
+      name: 'MasterMaterials',
+      path: '/master/MasterMaterials',
+      component: () => import('@/views/master/MasterMaterials.vue')
+    },
+    {
+      name: 'MasterWIP',
+      path: '/master/MasterWIP',
+      component: () => import('@/views/master/MasterWIP.vue')
+    },
+    {
+      name: 'MasterProcess',
+      path: '/master/MasterProcess',
+      component: () => import('@/views/master/MasterProcess.vue')
+    },
     // 영업
     {
       name: 'OrderForm',
@@ -88,6 +108,36 @@ const MainRoutes = {
       name: 'MfOrderFormList',
       path: '/marketing/MfOrderFormList',
       component: () => import('@/views/marketing/MfOrderFormList.vue')
+    },
+     {
+      name: 'MkInbound',
+      path: '/marketing/MkInbound',
+      component: () => import('@/views/marketing/MkInbound.vue')
+    },
+     {
+      name: 'MkOutbound',
+      path: '/marketing/MkOutbound',
+      component: () => import('@/views/marketing/MkOutbound.vue')
+    },
+    {
+      name: 'MkLotList',
+      path: '/marketing/MkLotList',
+      component: () => import('@/views/marketing/MkLotList.vue')
+    },
+    {
+      name: 'MkOutboundForm',
+      path: '/marketing/MkOutboundForm',
+      component: () => import('@/views/marketing/MkOutboundForm.vue')
+    },
+    {
+      name: 'MkOutboundFormList',
+      path: '/marketing/MkOutboundFormList',
+      component: () => import('@/views/marketing/MkOutboundFormList.vue')
+    },
+    {
+      name: 'MkAccount',
+      path: '/marketing/MkAccount',
+      component: () => import('@/views/marketing/MkAccount.vue')
     },
     // 자재
     {
@@ -173,6 +223,17 @@ const MainRoutes = {
       path: '/production/processcontrol',
       component: () => import('@/views/production/ProcessControl.vue')
     },
+    {
+      name: 'WorkStatus',
+      path: '/production/workstatus',
+      component: () => import('@/views/production/WorkStatus.vue')
+    },
+    {
+      name: 'PerformanceCheck',
+      path: '/production/performancecheck',
+      component: () => import('@/views/production/PerformanceCheck.vue')
+    },
+
     // 설비
     {
       name: 'Registration',
@@ -233,6 +294,7 @@ const MainRoutes = {
       path: '/qm/prdlst',
       component: () => import('@/views/quality/product/ProductList.vue')
     },
+
     {
       name: 'QualityPrdListDetail',
       path: '/qm/prdlstdtl',
@@ -252,8 +314,28 @@ const MainRoutes = {
       name: 'QualityStandardManagement',
       path: '/qm/qsmng',
       component: () => import('@/views/quality/standard/QualityStandardManagement.vue')
-    }
+    },
     // 물류
+    {
+      name: 'ScrapInsert',
+      path: '/warehouse/ScrapInsert',
+      component: () => import('@/views/warehouse/ScrapInsert.vue')
+    },
+    {
+      name: 'ScrapSelect',
+      path: '/warehouse/ScrapSelect',
+      component: () => import('@/views/warehouse/ScrapSelect.vue')
+    },
+    {
+      name: 'WareInfo',
+      path: '/warehouse/WareInfo',
+      component: () => import('@/views/warehouse/WareInfo.vue')
+    },
+    {
+      name: 'ShipmentSelect',
+      path: '/warehouse/ShipmentSelect',
+      component: () => import('@/views/warehouse/ShipmentSelect.vue')
+    }
   ]
 };
 

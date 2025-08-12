@@ -4,7 +4,13 @@
     <v-row class="mb-4">
       <v-col cols="3">
         <v-text-field label="자재명" v-model="materialName" placeholder="자재명" dense outlined readonly>
-          <i class="fa-solid fa-magnifying-glass fa-xl icons" @click="openModal('자재 조회', materialRowData, materialColDefs)"></i>
+          <template #append-inner>
+            <i
+              class="fa-solid fa-magnifying-glass"
+              style="cursor: pointer; font-size: large; margin-right: 0.5rem"
+              @click="openModal('자재 조회', materialRowData, materialColDefs)"
+            ></i>
+          </template>
         </v-text-field>
       </v-col>
       <v-col cols="3">
@@ -14,8 +20,14 @@
         <v-text-field label="담당자" v-model="manager" placeholder="담당자" dense outlined />
       </v-col>
       <v-col cols="3">
-        <v-text-field label="창고코드" v-model="storageCode" placeholder="창고코드" dense outlined>
-          <i class="fa-solid fa-magnifying-glass fa-xl icons" @click="openModal('창고코드 조회', materialRowData2, materialColDefs2)"></i>
+        <v-text-field label="창고코드" v-model="storageCode" placeholder="창고코드" dense outlined readonly>
+          <template #append-inner>
+            <i
+              class="fa-solid fa-magnifying-glass"
+              style="cursor: pointer; font-size: large; margin-right: 0.5rem"
+              @click="openModal('창고코드 조회', materialRowData2, materialColDefs2)"
+            ></i>
+          </template>
         </v-text-field>
       </v-col>
     </v-row>
@@ -45,7 +57,7 @@
 </template>
 
 <script setup>
-import { ref, shallowRef } from 'vue';
+import { ref, shallowRef, watch } from 'vue';
 
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
@@ -110,26 +122,35 @@ const colDefs = ref([
   { field: '수량', flex: 1 }
 ]);
 
-const rowData = ref([
-  {
-    LOT번호: 'ORD-20250808-001',
-    자재명: '합판',
-    자재코드: 'MLT-00123',
-    규격: 'SD400',
-    단위: 'EA',
-    창고코드: 'DEX-47',
-    수량: '1000'
+const tab = ref(0); // 0번째 탭이 기본 선택 (원자재)
+
+// 각 탭별 데이터 (예시)
+const rawMaterialsData = [
+  { LOT번호: 'ORD-20250808-001', 자재명: '원목', 자재코드: 'ZCB-558', 규격: 'SD400', 단위: 'EA', 창고코드: 'DEX-47', 수량: '1000' },
+  { LOT번호: 'ORD-20250808-002', 자재명: '합판', 자재코드: 'ABC-123', 규격: 'SD300', 단위: 'EA', 창고코드: 'DEX-48', 수량: '500' }
+];
+const subMaterialsData = [
+  { LOT번호: 'SUB-20250808-001', 자재명: '못', 자재코드: 'NAIL-001', 규격: '5cm', 단위: 'Box', 창고코드: 'SUB-01', 수량: '200' }
+];
+const consumablesData = [
+  { LOT번호: 'CON-20250808-001', 자재명: '사포', 자재코드: 'SAND-003', 규격: '중', 단위: '장', 창고코드: 'CON-01', 수량: '100' }
+];
+const finishedGoodsData = [
+  { LOT번호: 'FIN-20250808-001', 자재명: '의자', 자재코드: 'CHAIR-004', 규격: '대', 단위: '개', 창고코드: 'FIN-01', 수량: '50' }
+];
+
+const rowData = ref([]);
+
+watch(
+  tab,
+  (newVal) => {
+    if (newVal === 0) rowData.value = rawMaterialsData;
+    else if (newVal === 1) rowData.value = subMaterialsData;
+    else if (newVal === 2) rowData.value = consumablesData;
+    else if (newVal === 3) rowData.value = finishedGoodsData;
   },
-  {
-    LOT번호: 'ORD-20250808-001',
-    자재명: '합판',
-    자재코드: 'MLT-00123',
-    규격: 'SD400',
-    단위: 'EA',
-    창고코드: 'DEX-47',
-    수량: '1550'
-  }
-]);
+  { immediate: true }
+);
 
 const page = ref({ title: '재고 ' });
 const breadcrumbs = shallowRef([
@@ -170,38 +191,8 @@ function onModalConfirm(selectedRows) {
     materialName.value = selectedRows[0].자재명 || '';
     materialCode.value = selectedRows[0].자재코드 || '';
   }
-
-  selectedRows.forEach((row) => {
-    rowData.value.push({
-      입고번호: row.입고번호 || '',
-      자재명: row.자재명 || '',
-      자재코드: row.자재코드 || '',
-      규격: row.규격 || '',
-      단위: row.단위 || 'EA',
-      단가: row.단가 || 0,
-      금액: row.금액 || 0,
-      수량: row.수량 || 0,
-      불량유형: row.불량유형 || ''
-    });
-  });
+  // 창고코드 모달 선택 시 추가
 }
-
-const tab = ref(0); // 0번째 탭이 기본 선택 (원자재)
-
-// 각 탭별 데이터 (예시)
-// const rawMaterialsData = [
-//   { LOT번호: 'ORD-20250808-001', 자재명: '원목', 자재코드: 'ZCB-558', 규격: 'SD400', 단위: 'EA', 창고코드: 'DEX-47', 수량: '1000' },
-//   { LOT번호: 'ORD-20250808-002', 자재명: '합판', 자재코드: 'ABC-123', 규격: 'SD300', 단위: 'EA', 창고코드: 'DEX-48', 수량: '500' }
-// ];
-// const subMaterialsData = [
-//   { LOT번호: 'SUB-20250808-001', 자재명: '못', 자재코드: 'NAIL-001', 규격: '5cm', 단위: 'Box', 창고코드: 'SUB-01', 수량: '200' }
-// ];
-// const consumablesData = [
-//   { LOT번호: 'CON-20250808-001', 자재명: '사포', 자재코드: 'SAND-003', 규격: '중', 단위: '장', 창고코드: 'CON-01', 수량: '100' }
-// ];
-// const finishedGoodsData = [
-//   { LOT번호: 'FIN-20250808-001', 자재명: '의자', 자재코드: 'CHAIR-004', 규격: '대', 단위: '개', 창고코드: 'FIN-01', 수량: '50' }
-// ];
 </script>
 
 <style scoped>

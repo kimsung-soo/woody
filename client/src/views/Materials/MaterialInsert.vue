@@ -31,7 +31,6 @@
       :theme="quartz"
       style="height: 200px; width: 100%"
       @cell-value-changed="onCellValueChanged"
-      @grid-ready="onGridReady"
     >
     </ag-grid-vue>
 
@@ -76,22 +75,13 @@ const colDefs = ref([
   { field: '입고수량', editable: true, flex: 1 }
 ]);
 
-// ----------------- 폼 입력 필드 (유지) -----------------
+// ----------------- 폼 입력 필드 -----------------
 const form = reactive({
   issueNumber: '',
   insertDate: '',
   name: '',
   manager: ''
 });
-
-// ----------------- AG Grid API (리셋에 사용) -----------------
-const gridApi = ref(null);
-const gridColumnApi = ref(null);
-
-const onGridReady = (params) => {
-  gridApi.value = params.api;
-  gridColumnApi.value = params.columnApi;
-};
 
 // ----------------- 모달 (기본 정의) -----------------
 const modalRef = ref(null);
