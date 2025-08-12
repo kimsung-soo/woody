@@ -54,6 +54,7 @@ import UiParentCard from '@/components/shared/UiParentCard.vue';
 import { AgGridVue } from 'ag-grid-vue3';
 import { themeQuartz } from 'ag-grid-community';
 import MoDal from '../common/NewModal.vue';
+import axios from 'axios';
 
 const quartz = themeQuartz;
 
@@ -101,12 +102,33 @@ const materialRowData = ref([
   { code: 'XYZ-002', Name: '강철판', Type: '원자재', Qty: 10, unit: 'KG' }
 ]);
 
-const openModal = (title, rowData, colDefs) => {
+// const openModal = (title, rowData, colDefs) => {
+//   modalTitle.value = title;
+//   modalRowData.value = rowData;
+//   modalColDefs.value = colDefs;
+//   if (modalRef.value) {
+//     modalRef.value.open();
+//   }
+// };
+
+// openModal 함수를 수정하여 API를 호출하도록 변경
+const openModal = async (title) => {
   modalTitle.value = title;
-  modalRowData.value = rowData;
-  modalColDefs.value = colDefs;
-  if (modalRef.value) {
-    modalRef.value.open();
+  modalColDefs.value = materialColDefs;
+
+  try {
+    // ----------------- 서버 API 엔드포인트로 GET 요청 보내기 -----------------
+    const response = await axios.get('http://localhost:3000/api/materials'); // 서버 주소와 엔드포인트에 맞게 수정
+
+    // 서버에서 받은 데이터를 모달의 rowData에 할당
+    modalRowData.value = response.data;
+
+    if (modalRef.value) {
+      modalRef.value.open();
+    }
+  } catch (error) {
+    console.error('자재 목록을 가져오는 중 오류가 발생했습니다:', error);
+    alert('자재 목록을 불러오는 데 실패했습니다.');
   }
 };
 
