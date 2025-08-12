@@ -12,9 +12,6 @@
         <v-text-field label="공급처" v-model="form.supplier" dense outlined />
       </v-col>
       <v-col cols="6">
-        <v-text-field label="연락처" v-model="form.contact" dense outlined />
-      </v-col>
-      <v-col cols="6">
         <v-text-field label="발행번호" v-model="form.issueNumber" :readonly="true" placeholder="발행번호" dense outlined />
       </v-col>
       <v-col cols="6">
@@ -38,9 +35,6 @@
     <!-- 총금액 / 담당자 -->
     <v-row class="mb-4 margin">
       <v-col cols="6">
-        <v-text-field label="총금액" :model-value="formatCurrency(totalAmount)" readonly outlined />
-      </v-col>
-      <v-col cols="6">
         <v-text-field label="담당자" v-model="form.manager" outlined />
       </v-col>
     </v-row>
@@ -54,7 +48,7 @@
 </template>
 
 <script setup>
-import { ref, shallowRef, reactive, computed } from 'vue';
+import { ref, shallowRef, reactive } from 'vue';
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
 import { AgGridVue } from 'ag-grid-vue3';
@@ -74,85 +68,20 @@ const colDefs = ref([
   { field: '자재명', flex: 1 },
   { field: '자재코드', flex: 1 },
   { field: '자재유형', flex: 1 },
-  { field: '수량', editable: true, flex: 1 },
   { field: '규격', flex: 1 },
   { field: '단위', flex: 1 },
-  {
-    field: '단가',
-    flex: 1,
-    valueFormatter: (params) => {
-      return formatNumber(params.value);
-    }
-  },
-  {
-    headerName: '금액',
-    valueGetter: (params) => {
-      const price = Number(params.data?.단가 || 0);
-      const qty = Number(params.data?.수량 || 0);
-      return price * qty;
-    },
-    valueFormatter: (params) => formatNumber(params.value),
-    flex: 1
-  },
+  { field: '수량', editable: true, flex: 1 },
   { field: '비고', editable: true, flex: 1 }
 ]);
 
 // ----------------- 폼 입력 필드 (유지) -----------------
 const form = reactive({
   supplier: '',
-  contact: '',
   issueNumber: '',
   orderDate: '',
   dueDate: '',
   manager: ''
 });
-
-// ----------------- 총금액 계산 (rowData 기반, 자동) -----------------
-const parseCurrency = (v) => {
-  if (v == null) return 0;
-  if (typeof v === 'number') return v;
-  const n = Number(String(v).replace(/[^\d.-]/g, ''));
-  return isNaN(n) ? 0 : n;
-};
-const formatCurrency = (num) => {
-  if (num == null) return '';
-  return new Intl.NumberFormat('ko-KR').format(Number(num)) + '원';
-};
-const formatNumber = (num) => {
-  if (num == null) return '';
-  return new Intl.NumberFormat('ko-KR').format(Number(num));
-};
-
-const totalAmount = computed(() =>
-  rowData.value.reduce((sum, it) => {
-    const price = parseCurrency(it.단가);
-    const qty = Number(it.수량) || 0;
-    return sum + price * qty;
-  }, 0)
-);
-
-// ----------------- AG Grid API (리셋에 사용) -----------------
-const gridApi = ref(null);
-const gridColumnApi = ref(null);
-
-const onGridReady = (params) => {
-  gridApi.value = params.api;
-  gridColumnApi.value = params.columnApi;
-};
-
-// 셀 편집 후: 값 정규화 및 반응성 보장
-const onCellValueChanged = (params) => {
-  const field = params.colDef.field || params.colDef.headerName;
-  if (field === '단가') {
-    params.data.단가 = parseCurrency(params.newValue);
-  } else if (field === '수량') {
-    params.data.수량 = Number(params.newValue) || 0;
-  } else if (field) {
-    params.data[field] = params.newValue;
-  }
-  // Vue가 변경을 감지하게 배열 참조 갱신
-  rowData.value = rowData.value.map((r) => r);
-};
 
 // ----------------- 모달 (기본 정의) -----------------
 const modalRef = ref(null);
@@ -185,7 +114,6 @@ const openModal = (title, rowData, colDefs) => {
 function resetForm() {
   // 폼 필드 초기화
   form.supplier = '';
-  form.contact = '';
   form.issueNumber = '';
   form.orderDate = '';
   form.dueDate = '';

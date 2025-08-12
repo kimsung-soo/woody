@@ -4,12 +4,24 @@
     <v-row class="mb-4">
       <v-col cols="3">
         <v-text-field label="발행번호" v-model="issueNumber" placeholder="발행번호" dense outlined readonly>
-          <i class="fa-solid fa-magnifying-glass fa-xl icons" @click="openModal('자재발주서 조회', materialRowData, materialColDefs)"></i>
+          <template #append-inner>
+            <i
+              class="fa-solid fa-magnifying-glass"
+              style="cursor: pointer; font-size: large; margin-right: 0.5rem"
+              @click="openModal('자재발주서 조회', materialRowData, materialColDefs)"
+            ></i>
+          </template>
         </v-text-field>
       </v-col>
       <v-col cols="3">
         <v-text-field label="자재명" v-model="materialName" placeholder="자재명" dense outlined readonly>
-          <i class="fa-solid fa-magnifying-glass fa-xl icons" @click="openModal('자재 조회', materialRowData2, materialColDefs2)"></i>
+          <template #append-inner>
+            <i
+              class="fa-solid fa-magnifying-glass"
+              style="cursor: pointer; font-size: large; margin-right: 0.5rem"
+              @click="openModal('자재 조회', materialRowData2, materialColDefs2)"
+            ></i>
+          </template>
         </v-text-field>
       </v-col>
       <v-col cols="3">
@@ -50,7 +62,7 @@
       @cell-value-changed="onCellValueChanged"
     >
     </ag-grid-vue>
-    <MoDal ref="modalRef" :title="modalTitle" :rowData="modalRowData" :colDefs="modalColDefs" />
+    <MoDal ref="modalRef" :title="modalTitle" :rowData="modalRowData" :colDefs="modalColDefs" @confirm="onModalConfirm" />
   </UiParentCard>
 </template>
 
@@ -96,17 +108,17 @@ const openModal = (title, rowData, colDefs) => {
 
 // 모달 2
 const materialColDefs2 = [
-  { field: 'code', headerName: '자재코드', flex: 2 },
-  { field: 'Name', headerName: '자재명', flex: 2 },
-  { field: 'Type', headerName: '자재유형', flex: 2 },
-  { field: 'Qty', headerName: '수량', flex: 1 },
-  { field: 'unit', headerName: '단위', flex: 1 }
+  { field: '자재명', headerName: '자재명', flex: 2 },
+  { field: '자재코드', headerName: '자재코드', flex: 2 },
+  { field: '자재유형', headerName: '자재유형', flex: 2 },
+  { field: '수량', headerName: '수량', flex: 1 }
 ];
 const materialRowData2 = ref([
-  { code: 'ABC-001', Name: '나사', Type: '부자재', Qty: 100, unit: 'EA' },
-  { code: 'XYZ-002', Name: '강철판', Type: '원자재', Qty: 10, unit: 'KG' }
+  { 자재명: '나사', 자재코드: 'ABC-001', 자재유형: '부자재', 수량: 100 },
+  { 자재명: '강철판', 자재코드: 'XYZ-002', 자재유형: '원자재', 수량: 10 }
 ]);
 
+// ag gird
 const rowData = ref([
   {
     발행번호: 'ORD-20250808-001',
@@ -115,7 +127,6 @@ const rowData = ref([
     자재코드: 'MLT-00123',
     규격: 'SD400',
     단위: 'EA',
-    금액: '1,200,000원',
     발주일자: '2025-08-08',
     납기일자: '2025-08-20',
     담당자: '이동섭',
@@ -129,7 +140,6 @@ const rowData = ref([
     자재코드: 'MLT-00123',
     규격: 'SD400',
     단위: 'EA',
-    금액: '1,200,000원',
     발주일자: '2025-08-08',
     납기일자: '2025-08-20',
     담당자: '이동섭',
@@ -145,12 +155,24 @@ const colDefs = ref([
   { field: '자재코드', flex: 1 },
   { field: '규격', flex: 1 },
   { field: '단위', flex: 1 },
-  { field: '금액', flex: 1 },
   { field: '발주일자', flex: 1.5 },
   { field: '납기일자', flex: 1.5 },
   { field: '담당자', flex: 1 },
   { field: '수량', flex: 1 },
-  { field: '상태', flex: 1 }
+  {
+    field: '상태',
+    flex: 1,
+    cellStyle: (params) => {
+      if (params.value === '대기') {
+        return { color: 'black', fontWeight: 'bold' };
+      } else if (params.value === '진행 중') {
+        return { color: 'blue', fontWeight: 'bold' };
+      } else if (params.value == '완료') {
+        return { color: 'red', fontWeight: 'bold' };
+      }
+      return null;
+    }
+  }
 ]);
 
 const page = ref({ title: '자재발주서' });
@@ -189,18 +211,20 @@ function inputReset() {
 function fileSelect() {
   alert('검색하는 버튼');
 }
+
+function onModalConfirm(selectedRow) {
+  if (!selectedRow) return;
+
+  if (modalTitle.value === '자재발주서 조회') {
+    issueNumber.value = selectedRow['발행번호'] || '';
+  } else if (modalTitle.value === '자재 조회') {
+    materialName.value = selectedRow['자재명'] || '';
+    materialCode.value = selectedRow['자재코드'] || '';
+  }
+}
 </script>
 
 <style scoped>
-.icons {
-  margin-left: 19rem;
-  margin-bottom: 1rem;
-}
-
-.icons:hover {
-  cursor: pointer;
-}
-
 .radioDiv {
   margin-left: 1rem;
 }

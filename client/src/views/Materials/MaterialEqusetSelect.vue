@@ -4,7 +4,13 @@
     <v-row class="mb-4">
       <v-col cols="4">
         <v-text-field label="자재명" v-model="materialName" placeholder="자재명" dense outlined readonly>
-          <i class="fa-solid fa-magnifying-glass fa-xl icons" @click="openModal('불량품 조회', materialRowData, materialColDefs)"></i>
+          <template #append-inner>
+            <i
+              class="fa-solid fa-magnifying-glass"
+              style="cursor: pointer; font-size: large; margin-right: 0.5rem"
+              @click="openModal('자재 조회', materialRowData, materialColDefs)"
+            ></i>
+          </template>
         </v-text-field>
       </v-col>
       <v-col cols="4">
@@ -98,12 +104,11 @@ const rowData = ref([
     자재코드: 'MLT-00123',
     규격: 'SD400',
     단위: 'EA',
-    금액: '1,200,000원',
     발주일자: '2025-08-08',
     납기일자: '2025-08-20',
     담당자: '이동섭',
     수량: '10',
-    상태: '대기'
+    상태: '등록'
   },
   {
     발행번호: 'ORD-20250808-002',
@@ -112,12 +117,11 @@ const rowData = ref([
     자재코드: 'MLT-00123',
     규격: 'SD400',
     단위: 'EA',
-    금액: '1,200,000원',
     발주일자: '2025-08-08',
     납기일자: '2025-08-20',
     담당자: '이동섭',
     수량: '10',
-    상태: '진행 중'
+    상태: '완료'
   }
 ]);
 
@@ -128,12 +132,22 @@ const colDefs = ref([
   { field: '규격', flex: 1 },
   { field: '단위', flex: 1 },
   { field: '총 수량', flex: 1 },
-  { field: '총 금액', flex: 1.5 },
   { field: '작성일자', flex: 1.5 },
   { field: '회수요청일자', flex: 1.5 },
   { field: '담당자', flex: 1 },
   { field: '불량유형', flex: 1 },
-  { field: '상태', flex: 1 }
+  {
+    field: '상태',
+    flex: 1,
+    cellStyle: (params) => {
+      if (params.value === '등록') {
+        return { color: 'black', fontWeight: 'bold' };
+      } else if (params.value === '완료') {
+        return { color: 'red', fontWeight: 'bold' };
+      }
+      return null;
+    }
+  }
 ]);
 
 const page = ref({ title: '불량품' });
@@ -172,28 +186,11 @@ function fileSelect() {
 }
 
 // ----------------- 모달 선택 확인 -----------------
-function onModalConfirm(selectedRows) {
-  if (!Array.isArray(selectedRows)) selectedRows = [selectedRows];
+function onModalConfirm(selectedRow) {
+  if (!selectedRow) return;
 
-  if (selectedRows.length > 0) {
-    materialName.value = selectedRows[0].자재명 || '';
-    materialCode.value = selectedRows[0].자재코드 || '';
-    insertDate.value = new Date().toISOString().slice(0, 10);
-  }
-
-  selectedRows.forEach((row) => {
-    rowData.value.push({
-      입고번호: row.입고번호 || '',
-      자재명: row.자재명 || '',
-      자재코드: row.자재코드 || '',
-      규격: row.규격 || '',
-      단위: row.단위 || 'EA',
-      단가: row.단가 || 0,
-      금액: row.금액 || 0,
-      수량: row.수량 || 0,
-      불량유형: row.불량유형 || ''
-    });
-  });
+  materialName.value = selectedRow['자재명'] || '';
+  materialCode.value = selectedRow['자재코드'] || '';
 }
 </script>
 
