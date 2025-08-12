@@ -21,6 +21,9 @@
               <v-btn color="primary" class="mr-6" @click="submitForm">등록</v-btn>
         </v-row>
 
+
+
+
         <h5>거래처목록</h5>
         <ag-grid-vue
           :rowData="rowData2"
@@ -28,15 +31,20 @@
           :theme="quartz"
           style="height: 360px; width: 100%"
           @cell-value-changed="onCellValueChanged"
-          :rowSelection="rowSelection"
-          @rowClicked="onRowClicked"
         >
         </ag-grid-vue>
         <div class="d-flex align-right mb-4">
          <v-text-field label="검색" v-model="searchKeyword" hide-details class="mr-2" style="max-width: 280px"></v-text-field>
          <v-btn color="darkText" @click="searchData">검색</v-btn>
         </div>
-      </div>   
+      </div>  
+       <MoDal
+      ref="modalRef"
+      :title="modalTitle"
+      :rowData="modalRowData"
+      :colDefs="modalColDefs"
+      @confirm="modalConfirm"
+    /> 
     </div>
   </UiParentCard>
 </template>
@@ -54,20 +62,22 @@ const quartz = themeQuartz;
 
 const form = ref({ writer: '' }, { addDate: '' }, { bomVer: '' }, { bomCode: '' });
 
+
+
 // 거래처등록테이블
 const rowData1 = ref([
   { 거래처코드: '자동생성', 거래처유형: '모달', 사업자등록번호: '수기입력', 거래처명: '수기입력', 담당자: '수기입력', 대표자:'수기입력', 사용여부:'모달', 비고:'입력또는공란' }
 ]);
 
 const colDefs1 = ref([
-  { field: '거래처코드', width: 150, editable: false },
-  { field: '거래처유형', width: 150 },
-  { field: '사업자등록번호', width: 150, editable: true },
-  { field: '거래처명', width: 200, editable: true },
-  { field: '담당자', width: 150, editable: true },
-  { field: '대표자', width: 150, editable: true },
-  { field: '사용여부', width: 150, editable: false },
-  { field: '비고', width: 300, editable: true }
+  { field: '거래처코드', flex: 1, editable: false },
+  { field: '거래처유형', flex: 1 },
+  { field: '사업자등록번호', flex: 1, editable: true },
+  { field: '거래처명', flex: 1, editable: true },
+  { field: '담당자', flex: 1, editable: true },
+  { field: '대표자', flex: 1, editable: true },
+  { field: '사용여부', flex: 1, editable: false },
+  { field: '비고', flex: 1, editable: true }
 
 ]);
 
@@ -86,14 +96,15 @@ const rowData2 = ref([
 ]);
 
 const colDefs2 = ref([
- { field: '거래처코드', width: 150, editable: false },
-  { field: '거래처유형', width: 150 },
-  { field: '사업자등록번호', width: 150, editable: false },
-  { field: '거래처명', width: 200, editable: false },
-  { field: '담당자', width: 150, editable: false },
-  { field: '사용여부', width: 150, editable: false },
-  { field: '비고', width: 150, editable: false },
-  { field: '상세보기', width: 300, editable: false }
+ { field: '거래처코드', flex: 1, editable: false },
+ { field: '거래처유형', flex: 1, editable: false, cellClass: 'clickable-cell',
+    onCellClicked: (params) => { selectedRowIndex.value = params.node.rowIndex; openModal('거래처유형', materialRowData.value, materialColDefs) } },
+  { field: '사업자등록번호',flex: 1, editable: false },
+  { field: '거래처명', flex: 1, editable: false },
+  { field: '담당자', flex: 1, editable: false },
+  { field: '사용여부', flex: 1, editable: false },
+  { field: '비고', flex: 1, editable: false },
+  { field: '상세보기', flex: 1, editable: false }
 ]);
 
 
@@ -184,6 +195,12 @@ const modalConfirm = (selectedRow) => {
 .list-container {
   flex: 1 1 50%; /* flex-grow: 1, flex-shrink: 1, flex-basis: 50% */
   min-width: 400px;
+}
+
+
+.clickable-cell {
+  cursor: pointer;
+  text-decoration: underline;
 }
 
 

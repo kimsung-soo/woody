@@ -52,13 +52,13 @@ const rowData1 = ref([
 ]);
 
 const colDefs1 = ref([
-  { field: '✅', width: 100, cellRenderer: 'agCheckboxCellRenderer', cellEditor: 'agCheckboxCellEditor', editable: true },
-  { field: '번호', width: 200 },
-  { field: '입고일자', width: 200 },
-  { field: '제품코드', width: 200 },
-  { field: '제품명', width: 200 },
-  { field: '수량', width: 200 },
-  { field: 'LOT번호', width: 200 }
+  { field: '✅', flex: 1, cellRenderer: 'agCheckboxCellRenderer', cellEditor: 'agCheckboxCellEditor', editable: true },
+  { field: '번호', flex: 1 },
+  { field: '입고일자', flex: 1 },
+  { field: '제품코드',flex: 1 },
+  { field: '제품명', flex: 1 },
+  { field: '수량', flex: 1 },
+  { field: 'LOT번호', flex: 1 }
 ]);
 
 

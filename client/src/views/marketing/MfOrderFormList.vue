@@ -54,24 +54,16 @@ const rowData1 = ref([
 ]);
 
 const colDefs1 = ref([
-   {
-    headerName: '번호',
-    valueGetter: params => params.node.rowIndex + 1, // 페이지 내 번호
-    width: 90,
-    editable: false,
-    sortable: false,
-    filter: false,
-    // pinned: 'left', // 왼쪽 고정 원하면 주석 해제
-  },
-  { field: '생산의뢰번호', width: 150 },
-  { field: '제품코드', width: 150 },
-  { field: '제품명', width: 150 },
-  { field: '수량', width: 150 },
-  { field: '납기일자', width: 150 },
-  { field: '비고', width: 150 },
-  { field: '생산의뢰유형', width: 150 },
-  { field: '등록일자', width: 150 },
-  { field: '생산의뢰상태', width: 150 },
+  { field: '생산의뢰번호', flex: 1 },
+  { field: '제품코드', flex: 1 },
+  { field: '제품명', flex: 1 },
+  { field: '수량', flex: 1 },
+  { field: '납기일자', flex: 1 },
+  { field: '비고', flex: 1 },
+  { field: '생산의뢰유형', flex: 1 },
+  { field: '등록일자', flex: 1 },
+  { field: '생산의뢰상태', flex: 1 }
+  
 ]);
 
 

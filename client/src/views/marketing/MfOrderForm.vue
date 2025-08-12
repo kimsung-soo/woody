@@ -94,14 +94,14 @@ const materialRowData = ref([
 ])
 
 const colDefs1 = ref([
-  { headerName: '번호', valueGetter: p => p.node.rowIndex + 1, width: 80, editable: false, sortable: false, filter: false },
-  { field: '제품코드', width: 400, editable: false, cellClass: 'clickable-cell',
+  { headerName: '번호', valueGetter: p => p.node.rowIndex + 1, flex: 1, editable: false, sortable: false, filter: false },
+  { field: '제품코드', flex: 1, editable: false, cellClass: 'clickable-cell',
     onCellClicked: (params) => { selectedRowIndex.value = params.node.rowIndex; openModal('제품 선택', materialRowData.value, materialColDefs) } },
-  { field: '제품명', width: 400, editable: false, cellClass: 'clickable-cell',
+  { field: '제품명', flex: 1, editable: false, cellClass: 'clickable-cell',
     onCellClicked: (params) => { selectedRowIndex.value = params.node.rowIndex; openModal('제품 선택', materialRowData.value, materialColDefs) } },
-  { field: '수량', width: 300, editable: true },
-  { field: '생산유형', width: 300, editable: true },
-  { field: '비고', width: 300, editable: true },
+  { field: '수량', flex: 1, editable: true },
+  { field: '생산유형', flex: 1, editable: true },
+  { field: '비고', flex: 1, editable: true },
 
 ])
 
