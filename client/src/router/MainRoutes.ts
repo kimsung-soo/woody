@@ -79,12 +79,12 @@ const MainRoutes = {
       path: '/marketing/OrderFormList',
       component: () => import('@/views/marketing/OrderFormList.vue')
     },
-     {
+    {
       name: 'MfOrderForm',
       path: '/marketing/MfOrderForm',
       component: () => import('@/views/marketing/MfOrderForm.vue')
     },
-     {
+    {
       name: 'MfOrderFormList',
       path: '/marketing/MfOrderFormList',
       component: () => import('@/views/marketing/MfOrderFormList.vue')

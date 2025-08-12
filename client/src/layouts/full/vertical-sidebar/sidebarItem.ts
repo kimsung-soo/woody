@@ -276,7 +276,7 @@ const sidebarItem: menu[] = [
           },
           {
             title: '가동/비가동 관리',
-            to: '/dashboard/default'
+            to: '/utils/StatusOperational'
           }
         ]
       },

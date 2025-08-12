@@ -2,22 +2,20 @@
   <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs" />
 
   <UiParentCard title="설비 수리관리 페이지">
-    <!-- 검색 조건 -->
     <v-row align="center" class="mb-4">
       <v-col cols="12" md="6" class="d-flex justify-start">
         <v-text-field
-          v-model.trim="processCode"
+          v-model.trim="productKeyword"
           placeholder="공정선택"
           hide-details
           density="compact"
           variant="outlined"
-          style="max-width: 200px"
+          style="max-width: 280px"
         />
-        <v-btn class="ml-2" color="darkText">검색</v-btn>
+        <v-btn class="ml-2" color="darkText" @click="openModal('공정 조회', RowData, ColDefs)"> 검색 </v-btn>
       </v-col>
     </v-row>
 
-    <!-- 목록 -->
     <ag-grid-vue
       style="height: 240px"
       :theme="quartz"
@@ -30,6 +28,9 @@
       @grid-ready="onGridReady"
       @row-clicked="onPick"
     />
+
+    <!-- 조회 모달 -->
+    <MoDal ref="modalRef" :title="modalTitle" :rowData="modalRowData" :colDefs="modalColDefs" @confirm="modalConfirm" />
 
     <v-card v-if="form.code" class="mt-6 pa-4">
       <v-row dense>
@@ -69,49 +70,56 @@ const breadcrumbs = shallowRef([
   { title: '수리관리', disabled: false, href: '#' }
 ]);
 
+/* 검색어 */
 const processCode = ref('');
 const gridApi = ref(null);
 const onGridReady = (e) => (gridApi.value = e.api);
+const applyQuickFilter = () => {
+  gridApi.value?.setGridOption('quickFilterText', processCode.value || '');
+};
 
 const columnDefs = ref([
-  { headerName: '설비코드', field: 'code', minWidth: 120 },
-  { headerName: '설비명', field: 'name', minWidth: 150 },
-  { headerName: '설비유형', field: 'type', minWidth: 130 },
-  { headerName: '비가동 사유', field: 'downReason', minWidth: 180 },
-  { headerName: '고장유형', field: 'err', minWidth: 180 },
-  { headerName: '비가동 시작시간', field: 'downStart', minWidth: 180 },
-  { headerName: '담당자', field: 'manager', minWidth: 325 }
+  { field: '설비코드', flex: 1 },
+  { field: '설비명', flex: 1 },
+  { field: '설비유형', flex: 1 },
+  { field: '설비상태', flex: 1 },
+  { field: '비가동사유', flex: 1 },
+  { field: '고장유형', flex: 1 },
+  { field: '비가동시작시간', flex: 1 },
+  { field: '담당자', flex: 1 }
 ]);
 const defaultColDef = { editable: false, sortable: true, resizable: true };
 
-// 목록 (더미)
 const rows = ref([
   {
-    code: 'EQ003',
-    name: 'CNC조각기',
-    type: '재단설비',
-    downReason: '점검',
-    err: '전기이상',
-    downStart: '2025-07-30 17:00:40',
-    manager: '이동섭'
+    설비코드: 'EQ003',
+    설비명: 'CNC조각기',
+    설비유형: '재단설비',
+    설비상태: '비가동',
+    비가동사유: '고장',
+    고장유형: '전기이상',
+    비가동시작시간: '2025-07-30 17:00:40',
+    담당자: '이동섭'
   },
   {
-    code: 'EQ003',
-    name: 'CNC조각기',
-    type: '재단설비',
-    downReason: '점검',
-    err: '센서 오류',
-    downStart: '2025-07-28 17:00:40',
-    manager: '이동섭'
+    설비코드: 'EQ003',
+    설비명: 'CNC조각기',
+    설비유형: '재단설비',
+    설비상태: '비가동',
+    비가동사유: '고장',
+    고장유형: '센서 오류',
+    비가동시작시간: '2025-07-28 17:00:40',
+    담당자: '이동섭'
   },
   {
-    code: 'EQ003',
-    name: 'CNC조각기',
-    type: '재단설비',
-    downReason: '점검',
-    err: 'SW오류',
-    downStart: '2025-07-15 15:42:40',
-    manager: '이동섭'
+    설비코드: 'EQ003',
+    설비명: 'CNC조각기',
+    설비유형: '재단설비',
+    설비상태: '비가동',
+    비가동사유: '고장',
+    고장유형: 'SW오류',
+    비가동시작시간: '2025-07-15 15:42:40',
+    담당자: '이동섭'
   }
 ]);
 
@@ -129,12 +137,12 @@ const form = reactive({
 
 const onPick = (e) => {
   const d = e.data;
-  form.code = d.code;
-  form.name = d.name;
-  form.type = d.type;
-  form.err = d.err;
-  form.manager = d.manager || '';
-  form.repairStart = d.downStart || now();
+  form.code = d.설비코드;
+  form.name = d.설비명;
+  form.type = d.설비유형;
+  form.err = d.고장유형;
+  form.manager = d.담당자 || '';
+  form.repairStart = d.비가동시작시간 || now();
   form.repairEnd = '';
   form.note = '';
   form.remark = '';
@@ -143,10 +151,11 @@ const onPick = (e) => {
 const completeRepair = () => {
   if (!form.code) return;
   form.repairEnd = now();
-  const row = rows.value.find((r) => r.code === form.code);
+
+  const row = rows.value.find((r) => r.설비코드 === form.code);
   if (row) {
-    row.downReason = '-';
-    row.err = '-';
+    row.비가동사유 = '-';
+    row.고장유형 = '-';
   }
   gridApi.value?.refreshCells({ force: true });
   alert('수리 완료 되었습니다.');
@@ -157,10 +166,38 @@ function now() {
   const p = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
-</script>
 
-<style scoped>
-:deep(.v-field__input) {
-  min-height: 36px;
-}
-</style>
+/* 공정 조회 모달 세팅 */
+import MoDal from '@/views/common/NewModal.vue';
+
+const modalRef = ref(null);
+const modalTitle = ref('');
+const modalRowData = ref([]);
+const modalColDefs = ref([]);
+
+const ColDefs = [
+  { field: '공정코드', headerName: '공정코드', flex: 1 },
+  { field: '공정명', headerName: '공정명', flex: 1 },
+  { field: '설비유형', headerName: '설비유형', flex: 1 },
+  { field: '등록일자', headerName: '등록일자', flex: 1, type: 'date' }
+];
+
+const RowData = ref([
+  { 공정코드: 'PRC-001', 공정명: '재단 공정', 설비유형: '절단기', 등록일자: '2025-07-01' },
+  { 공정코드: 'PRC-002', 공정명: '연마 공정', 설비유형: '연마기', 등록일자: '2025-07-05' },
+  { 공정코드: 'PRC-003', 공정명: '조립 공정', 설비유형: '조립대', 등록일자: '2025-07-10' }
+]);
+
+const openModal = (title, rowData, colDefs) => {
+  modalTitle.value = title;
+  modalRowData.value = rowData;
+  modalColDefs.value = colDefs;
+  modalRef.value?.open();
+};
+
+const modalConfirm = (selectedRow) => {
+  if (!selectedRow) return;
+  processCode.value = selectedRow.공정코드 || selectedRow.공정명 || '';
+  applyQuickFilter();
+};
+</script>
