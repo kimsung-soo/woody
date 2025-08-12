@@ -79,12 +79,12 @@ const MainRoutes = {
       path: '/marketing/OrderFormList',
       component: () => import('@/views/marketing/OrderFormList.vue')
     },
-     {
+    {
       name: 'MfOrderForm',
       path: '/marketing/MfOrderForm',
       component: () => import('@/views/marketing/MfOrderForm.vue')
     },
-     {
+    {
       name: 'MfOrderFormList',
       path: '/marketing/MfOrderFormList',
       component: () => import('@/views/marketing/MfOrderFormList.vue')
@@ -173,6 +173,17 @@ const MainRoutes = {
       path: '/production/processcontrol',
       component: () => import('@/views/production/ProcessControl.vue')
     },
+    {
+      name: 'WorkStatus',
+      path: '/production/workstatus',
+      component: () => import('@/views/production/WorkStatus.vue')
+    },
+    {
+      name: 'PerformanceCheck',
+      path: '/production/performancecheck',
+      component: () => import('@/views/production/PerformanceCheck.vue')
+    },
+
     // 설비
     {
       name: 'Registration',

@@ -237,11 +237,11 @@ const sidebarItem: menu[] = [
           },
           {
             title: '작업 진행 현황',
-            to: '/dashboard/default'
+            to: '/production/workstatus'
           },
           {
             title: '생산 실적 조회',
-            to: '/dashboard/default'
+            to: '/production/performancecheck'
           }
         ]
       }
