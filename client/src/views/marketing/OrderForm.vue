@@ -22,12 +22,7 @@
             <v-col cols="6">
               <v-text-field label="납기일자" v-model="form.dueDate" type="date" outlined />
             </v-col>
-          
-              
-          
-
           </v-row>
-
         </div>
 
         <ag-grid-vue
@@ -73,7 +68,7 @@ const form = ref({
   number: 1,
   addDate: '',
   client: '',
-  dueDate: '',
+  dueDate: ''
 })
 
 // 그리드 데이터
@@ -87,29 +82,25 @@ const rowData1 = ref([
   { 제품코드: '선택하세요', 제품명: '', 수량: '', 비고: '' },
   { 제품코드: '선택하세요', 제품명: '', 수량: '', 비고: '' },
   { 제품코드: '선택하세요', 제품명: '', 수량: '', 비고: '' },
-  { 제품코드: '선택하세요', 제품명: '', 수량: '', 비고: '' },
+  { 제품코드: '선택하세요', 제품명: '', 수량: '', 비고: '' }
 ])
 
 const selectedRowIndex = ref(null)
 
-const materialColDefs = [
-  { field: '제품코드', headerName: '제품코드', flex: 2 },
-  { field: '제품명',   headerName: '제품명',   flex: 2 },
-]
-const materialRowData = ref([
-  { 제품코드: '1234', 제품명: '완제품 블랙' },
-  { 제품코드: '1235', 제품명: '완제품 화이트' },
-  { 제품코드: '1236', 제품명: '반제품 블랙' },
-])
 
+
+
+// 주문서테이블에서 모달적용
 const colDefs1 = ref([
-  { headerName: '번호', valueGetter: p => p.node.rowIndex + 1, width: 80, editable: false, sortable: false, filter: false },
-  { field: '제품코드', width: 400, editable: false, cellClass: 'clickable-cell',
+  { headerName: '번호', valueGetter: p => p.node.rowIndex + 1, flex: 1, editable: false, sortable: false, filter: false },
+  { field: '제품코드', flex: 1, editable: false, cellClass: 'clickable-cell', headerName: `<i class="fa-solid fa-magnifying-glass" 
+                    style="cursor:pointer;margin-right:5px"
+                    onclick="window.openProductModal()"></i>제품코드`,
     onCellClicked: (params) => { selectedRowIndex.value = params.node.rowIndex; openModal('제품 선택', materialRowData.value, materialColDefs) } },
-  { field: '제품명', width: 400, editable: false, cellClass: 'clickable-cell',
+  { field: '제품명', flex: 1, editable: false, cellClass: 'clickable-cell',
     onCellClicked: (params) => { selectedRowIndex.value = params.node.rowIndex; openModal('제품 선택', materialRowData.value, materialColDefs) } },
-  { field: '수량', width: 300, editable: true },
-  { field: '비고', width: 800, editable: true },
+  { field: '수량', flex: 1, editable: true },
+  { field: '비고', flex: 1, editable: true }
 ])
 
 const onCellValueChanged = (e) => {
@@ -163,6 +154,18 @@ const modalConfirm = (selectedRow) => {
   )
   modalRef.value?.close?.()
 }
+
+// 모달창 내용
+const materialColDefs = [
+  { field: '제품코드', headerName: '제품코드', flex: 2 },
+  { field: '제품명',   headerName: '제품명',   flex: 2 }
+]
+const materialRowData = ref([
+  { 제품코드: '1234', 제품명: '완제품 블랙' },
+  { 제품코드: '1235', 제품명: '완제품 화이트' },
+  { 제품코드: '1236', 제품명: '반제품 블랙' }
+])
+
 
 // 페이지 헤더
 const page = ref({ title: '주문서등록' })

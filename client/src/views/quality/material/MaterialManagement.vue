@@ -9,39 +9,28 @@
       <v-btn color="primary" class="top_btn_ser" @click="saveForm">등록</v-btn>
     </v-row>
 
-    <!-- 1) 검사기준 그리드 (체크박스=합격 여부) -->
+    <!-- 1) 검사기준 그리드 (체크박스=합격) -->
     <ag-grid-vue
       :rowData="criteriaRows"
       :columnDefs="criteriaCols"
+      :defaultColDef="defaultColDef"
+      :rowSelection="rowSelection"
+      :selectionColumnDef="selectionColumnDef"
       :gridOptions="criteriaGridOptions"
       :theme="quartz"
       style="height: 280px; width: 100%"
+      @grid-ready="onCriteriaReady"
+      @first-data-rendered="selectAllCriteria"
+      @selection-changed="recalcCriteria"
     />
 
-    <!-- 최종처리 (computed) -->
+    <!-- 최종처리 -->
     <v-row class="my-4">
       <v-col cols="12" class="py-1">
         <div class="d-flex align-center">
           <h5 class="mr-4">최종처리</h5>
-          <!-- <v-radio-group :model-value="finalStatus" inline disabled>
-            <v-radio label="합격" value="합격" density="compact" />
-            <v-radio label="불합격" value="불합격" density="compact" />
-          </v-radio-group> -->
-          <!-- <div v-if="finalStatus">
-            <v-radio label="합격" value="합격" density="compact" disabled />
-            <v-else />
-            <v-radio label="불합격" value="불합격" density="compact" disabled />
-          </div> -->
-          <v-row class="my-4">
-            <v-col cols="12" class="py-1">
-              <div class="d-flex align-center">
-                <h5 class="mr-4">최종처리</h5>
-                <v-chip :color="finalStatus == '불합격' ? 'error' : finalStatus == '합격' ? 'primary' : undefined">
-                  {{ finalStatus || '' }}</v-chip
-                >
-              </div>
-            </v-col>
-          </v-row>
+          <v-chip :color="finalStatus === '합격' ? 'primary' : 'error'">{{ finalStatus }}</v-chip>
+          <span class="ml-auto text-caption">선택 {{ selectedCount }}/{{ totalCount }}</span>
         </div>
       </v-col>
     </v-row>
@@ -57,109 +46,98 @@
   </UiParentCard>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref, shallowRef, computed } from 'vue';
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
 
 import { AgGridVue } from 'ag-grid-vue3';
-import {
-  ModuleRegistry,
-  themeQuartz,
-  type ColDef,
-  type GridOptions,
-  ClientSideRowModelModule,
-  RowSelectionModule,
-  ValidationModule,
-  CheckboxEditorModule
-} from 'ag-grid-community';
+import { ModuleRegistry, themeQuartz, ClientSideRowModelModule, RowSelectionModule, ValidationModule } from 'ag-grid-community';
 
-// 모듈 등록 (Composition API)
-ModuleRegistry.registerModules([
-  ClientSideRowModelModule,
-  RowSelectionModule,
-  CheckboxEditorModule,
+// 모듈 등록 (개발 모드에서만 Validation)
+ModuleRegistry.registerModules([ClientSideRowModelModule, RowSelectionModule, ...(import.meta.env.PROD ? [] : [ValidationModule])]);
 
-  ...(import.meta.env.PROD ? [] : [ValidationModule])
-]);
 const quartz = themeQuartz;
 
 /* breadcrumb */
 const page = ref({ title: '원자재 검수관리 등록' });
-const breadcrumbs = shallowRef([
+const breadcrumbs = ref([
   { title: '품질', disabled: true, href: '#' },
   { title: '원자재 검수관리 등록', disabled: false, href: '#' }
 ]);
 
-/* ------------ 1) 검사기준 그리드 ------------ */
-/** 체크박스: true=합격, false=불합격(기본) */
-type CriterionRow = {
-  label: string;
-  allow: string;
-  pass: number;
-};
-
-const criteriaRows = ref<CriterionRow[]>([
-  { label: '함수율', allow: '수분 함량 12~15% (KS범위)', pass: 0 },
-  { label: '외관결점', allow: '옹이≤150mm, 활결≤50%, 전체길이 1% 이내', pass: 0 },
-  { label: '치수정밀도', allow: '입고자재 ±2mm 이내', pass: 0 },
-  { label: '강도', allow: 'KS F 2207, 횡강도 ≥ 35MPa', pass: 0 },
-  { label: '외관/표면 결함', allow: '육안확인 시 결점 없음', pass: 0 }
+/* ------------ 1) 검사기준 그리드 (선택=합격) ------------ */
+// 행 데이터 (rowId로 쓸 고유 키 _id 포함)
+const criteriaRows = ref([
+  { _id: 'moisture', label: '함수율', allow: '수분 함량 12~15% (KS범위)' },
+  { _id: 'appearance', label: '외관결점', allow: '옹이≤150mm, 활결≤50%, 전체길이 1% 이내' },
+  { _id: 'thickness', label: '치수정밀도', allow: '입고자재 ±2mm 이내' },
+  { _id: 'strength', label: '강도', allow: 'KS F 2207, 횡강도 ≥ 35MPa' },
+  { _id: 'surface', label: '외관/표면 결함', allow: '육안확인 시 결점 없음' }
 ]);
 
-/** 컬럼: pass 칼럼만 체크박스 에디터/렌더러 */
-const criteriaCols = ref<ColDef<CriterionRow>[]>([
-  { headerName: '검사기준', field: 'label', width: 160, editable: false },
-  { headerName: '허용수치', field: 'allow', flex: 1, editable: false },
+const criteriaApi = shallowRef(null);
+
+const defaultColDef = ref({ resizable: true, minWidth: 120, sortable: false });
+
+const rowSelection = ref({ mode: 'multiRow' });
+
+const selectionColumnDef = ref({
+  headerName: '판정',
+  pinned: 'right',
+  width: 90,
+  headerCheckboxSelection: true,
+  headerCheckboxSelectionCurrentPageOnly: false,
+  checkboxSelection: true,
+  suppressHeaderMenuButton: true
+});
+
+const criteriaCols = ref([
+  { headerName: '검사기준', field: 'label', minWidth: 160, flex: 1 },
+  { headerName: '허용수치', field: 'allow', minWidth: 360, flex: 2 },
   {
-    headerName: '처리상태',
-    field: 'pass',
-    width: 150,
-    editable: false, // 숫자 토글은 클릭 이벤트로 처리
-    cellRenderer: (p: any) => {
-      const checked = p.value === 1 ? 'checked' : '';
-      return `<input type="checkbox" ${checked} />`;
-    },
-    onCellClicked: (p) => {
-      const cur = Number(p.value);
-      const next = cur === 1 ? 0 : 1; // 1 ↔ 0 토글
-      p.node.setDataValue('pass', next);
-    }
+    headerName: '판정',
+    colId: 'result',
+    minWidth: 120,
+    maxWidth: 140,
+    valueGetter: (p) => (p.node?.isSelected() ? '합격' : '불합격'),
+    cellClass: (p) => (p.value === '합격' ? 'ag-cell-success' : 'ag-cell-error'),
+    sortable: false
   }
 ]);
 
-/** 그리드 옵션: 한 번 클릭으로 편집/토글 */
-const criteriaGridOptions = ref<GridOptions<CriterionRow>>({
-  defaultColDef: { resizable: true, minWidth: 120 },
-  autoSizeStrategy: { type: 'fitGridWidth' },
-  rowSelection: 'single',
-  singleClickEdit: true, // 한 번 클릭으로 체크
-  stopEditingWhenCellsLoseFocus: true
+const criteriaGridOptions = ref({
+  defaultColDef: defaultColDef.value,
+  getRowId: (p) => p.data._id // 선택 안정화
 });
 
-/** 최종처리(computed): 하나라도 false면 불합격, 전부 true면 합격, 그 외 '' */
-const finalStatus = computed<'합격' | '불합격' | ''>(() => {
-  const rows = criteriaRows.value;
-  if (!rows.length) return '';
-  if (rows.some((r) => r.pass == 0)) return '불합격';
-  if (rows.every((r) => r.pass == 1)) return '합격';
-  return ''; // (ex. 일부 null 또는 섞여있으면 미정)
-});
+// 합격/불합격 계산
+const totalCount = ref(0);
+const selectedCount = ref(0);
+const finalStatus = computed(() => (selectedCount.value === totalCount.value ? '합격' : '불합격'));
+
+function onCriteriaReady(e) {
+  criteriaApi.value = e.api;
+}
+
+function selectAllCriteria(e) {
+  // 기본값: 전부 합격(전체 선택)
+  const nodes = [];
+  e.api.forEachNode((n) => nodes.push(n));
+  e.api.setNodesSelected({ nodes, newValue: true });
+  recalcCriteria();
+}
+
+function recalcCriteria() {
+  const api = criteriaApi.value;
+  if (!api) return;
+  totalCount.value = api.getDisplayedRowCount();
+  selectedCount.value = api.getSelectedNodes().length;
+  api.refreshCells({ columns: ['result'], force: true });
+}
 
 /* ------------ 2) 하단 입력 그리드(1행) ------------ */
-type DetailRow = {
-  id: string;
-  inNo: string;
-  materialCode: string;
-  materialName: string;
-  totalQty: number;
-  passQty: number;
-  user: string;
-  inDate: string;
-  doneDate: string;
-};
-
-const detailRows = ref<DetailRow[]>([
+const detailRows = ref([
   {
     id: '(자동입력)',
     inNo: '(자동입력)',
@@ -173,7 +151,7 @@ const detailRows = ref<DetailRow[]>([
   }
 ]);
 
-const detailCols = ref<ColDef<DetailRow>[]>([
+const detailCols = ref([
   { headerName: '원자재검사번호', field: 'id', width: 170, editable: false },
   { headerName: '입고번호', field: 'inNo', width: 140, editable: false },
   { headerName: '원자재코드', field: 'materialCode', width: 150, editable: false },
@@ -185,19 +163,27 @@ const detailCols = ref<ColDef<DetailRow>[]>([
   { headerName: '검사완료일자', field: 'doneDate', width: 140, editable: true }
 ]);
 
-function numParser(p: any) {
+function numParser(p) {
   const v = Number(String(p.newValue).replace(/,/g, '').trim());
   return Number.isFinite(v) ? v : p.oldValue;
 }
 
-const detailGridOptions = ref<GridOptions<DetailRow>>({
+const detailGridOptions = ref({
   defaultColDef: { resizable: true, minWidth: 110 },
   autoSizeStrategy: { type: 'fitGridWidth' }
 });
 
 /* ------------ 버튼 로직 ------------ */
 function resetForm() {
-  criteriaRows.value.forEach((r) => r.pass == 0); // 기본값=불합격
+  // 검사기준: 전부 불합격(선택 해제)
+  const api = criteriaApi.value;
+  if (api) {
+    const nodes = [];
+    api.forEachNode((n) => nodes.push(n));
+    api.setNodesSelected({ nodes, newValue: false });
+    recalcCriteria();
+  }
+  // 하단 디테일 초기화
   const r = detailRows.value[0];
   r.totalQty = 0;
   r.passQty = 0;
@@ -207,14 +193,22 @@ function resetForm() {
 }
 
 function saveForm() {
-  const r = detailRows.value[0];
-  if (r.passQty > r.totalQty) return alert('합격수량이 총수량을 초과할 수 없습니다.');
-  console.log('payload', {
-    criteria: criteriaRows.value,
-    status: finalStatus.value, // ← 자동 결과
-    detail: r
+  const api = criteriaApi.value;
+  if (!api) return;
+  const criteria = criteriaRows.value.map((r) => {
+    const node = api.getRowNode(r._id);
+    return { key: r._id, label: r.label, pass: !!node?.isSelected() };
   });
-  alert('등록되었습니다!');
+
+  const d = detailRows.value[0];
+  if (d.passQty > d.totalQty) return alert('합격수량이 총수량을 초과할 수 없습니다.');
+
+  console.log('payload', {
+    criteria, // 각 항목 합격 여부
+    status: finalStatus.value, // 최종처리 (합/불)
+    detail: d
+  });
+  alert('등록되었습니다! (콘솔 payload 확인)');
 }
 
 function goNext() {
@@ -231,5 +225,15 @@ function goNext() {
 }
 .mr-4 {
   margin-right: 16px;
+}
+.ml-auto {
+  margin-left: auto;
+}
+.ag-cell-success {
+  font-weight: 600;
+}
+.ag-cell-error {
+  color: #d32f2f;
+  font-weight: 600;
 }
 </style>

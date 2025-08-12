@@ -109,6 +109,36 @@ const MainRoutes = {
       path: '/marketing/MfOrderFormList',
       component: () => import('@/views/marketing/MfOrderFormList.vue')
     },
+     {
+      name: 'MkInbound',
+      path: '/marketing/MkInbound',
+      component: () => import('@/views/marketing/MkInbound.vue')
+    },
+     {
+      name: 'MkOutbound',
+      path: '/marketing/MkOutbound',
+      component: () => import('@/views/marketing/MkOutbound.vue')
+    },
+    {
+      name: 'MkLotList',
+      path: '/marketing/MkLotList',
+      component: () => import('@/views/marketing/MkLotList.vue')
+    },
+    {
+      name: 'MkOutboundForm',
+      path: '/marketing/MkOutboundForm',
+      component: () => import('@/views/marketing/MkOutboundForm.vue')
+    },
+    {
+      name: 'MkOutboundFormList',
+      path: '/marketing/MkOutboundFormList',
+      component: () => import('@/views/marketing/MkOutboundFormList.vue')
+    },
+    {
+      name: 'MkAccount',
+      path: '/marketing/MkAccount',
+      component: () => import('@/views/marketing/MkAccount.vue')
+    },
     // 자재
     {
       name: 'MaterialOrderInsert',
@@ -193,6 +223,17 @@ const MainRoutes = {
       path: '/production/processcontrol',
       component: () => import('@/views/production/ProcessControl.vue')
     },
+    {
+      name: 'WorkStatus',
+      path: '/production/workstatus',
+      component: () => import('@/views/production/WorkStatus.vue')
+    },
+    {
+      name: 'PerformanceCheck',
+      path: '/production/performancecheck',
+      component: () => import('@/views/production/PerformanceCheck.vue')
+    },
+
     // 설비
     {
       name: 'Registration',
@@ -239,7 +280,9 @@ const MainRoutes = {
 
     // 품질
     {
-      name: 'Quality123',
+
+      name: 'QualityMatList',
+
       path: '/qm/matlst',
       component: () => import('../views/quality/material/MaterialList.vue')
     },
@@ -249,7 +292,7 @@ const MainRoutes = {
       component: () => import('../views/quality/material/MaterialManagement.vue')
     },
     {
-      name: 'Quality',
+      name: 'QualityPrdList',
       path: '/qm/prdlst',
       component: () => import('@/views/quality/product/ProductList.vue')
     },

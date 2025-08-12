@@ -29,7 +29,7 @@
     "express": "^5.1.0",
     "lodash": "4.17.21",
     "mysql2": "^3.14.3",
-    "pinia": "2.3.0",
+    "pinia": "^2.3.0",
     "remixicon": "4.6.0",
     "router": "^2.2.0",
     "vee-validate": "4.15.0",
@@ -62,5 +62,8 @@
     "vite": "6.0.7",
     "vue-cli-plugin-vuetify": "2.5.8",
     "vue-tsc": "2.2.0"
-  }
+  },
+  "description": "[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)\r [![Price](https://img.shields.io/badge/price-FREE-0098f7.svg)](https://github.com/codedthemes/berry-free-vue-admin-template/blob/main/LICENSE)\r [![GitHub package version](https://img.shields.io/github/package-json/v/codedthemes/berry-free-vuetify-vuejs-admin-template)](https://github.com/codedthemes/berry-free-vuetify-vuejs-admin-template/) \r [![Download ZIP](https://img.shields.io/badge/Download-ZIP-blue?style=flat-square&logo=github)](https://codedthemes.com/item/berry-free-vuetify-vuejs-admin-template/)\r [![Join Discord](https://img.shields.io/badge/Join-Discord-5865F2?style=flat-square&logo=discord&logoColor=white)](https://discord.com/invite/p2E2WhCb6s)",
+  "main": "eslint.config.js",
+  "license": "ISC"
 }
