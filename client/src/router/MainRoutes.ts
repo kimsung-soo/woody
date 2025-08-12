@@ -232,6 +232,26 @@ const MainRoutes = {
       name: 'QualityPrdList',
       path: '/qm/prdlst',
       component: () => import('@/views/quality/product/ProductList.vue')
+    },
+    {
+      name: 'QualityPrdListDetail',
+      path: '/qm/prdlstdtl',
+      component: () => import('../views/quality/product/ProductListDetail.vue')
+    },
+    {
+      name: 'QualityPrdManagement',
+      path: '/qm/prdmng',
+      component: () => import('@/views/quality/product/ProductManagement.vue')
+    },
+    {
+      name: 'QualityStandardList',
+      path: '/qm/qslist',
+      component: () => import('@/views/quality/standard/QualityStandardList.vue')
+    },
+    {
+      name: 'QualityStandardManagement',
+      path: '/qm/qsmng',
+      component: () => import('@/views/quality/standard/QualityStandardManagement.vue')
     }
     // 물류
   ]
