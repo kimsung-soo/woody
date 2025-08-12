@@ -1,7 +1,7 @@
 <template>
   <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs"></BaseBreadcrumb>
   <UiParentCard>
-    <h5>생산의뢰서 목록</h5>
+    <h5>출고 조회</h5>
     <div class="main-container">
       <div class="list-container">
         <ag-grid-vue
@@ -63,19 +63,17 @@ const colDefs1 = ref([
     filter: false,
     // pinned: 'left', // 왼쪽 고정 원하면 주석 해제
   },
-  { field: '생산의뢰번호', width: 150 },
-  { field: '제품코드', width: 150 },
-  { field: '제품명', width: 150 },
-  { field: '수량', width: 150 },
-  { field: '납기일자', width: 150 },
-  { field: '비고', width: 150 },
-  { field: '생산의뢰유형', width: 150 },
-  { field: '등록일자', width: 150 },
-  { field: '생산의뢰상태', width: 150 },
+  { field: '출고일자', width: 200 },
+  { field: '제품코드', width: 200 },
+  { field: '제품명', width: 200 },
+  { field: '수량', width: 200 },
+  { field: 'LOT번호', width: 200 },
+  { field: '거래처명', width: 200 },
+  
 ]);
 
 
-const page = ref({ title: '생산의뢰서 조회' });
+const page = ref({ title: '출고 조회' });
 const breadcrumbs = shallowRef([
   {
     title: '영업',
@@ -83,12 +81,12 @@ const breadcrumbs = shallowRef([
     href: '#'
   },
   {
-    title: '생산의뢰서',
+    title: '제품 입출고',
     disabled: true,
     href: '#'
   },
   {
-    title: '생산의뢰서 조회',
+    title: '출고 조회',
     disabled: false,
     href: '#'
   }

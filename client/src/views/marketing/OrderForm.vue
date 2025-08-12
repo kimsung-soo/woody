@@ -22,12 +22,7 @@
             <v-col cols="6">
               <v-text-field label="납기일자" v-model="form.dueDate" type="date" outlined />
             </v-col>
-          
-              
-          
-
           </v-row>
-
         </div>
 
         <ag-grid-vue
