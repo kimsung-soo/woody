@@ -11,7 +11,7 @@
           :rowData="rowData1"
           :columnDefs="colDefs1"
           :theme="quartz"
-          style="height: 550px; width: 100%"
+          style="height: 500px; width: 100%"
           @cell-value-changed="onCellValueChanged"
           rowSelection="single"
           @rowClicked="onRowClicked"
@@ -34,7 +34,7 @@
             <v-col cols="6">
               <v-text-field label="등록일" v-model="form.addDate" type="date" dense outlined />
             </v-col>
-            <v-row justify="end">
+            <v-row justify="center">
               <v-btn color="error" class="mr-3" @click="resetForm">초기화</v-btn>
               <v-btn color="primary" class="mr-6" @click="submitForm">저장</v-btn>
             </v-row>
@@ -44,7 +44,7 @@
         <h5>공정목록</h5>
         <br />
         <div class="btn-list">
-          <v-row justify="center">
+          <v-row justify="end">
             <v-btn
               color="warning"
               class="mr-4"
@@ -52,7 +52,7 @@
               style="margin-bottom: 2rem"
               >공정 조회
             </v-btn>
-            <v-btn color="error" class="mr-3" @click="del">삭제</v-btn>
+            <v-btn color="error" class="mr-4" @click="del">삭제</v-btn>
           </v-row>
 
           <MoDal ref="modalRef" :title="modalTitle" :rowData="modalRowData" :colDefs="modalColDefs" @confirm="modalConfirm" />

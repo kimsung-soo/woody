@@ -51,7 +51,7 @@
             <v-col cols="6">
               <v-text-field label="등록일자" v-model="form.addDate" type="date" dense outlined />
             </v-col>
-            <v-row justify="end">
+            <v-row justify="center">
               <v-btn color="error" class="mr-3" @click="resetForm">초기화</v-btn>
               <v-btn color="primary" class="mr-6" @click="submitForm">저장</v-btn>
             </v-row>
@@ -60,7 +60,7 @@
         <br />
         <h5>자재목록</h5>
         <div class="btn-list">
-          <v-row justify="center">
+          <v-row justify="end">
             <v-btn
               color="warning"
               class="mr-4"
@@ -68,7 +68,7 @@
               style="margin-bottom: 2rem"
               >자재 조회
             </v-btn>
-            <v-btn color="error" class="mr-1" @click="delMat">삭제</v-btn>
+            <v-btn color="error" class="mr-4" @click="delMat">삭제</v-btn>
           </v-row>
 
           <MoDal ref="modalRef" :title="modalTitle" :rowData="modalRowData" :colDefs="modalColDefs" @confirm="modalConfirm" />

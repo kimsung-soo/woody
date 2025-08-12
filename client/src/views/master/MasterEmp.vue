@@ -3,7 +3,10 @@
   <UiParentCard title="사원 목록">
     <div class="d-flex align-center mb-4">
       <v-text-field label="제품 검색" v-model="searchKeyword" hide-details class="mr-2" style="max-width: 280px"></v-text-field>
-      <v-btn color="darkText" @click="searchData">검색</v-btn>
+      <v-btn color="darkText" @click="searchData">검색</v-btn
+      ><v-row justify="end" class="mr-3">
+        <v-btn color="error" class="mr-1" @click="del">삭제</v-btn>
+      </v-row>
     </div>
     <div class="main-container">
       <div class="list-container">
@@ -11,9 +14,9 @@
           :rowData="rowData1"
           :columnDefs="colDefs1"
           :theme="quartz"
-          style="height: 550px; width: 100%"
+          style="height: 500px; width: 100%"
           @cell-value-changed="onCellValueChanged"
-          rowSelection="single"
+          :rowSelection="rowSelection"
           @rowClicked="onRowClicked"
         >
           <!--  :defaultColDef="{ width: 150 }" 로 전체 width지정도가능-->
@@ -43,14 +46,18 @@
             <v-col cols="12">
               <v-text-field label="주소" v-model="form.addr" dense outlined />
             </v-col>
-            <v-col cols="6">
-              <v-radio-group label="재직상태" v-model="form.status" dense outlined>
-                <v-radio label="재직" value="재직"></v-radio>
-                <v-radio label="퇴사" value="퇴사"></v-radio>
+            <div class="radioDiv">
+              <span class="mr-4">재직 상태:</span>
+              <v-radio-group v-model="form.stauts" inline hide-details>
+                <v-radio label="재직" value="완" />
+                <v-radio label="퇴직" value="반" />
               </v-radio-group>
-            </v-col>
-            <v-col cols="6">
+            </div>
+            <v-col cols="4">
               <v-text-field label="입사일자" v-model="form.hireDate" type="date" dense outlined />
+            </v-col>
+            <v-col cols="4">
+              <v-text-field label="퇴사일자" v-model="form.hireDate" type="date" dense outlined />
             </v-col>
             <v-row justify="center">
               <v-btn color="error" class="mr-3" @click="resetForm">초기화</v-btn>
@@ -73,7 +80,9 @@ import { AgGridVue } from 'ag-grid-vue3';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
 
 const quartz = themeQuartz;
-
+const rowSelection = ref({
+  mode: 'multiRow'
+});
 const form = ref(
   { empNo: '' }, //
   { phone: '' },
@@ -85,16 +94,68 @@ const form = ref(
   { status: '재직' }
 );
 
-// 제품 리스트
+// 사원 리스트
 const rowData1 = ref([
-  { 사원번호: 'Tesla', 사원명: 'Model Y', 부서: '완제품', 직급: 'prc_010', 재직상태: '재직', 입사일자: '2025-12-31' },
-  { 사원번호: 'Ford', 사원명: 'F-Series', 부서: '완제품', 직급: 'prc_010', 재직상태: '재직', 입사일자: '2025-12-31' },
-  { 사원번호: '빨간책상', 사원명: 'Model Y', 부서: '완제품', 직급: 'prc_010', 재직상태: '재직', 입사일자: '2025-12-31' },
-  { 사원번호: '하얀책상', 사원명: 'Model Y', 부서: '완제품', 직급: 'prc_010', 재직상태: '재직', 입사일자: '2025-12-31' },
-  { 사원번호: '멋진책상', 사원명: 'Model Y', 부서: '완제품', 직급: 'prc_010', 재직상태: '재직', 입사일자: '2025-12-31' },
-  { 사원번호: '지린책상', 사원명: 'Model Y', 부서: '완제품', 직급: 'prc_010', 재직상태: '재직', 입사일자: '2025-12-31' },
-  { 사원번호: 'Tesla', 사원명: 'Model Y', 부서: '완제품', 직급: 'prc_010', 재직상태: '재직', 입사일자: '2025-12-31' },
-  { 사원번호: 'Tesla', 사원명: 'Model Y', 부서: '완제품', 직급: 'prc_010', 재직상태: '재직', 입사일자: '2025-12-31' }
+  {
+    사원번호: 1,
+    사원명: '이동섭',
+    부서: '생산',
+    직급: '부장',
+    재직상태: '재직',
+    입사일자: '2025-08-29',
+    연락처: '010-0000-2222',
+    이메일: 'xozlfl789@naver.com'
+  },
+  {
+    사원번호: 2,
+    사원명: '김태완',
+    부서: '물류',
+    직급: '사원',
+    재직상태: '재직',
+    입사일자: '2025-07-29',
+    연락처: '010-0000-2222',
+    이메일: 'xozlfl789@naver.com'
+  },
+  {
+    사원번호: 3,
+    사원명: '김성수',
+    부서: '설비',
+    직급: '사원',
+    재직상태: '재직',
+    입사일자: '2025-06-29',
+    연락처: '010-0000-2222',
+    이메일: 'xozlfl789@naver.com'
+  },
+  {
+    사원번호: 4,
+    사원명: '정경준',
+    부서: '영업',
+    직급: '사원',
+    재직상태: '재직',
+    입사일자: '2025-05-29',
+    연락처: '010-0000-2222',
+    이메일: 'xozlfl789@naver.com'
+  },
+  {
+    사원번호: 5,
+    사원명: '최은수',
+    부서: '자재',
+    직급: '사원',
+    재직상태: '재직',
+    입사일자: '2025-04-29',
+    연락처: '010-0000-2222',
+    이메일: 'xozlfl789@naver.com'
+  },
+  {
+    사원번호: 6,
+    사원명: '제갈은경',
+    부서: '영업',
+    직급: '사원',
+    재직상태: '재직',
+    입사일자: '2025-03-29',
+    연락처: '010-0000-2222',
+    이메일: 'xozlfl789@naver.com'
+  }
 ]);
 
 const colDefs1 = ref([
@@ -188,5 +249,9 @@ const onRowClicked = (event) => {
 .form-wrapper {
   flex: 1 1 50%; /* list-container와 동일하게 공간을 차지 */
   min-width: 400px;
+}
+.radioDiv {
+  margin-left: 1rem;
+  margin-right: 1rem;
 }
 </style>
