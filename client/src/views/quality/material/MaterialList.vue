@@ -1,6 +1,5 @@
 <template>
   <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs"></BaseBreadcrumb>
-
   <UiParentCard>
     <v-row class="mb-4">
       <v-col cols="3">
@@ -21,24 +20,34 @@
       </v-row>
     </v-row>
     <br />
-    <ag-grid-vue :rowData="gridData" :columnDefs="colDefs" :theme="quartz" :gridOptions="gridOptions" style="height: 400px" />
+    <ag-grid-vue
+      :rowData="gridData"
+      :columnDefs="colDefs"
+      :theme="quartz"
+      :gridOptions="gridOptions"
+      @row-clicked="onRowClicked"
+      style="height: 400px"
+    />
   </UiParentCard>
 </template>
 
 <script setup lang="ts">
+import { useRouter } from 'vue-router';
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
 import { ref, shallowRef, reactive, computed, type Ref } from 'vue';
 import { AgGridVue } from 'ag-grid-vue3';
 import { AllCommunityModule, ModuleRegistry, themeQuartz, type ColDef, PaginationModule, type GridOptions } from 'ag-grid-community';
+
 ModuleRegistry.registerModules([AllCommunityModule, PaginationModule]);
 const quartz = themeQuartz;
+const router = useRouter();
 
 // ----- 기존 breadcrumb -----
 const page = ref({ title: '원자재검수조회' });
 const breadcrumbs = shallowRef([
   { title: '품질', disabled: true, href: '#' },
-  { title: '원자재검수조히', disabled: false, href: '#' }
+  { title: '원자재검수조회', disabled: false, href: '#' }
 ]);
 
 // ----- 폼 상태(필터) -----
@@ -48,7 +57,7 @@ interface Item {
   qty: number;
   price: number;
   note: string;
-  amount?: number;
+  amount: number;
 }
 interface FormType {
   supplier: string; // 원자재명 검색어
@@ -204,6 +213,23 @@ const rowData: Ref<Row[]> = ref([
     inspector: '김하늘'
   }
 ]);
+
+// 행 클릭 이벤트 핸들러
+const onRowClicked = (event: any) => {
+  const rowData = event.data;
+  console.log('클릭된 행:', rowData);
+
+  // /qm/qrdpass 경로로 이동하면서 데이터 전달
+  router.push({
+    path: '/qm/matmng',
+    query: {
+      receiptNo: rowData.receiptNo
+    }
+  });
+
+  // 또는 단순히 경로만 이동하고 싶다면:
+  // router.push('/qm/qrdpass');
+};
 
 const colDefs: Ref<ColDef<Row>[]> = ref([
   { headerName: '검사번호', field: 'inspectionNo', minWidth: 130, resizable: true },

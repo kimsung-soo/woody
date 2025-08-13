@@ -1,99 +1,97 @@
 <template>
-  <div class="report-page">
+  <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs"></BaseBreadcrumb>
+  <!-- 1. 선택한 행의 검사성적서 -->
+  <section class="section">
     <!-- 우측 상단 PDF 버튼 -->
     <div class="top-actions">
       <button class="btn-pdf" @click="onPrint">PDF출력</button>
     </div>
-    <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs"></BaseBreadcrumb>
-    <!-- 1. 선택한 행의 검사성적서 -->
-    <section class="section">
-      <table class="kv-table">
-        <thead>
-          <tr>
-            <th>검사번호</th>
-            <th>제품코드</th>
-            <th>제품명</th>
-            <th>검사완료일자</th>
-            <th>총수량</th>
-            <th>제품유형</th>
-            <th>작성자</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="selected">
-            <td>{{ selected.certId }}</td>
-            <td>{{ selected.prdCode }}</td>
-            <td>{{ selected.prdName }}</td>
-            <td>{{ selected.chkedDate }}</td>
-            <td>{{ selected.totalQty }}</td>
-            <td>{{ selected.prdType }}</td>
-            <td>{{ selected.writer }}</td>
-          </tr>
-          <tr v-else>
-            <td colspan="7" class="empty">행을 선택하세요.</td>
-          </tr>
-        </tbody>
-      </table>
-    </section>
+    <table class="kv-table">
+      <thead>
+        <tr>
+          <th>검사번호</th>
+          <th>제품코드</th>
+          <th>제품명</th>
+          <th>검사완료일자</th>
+          <th>총수량</th>
+          <th>제품유형</th>
+          <th>작성자</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-if="selected">
+          <td>{{ selected.certId }}</td>
+          <td>{{ selected.prdCode }}</td>
+          <td>{{ selected.prdName }}</td>
+          <td>{{ selected.chkedDate }}</td>
+          <td>{{ selected.totalQty }}</td>
+          <td>{{ selected.prdType }}</td>
+          <td>{{ selected.writer }}</td>
+        </tr>
+        <tr v-else>
+          <td colspan="7" class="empty">행을 선택하세요.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
 
-    <!-- 2. 합격품 성적서 -->
-    <section class="section">
-      <div class="section-title">
-        <span>합격품 성적서</span>
-      </div>
+  <!-- 2. 합격품 성적서 -->
+  <section class="section">
+    <div class="section-title">
+      <span>합격품 성적서</span>
+    </div>
 
-      <table class="spec-table">
-        <thead>
-          <tr>
-            <th>검사기준</th>
-            <th>허용수치</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>함수율</td>
-            <td>수분 함량이 12 ~ 13% 이하</td>
-          </tr>
-          <tr>
-            <td>외관결함</td>
-            <td>입고자재에서 ± 2mm 이내</td>
-          </tr>
-          <tr>
-            <td>치수정밀도</td>
-            <td>횡강도 35MPa 이상</td>
-          </tr>
-          <tr>
-            <td>강도</td>
-            <td>전도 없음, 전기부 안전, 모서리 둥글림 위험요소 없음</td>
-          </tr>
-          <tr>
-            <td>외관/표면 결함</td>
-            <td>옹이, 훼절, 균열 유약확인 시 결함이 없을 시</td>
-          </tr>
-        </tbody>
-      </table>
-    </section>
+    <table class="spec-table">
+      <thead>
+        <tr>
+          <th>검사기준</th>
+          <th>허용수치</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>함수율</td>
+          <td>수분 함량이 12 ~ 13% 이하</td>
+        </tr>
+        <tr>
+          <td>외관결함</td>
+          <td>입고자재에서 ± 2mm 이내</td>
+        </tr>
+        <tr>
+          <td>치수정밀도</td>
+          <td>횡강도 35MPa 이상</td>
+        </tr>
+        <tr>
+          <td>강도</td>
+          <td>전도 없음, 전기부 안전, 모서리 둥글림 위험요소 없음</td>
+        </tr>
+        <tr>
+          <td>외관/표면 결함</td>
+          <td>옹이, 훼절, 균열 유약확인 시 결함이 없을 시</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
 
-    <!-- 3. 불량품 목록 -->
-    <section class="section">
-      <div class="section-title">
-        <span>불량품 목록</span>
-      </div>
+  <!-- 3. 불량품 목록 -->
+  <section class="section">
+    <div class="section-title">
+      <span>불량품 목록</span>
+    </div>
 
-      <div class="grid-wrap">
-        <ag-grid-vue
-          :theme="quartz"
-          style="height: 320px; width: 100%"
-          :columnDefs="colDefs"
-          :rowData="rowData"
-          rowSelection="single"
-          :gridOptions="gridOptions"
-          @grid-ready="onGridReady"
-          @selection-changed="onSelectionChanged"
-        />
-      </div>
-    </section>
-  </div>
+    <div class="grid-wrap">
+      <ag-grid-vue
+        :theme="quartz"
+        style="height: 320px; width: 100%"
+        :columnDefs="colDefs"
+        :rowData="rowData"
+        rowSelection="single"
+        :gridOptions="gridOptions"
+        @grid-ready="onGridReady"
+        @selection-changed="onSelectionChanged"
+      />
+    </div>
+  </section>
 </template>
 
 <script setup>
