@@ -202,15 +202,15 @@ const sidebarItem: menu[] = [
         title: '생산계획',
         children: [
           {
-            title: '계획관리',
+            title: '생산계획 관리',
             to: '/production/plan'
           },
           {
-            title: '계획조회',
+            title: '생산계획 조회',
             to: '/production/productioncheck'
           },
           {
-            title: '계획 수정/삭제',
+            title: '생산계획 수정/삭제',
             to: '/production/productionmodify'
           }
         ]

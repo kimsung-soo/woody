@@ -1,3 +1,4 @@
+<!-- 생산계획 등록 -->
 <!-- src/views/production/ProductionPlan.vue -->
 <template>
   <BaseBreadcrumb :title="pageMeta.title" :breadcrumbs="breadcrumbs" />
@@ -149,7 +150,7 @@ import { AgGridVue } from 'ag-grid-vue3';
 const pageMeta = ref({ title: '생산계획 관리' });
 const breadcrumbs = shallowRef([
   { title: '생산', disabled: true, href: '#' },
-  { title: '생산계획', disabled: false, href: '#' }
+  { title: '생산계획 관리', disabled: false, href: '#' }
 ]);
 
 /* 폼 */

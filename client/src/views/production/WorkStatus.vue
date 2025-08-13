@@ -1,4 +1,5 @@
-<!-- src/views/production/WorkStatus.vue (예: 작업 진행 현황) -->
+<!-- 작업 진행 현황  -->
+<!-- src/views/production/WorkStatus.vue -->
 <template>
   <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs" />
   <UiParentCard>
@@ -84,7 +85,8 @@ const processTabs = [
   { code: 'FAB', label: '가공' },
   { code: 'POL', label: '연마' },
   { code: 'PAI', label: '도장' },
-  { code: 'ASM', label: '조립' }
+  { code: 'ASM', label: '조립' },
+  { code: 'DEFECT', label: '불량' }
 ];
 const tab = ref('ALL');
 const keyword = ref('');
@@ -101,7 +103,8 @@ const headersAll = [
   { title: '진행률', value: 'progress', sortable: false, width: 220 },
   { title: '지시량', value: 'targetQty', width: 80 },
   { title: '기생산', value: 'producedQty', width: 80 },
-  { title: '미생산', value: 'remainingQty', width: 80 }
+  { title: '미생산', value: 'remainingQty', width: 80 },
+  { title: '불량량', value: 'defectQty', width: 80 }
 ];
 const headersNoProc = headersAll.filter((h) => h.value !== 'processName');
 const tableHeaders = computed(() => (tab.value === 'ALL' ? headersAll : headersNoProc));
@@ -123,7 +126,8 @@ const allRows = computed(() =>
     progress: r.progress,
     targetQty: r.targetQty,
     producedQty: r.producedQty,
-    remainingQty: r.remainingQty
+    remainingQty: r.remainingQty,
+    defectQty: r.defectQty ?? 0
   }))
 );
 
@@ -138,7 +142,7 @@ const countsByProc = computed(() => {
 const visibleRows = computed(() => {
   const kw = keyword.value.toLowerCase();
   return allRows.value
-    .filter((r) => (tab.value === 'ALL' ? true : r.process === tab.value))
+    .filter((r) => (tab.value === 'ALL' ? true : tab.value === 'DEFECT' ? r.defectQty > 0 : r.process === tab.value))
     .filter((r) => !kw || r.issueNumber.toLowerCase().includes(kw) || r.productName.toLowerCase().includes(kw))
     .sort((a, b) => a.orderIdx - b.orderIdx);
 });
