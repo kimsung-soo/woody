@@ -5,3 +5,7 @@
 
 const matarialsAllSelect = `SELECT mat_code, mat_name, mat_type, mat_unit, mat_width, mat_height, mat_dept, mat_safeqt, mat_date, mat_note, mat_writer
 FROM matarials`;
+
+module.exports = {
+  matarialsAllSelect,
+};
