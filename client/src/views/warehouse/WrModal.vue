@@ -3,7 +3,8 @@
     <v-card>
       <v-card-title class="headline">{{ title }}</v-card-title>
       <v-card-actions class="justify-end">
-        <v-btn color="darkText" variant="flat" class="mr-3" @click="submitForm">추가</v-btn>
+        <v-btn color="darkText" variant="flat" class="mr-1" @click="addRow">추가</v-btn>
+        <v-btn color="primary" variant="flat" class="mr-1" @click="update">저장</v-btn>
         <v-btn color="error" variant="flat" class="mr-4" @click="resetForm">삭제</v-btn>
       </v-card-actions>
       <v-card-text>
@@ -70,6 +71,11 @@ const open = () => {
 };
 const close = () => {
   dialog.value = false;
+};
+//
+const addRow = () => {
+  const newRow = {};
+  internalRowData.value.push(newRow);
 };
 
 function onRowClicked(event) {
