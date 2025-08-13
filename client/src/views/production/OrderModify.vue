@@ -1,3 +1,4 @@
+<!-- 작업지시 수정/삭제 페이지 -->
 <!-- src/views/production/OrderModify.vue -->
 <template>
   <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs" />
@@ -176,7 +177,7 @@ function makeOrders() {
     { code: 'P005', name: '워런트 책상' },
     { code: 'P006', name: '메이플 책상' }
   ];
-  const contacts = ['이민호', '이민우', '김찬용', '이동현', '계근영', '박지현'];
+  const contacts = ['이민호', '이민우', '김찬용', '이동현', '김근영', '박지현'];
   const mats = ['합판, 철재', '목재, 나사', '재공품', '원목, 철재', '합판, 볼트'];
 
   return Array.from({ length: 56 }, (_, i) => {
