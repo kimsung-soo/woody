@@ -272,7 +272,7 @@ const gridOptions = ref<GridOptions<Row>>({
   defaultColDef: { flex: 1, minWidth: 100, resizable: true },
   // columnDefs: colDefs,
   pagination: true,
-  paginationAutoPageSize: true, // 위 한 줄 대신, 화면 높이에 맞춰 자동 분량 원하면 이 줄 사용
+  paginationAutoPageSize: true, // 화면 높이에 맞춰 자동 조절
   paginationPageSizeSelector: true
 });
 

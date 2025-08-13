@@ -2,20 +2,19 @@
   <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs"></BaseBreadcrumb>
 
   <UiParentCard>
+    <v-row class="mb-4" justify="space-between" align="center">
+      <v-col cols="auto">
+        <v-btn color="warning" class="mr-2 button" @click="openModal('제품유형', materialRowData, materialColDefs)">제품조회 </v-btn>
+      </v-col>
+      <MoDal ref="modalRef" :title="modalTitle" :rowData="modalRowData" :colDefs="modalColDefs" @confirm="onModalConfirm" />
+    </v-row>
     <v-row class="mb-4">
       <v-col cols="3">
         <v-text-field label="제품유형" v-model="form.prdType" dense outlined />
       </v-col>
-      <v-btn
-        color="warning"
-        class="mr-2 button"
-        @click="openModal('자재발주서 조회', materialRowData, materialColDefs)"
-        style="margin-bottom: 2rem"
-        >제품조회
-      </v-btn>
-      <MoDal ref="modalRef" :title="modalTitle" :rowData="modalRowData" :colDefs="modalColDefs" @confirm="onModalConfirm" />
-    </v-row>
-    <v-row class="mb-4">
+      <v-col cols="3">
+        <v-text-field label="제품유형" v-model="form.prdType" dense outlined />
+      </v-col>
       <v-col cols="3">
         <v-text-field label="검사완료일자" v-model="form.chkedDate" type="date" dense outlined />
       </v-col>
@@ -55,35 +54,26 @@ const modalRowData = ref([]);
 const modalColDefs = ref([]);
 
 const materialColDefs = [
-  { field: '발행번호', headerName: '발행번호', flex: 1.2 },
-  { field: '업체', headerName: '공급업체', flex: 1 },
-  { field: '자재명', headerName: '자재명', flex: 0.8 },
-  { field: '자재코드', headerName: '자재코드', flex: 0.8 },
-  { field: '규격', headerName: '규격', flex: 0.6 },
-  { field: '발주일자', headerName: '발주일자', flex: 1 },
-  { field: '수량', headerName: '수량', flex: 0.6 },
-  { field: '상태', headerName: '상태', flex: 0.6 }
+  { field: '검사번호', headerName: '검사번호', flex: 1.2 },
+  { field: '제품코드', headerName: '제품코드', flex: 1 },
+  { field: '제품명', headerName: '제품명', flex: 0.8 },
+  { field: '검사완료일자', headerName: '검사완료일자', flex: 0.8 },
+  { field: '제품유형', headerName: '제품유형', flex: 0.6 }
 ];
 const materialRowData = ref([
   {
-    발행번호: '20250808-001',
-    업체: '원목세상',
-    자재명: '원목',
-    규격: 'mm',
-    자재코드: 'ZCB-558',
-    발주일자: '2025-08-08',
-    수량: 10,
-    상태: '완료'
+    검사번호: 'QC100',
+    제품코드: 'DSK100',
+    제품명: '흰색학생책상',
+    검사완료일자: '2025-08-12',
+    제품유형: '완제품'
   },
   {
-    발행번호: '20250808-001',
-    업체: '원목세상',
-    자재명: '원목',
-    규격: 'mm',
-    자재코드: 'ZCB-558',
-    발주일자: '2025-08-08',
-    수량: 10,
-    상태: '완료'
+    검사번호: 'QC101',
+    제품코드: 'DSK101',
+    제품명: '검은색학생책상',
+    검사완료일자: '2025-08-12',
+    제품유형: '반제품'
   }
 ]);
 
@@ -97,21 +87,18 @@ const openModal = (title, rowData, colDefs) => {
 };
 
 function onModalConfirm(selectedRow) {
-  // 폼에 발행번호 / 업체명 반영
-  form.issueNumber = selectedRow.발행번호 || '';
-  form.name = selectedRow.업체 || '';
-
-  const today = new Date();
-  form.insertDate = today.toISOString().slice(0, 10);
+  form.value.prdType = selectedRow.제품유형; // 제품유형
+  form.value.chkedDate = selectedRow.검사완료일자; // 검사완료일자
+  form.value.certId = selectedRow.검사번호; // 검사번호
+  form.value.prdName = selectedRow.제품명; // 제품명
 
   // 그리드 데이터에 추가
   rowData.value.push({
-    자재명: selectedRow.자재명 || '',
-    자재코드: selectedRow.자재코드 || '',
-    규격: selectedRow.규격 || '',
-    단위: selectedRow.단위 || 'EA',
-    자재유형: selectedRow.자재유형 || '',
-    발주수량: selectedRow.수량 || 0
+    검사번호: selectedRow.검사번호,
+    제품코드: selectedRow.제품코드,
+    제품명: selectedRow.제품명,
+    검사완료일자: selectedRow.검사완료일자,
+    제품유형: selectedRow.제품유형
   });
 }
 
@@ -142,11 +129,33 @@ const form = ref({
 });
 
 // db연결
+// const getPrdList = async () => {
+//   let result = await axios.get('/prdcertlist').catch((err) => console.log(err));
+//   rowData.value.certId = result.data.CERT_ID;
+//   console.log(rowData.value);
+// };
+
 const getPrdList = async () => {
-  let result = await axios.get('/prdcertlist').catch((err) => console.log(err));
-  rowData.value.certId = result.data.CERT_ID;
-  console.log(rowData.value);
+  try {
+    const result = await axios.get('http://localhost:3000/prdcertlist');
+
+    // DB 응답 데이터를 rowData에 매핑
+    if (result.data && result.data.length > 0) {
+      // DB 필드명을 Vue 컴포넌트에서 사용하는 필드명으로 매핑
+      rowData.value = result.data.map((item) => ({
+        certId: item.PRD_CERT_ID || item.certId,
+        prdCode: item.PRD_ID || item.prdCode,
+        prdName: item.PRD_NAME || item.prdName,
+        chkedDate: item.Q_CHECKED_DATE || item.chkedDate,
+        prdType: item.PRD_STATUS || item.prdType
+      }));
+    }
+  } catch (err) {
+    console.error('데이터 로딩 실패:', err.message);
+  }
 };
+
+console.log(getPrdList());
 
 onBeforeMount(() => {
   getPrdList();
