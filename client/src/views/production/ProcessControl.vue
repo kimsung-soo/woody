@@ -1,3 +1,4 @@
+<!-- 공정진행관리 -->
 <!-- src/views/production/ProcessControl.vue -->
 <template>
   <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs" />
@@ -28,21 +29,21 @@
                 <!-- 진행률 -->
                 <template v-slot:[`item.progressCol`]="{ item }">
                   <div class="prog-wrap">
-                    <v-progress-linear :model-value="orderProgress(item?.raw ?? item)" height="10" />
-                    <span class="prog-text">{{ orderProgress(item?.raw ?? item) }}%</span>
+                    <v-progress-linear :model-value="orderProgress(r(item))" height="10" />
+                    <span class="prog-text">{{ orderProgress(r(item)) }}%</span>
                   </div>
                 </template>
 
                 <!-- 상태 -->
                 <template v-slot:[`item.stateCol`]="{ item }">
-                  <v-chip size="small" :color="stateColor(overallState(item?.raw ?? item))" variant="tonal">
-                    {{ overallState(item?.raw ?? item) }}
+                  <v-chip size="small" :color="stateColor(overallState(r(item)))" variant="tonal">
+                    {{ overallState(r(item)) }}
                   </v-chip>
                 </template>
 
                 <!-- 선택 버튼 -->
                 <template v-slot:[`item.pick`]="{ item }">
-                  <v-btn size="small" variant="tonal" @click="pickOrder(item?.raw ?? item)"> 선택 </v-btn>
+                  <v-btn size="small" variant="tonal" @click="pickOrder(r(item))"> 선택 </v-btn>
                 </template>
               </v-data-table>
             </v-card>
@@ -98,6 +99,7 @@
             </v-card>
           </v-col>
 
+          <!-- 설비: 단일 선택 + 상태 표시 -->
           <v-col cols="12" md="6">
             <v-card variant="outlined" class="h-full">
               <v-card-title>
@@ -106,26 +108,39 @@
               </v-card-title>
               <v-card-text>
                 <div v-if="!pickedProcess" class="muted">공정을 먼저 선택하세요.</div>
-                <div v-else class="grid-btns">
-                  <v-btn
-                    v-for="e in equipmentsByProcess"
-                    :key="e.id"
-                    class="grid-btn"
-                    :color="pickedEquipIds.includes(e.id) ? 'primary' : undefined"
-                    @click="toggleEquip(e.id)"
-                  >
-                    <div class="bold">{{ e.name }}</div>
-                    <div class="muted">{{ e.code }}</div>
-                  </v-btn>
-                </div>
-                <v-alert type="info" variant="tonal" class="mt-3">여러 대 선택 가능</v-alert>
+
+                <template v-else>
+                  <v-data-table :headers="eqHeaders" :items="eqRows" density="compact" item-key="id" :items-per-page="5" class="no-hover">
+                    <!-- 상태 칩 -->
+                    <template v-slot:[`item.status`]="{ item }">
+                      <v-chip size="small" :color="statusColor(r(item).status)" variant="tonal">
+                        {{ statusLabel(r(item).status) }}
+                      </v-chip>
+                    </template>
+
+                    <!-- 선택 버튼 (단일 선택) -->
+                    <template v-slot:[`item.pick`]="{ item }">
+                      <v-btn
+                        size="small"
+                        :variant="pickedEquipId === r(item).id ? 'elevated' : 'tonal'"
+                        :color="r(item).status === 'AVAILABLE' ? (pickedEquipId === r(item).id ? 'primary' : undefined) : 'grey'"
+                        :disabled="r(item).status !== 'AVAILABLE'"
+                        @click="pickEquip(r(item))"
+                      >
+                        {{ pickedEquipId === r(item).id ? '선택됨' : '선택' }}
+                      </v-btn>
+                    </template>
+                  </v-data-table>
+
+                  <v-alert type="info" variant="tonal" class="mt-3"> 한 공정당 <b>1대</b>만 선택 가능합니다. </v-alert>
+                </template>
               </v-card-text>
             </v-card>
           </v-col>
         </v-row>
       </v-window-item>
 
-      <!-- STEP 2 : 진행 제어 (기존 3단계 내용) -->
+      <!-- STEP 2 : 진행 제어 -->
       <v-window-item :value="2">
         <v-row>
           <v-col cols="12" md="7">
@@ -187,9 +202,14 @@
           <v-col cols="12" md="5">
             <v-card variant="outlined" class="pa-4">
               <div class="label">선택 설비</div>
-              <ul class="equip-list">
-                <li v-for="e in pickedEquipments" :key="e.id">{{ e.name }} ({{ e.code }})</li>
-              </ul>
+              <div v-if="pickedEquip">
+                {{ pickedEquip.name }} ({{ pickedEquip.code }})
+                <v-chip size="x-small" class="ml-2" :color="statusColor(pickedEquip.status)" variant="tonal">
+                  {{ statusLabel(pickedEquip.status) }}
+                </v-chip>
+              </div>
+              <div v-else class="muted">선택된 설비 없음</div>
+
               <v-divider class="my-3" />
               <div class="label">현재 공정 진행률</div>
               <v-progress-linear :model-value="currentProcProgress" height="12" class="mt-2" />
@@ -234,7 +254,12 @@ const workers = computed(() => store.workers);
 const pickedOrder = ref(null);
 const pickedWorker = ref(null);
 const pickedProcess = ref(null);
-const pickedEquipIds = ref([]);
+
+/* 설비: 단일 선택 */
+const pickedEquipId = ref(null);
+
+/* v-data-table 슬롯 item 래퍼 해제 헬퍼 */
+const r = (it) => (it && typeof it === 'object' && 'raw' in it ? it.raw : it);
 
 /* 테이블 헤더 */
 const orderHeaders = [
@@ -268,7 +293,7 @@ function pickOrder(o) {
   pickedOrder.value = o;
   pickedWorker.value = null;
   pickedProcess.value = null;
-  pickedEquipIds.value = [];
+  pickedEquipId.value = null;
 }
 
 /* 제품 유형에 따른 공정 목록 */
@@ -279,14 +304,51 @@ const processesForProduct = computed(() => {
 });
 const pickedProcessName = computed(() => PROCESS_LIST.find((p) => p.code === pickedProcess.value)?.name || '-');
 
-/* 설비 */
+/* 설비 - 상태표시 + 단일선택 */
+const eqHeaders = [
+  { title: '설비명', value: 'name', width: 140 },
+  { title: '코드', value: 'code', width: 120 },
+  { title: '상태', value: 'status', width: 110 },
+  { title: '선택', value: 'pick', sortable: false, width: 90 }
+];
+
 const equipmentsByProcess = computed(() => store.equipments.filter((e) => e.process === pickedProcess.value));
-function toggleEquip(id) {
-  const i = pickedEquipIds.value.indexOf(id);
-  if (i >= 0) pickedEquipIds.value.splice(i, 1);
-  else pickedEquipIds.value.push(id);
+
+// 스토어에 status가 없으면 데모용으로 순환 배정
+function inferStatus(e) {
+  if (e.status) return e.status;
+  const m = e.id % 3;
+  return m === 0 ? 'AVAILABLE' : m === 1 ? 'IN_USE' : 'MAINT';
 }
-const pickedEquipments = computed(() => store.equipments.filter((e) => pickedEquipIds.value.includes(e.id)));
+const eqRows = computed(() =>
+  equipmentsByProcess.value.map((e) => ({
+    id: e.id,
+    name: e.name,
+    code: e.code,
+    status: inferStatus(e)
+  }))
+);
+
+// 상태 텍스트/색상
+function statusLabel(s) {
+  if (s === 'AVAILABLE') return '사용가능';
+  if (s === 'IN_USE') return '사용중';
+  if (s === 'MAINT') return '점검중';
+  return s || '-';
+}
+function statusColor(s) {
+  return s === 'AVAILABLE' ? 'success' : s === 'IN_USE' ? 'warning' : s === 'MAINT' ? 'grey' : 'grey';
+}
+
+// 단일 선택 토글
+function pickEquip(item) {
+  if (item.status !== 'AVAILABLE') {
+    alert('이 설비는 현재 선택할 수 없습니다. (상태: ' + statusLabel(item.status) + ')');
+    return;
+  }
+  pickedEquipId.value = pickedEquipId.value === item.id ? null : item.id;
+}
+const pickedEquip = computed(() => eqRows.value.find((r) => r.id === pickedEquipId.value) || null);
 
 /* ------- 전체 기생산/미생산 로직 ------- */
 const requiredProcessCodes = computed(() => {
@@ -316,6 +378,7 @@ const ctrlTime = ref({ startAt: '', endAt: '' });
 watch(pickedProcess, () => {
   inputQty.value = 0;
   ctrlTime.value = { startAt: '', endAt: '' };
+  pickedEquipId.value = null;
 });
 
 function pushDigit(n) {
@@ -336,7 +399,7 @@ const currentProcProgress = computed(() => {
 
 /* 다음 버튼 가용성 (1단계에서 모든 선택 필요) */
 const canNext = computed(() => {
-  if (step.value === 1) return !!(pickedOrder.value && pickedWorker.value && pickedProcess.value && pickedEquipIds.value.length > 0);
+  if (step.value === 1) return !!(pickedOrder.value && pickedWorker.value && pickedProcess.value && pickedEquipId.value);
   return true;
 });
 
@@ -355,6 +418,7 @@ function nowISO() {
 function doStart() {
   if (!pickedOrder.value || !pickedProcess.value || !pickedWorker.value) return;
   if (inputQty.value <= 0) return alert('투입량을 입력하세요.');
+  if (!pickedEquipId.value) return alert('설비를 선택하세요.');
 
   ctrlTime.value.startAt = nowISO();
   ctrlTime.value.endAt = '';
@@ -363,7 +427,7 @@ function doStart() {
     orderId: pickedOrder.value.id,
     process: pickedProcess.value,
     workerId: pickedWorker.value.id,
-    equipIds: pickedEquipIds.value.slice(),
+    equipIds: [pickedEquipId.value], // 단일 설비만
     inputQty: inputQty.value,
     durationSec: 30
   });
@@ -498,5 +562,8 @@ function doFinish() {
 
 .text-right {
   text-align: right;
+}
+.ml-2 {
+  margin-left: 8px;
 }
 </style>
