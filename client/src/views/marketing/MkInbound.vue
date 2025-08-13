@@ -8,7 +8,7 @@
           :rowData="rowData1"
           :columnDefs="colDefs1"
           :theme="quartz"
-          style="height: 700px; width: 100%"
+          style="height: 550px; width: 100%"
           @cell-value-changed="onCellValueChanged"
         >
           <!--  :defaultColDef="{ width: 150 }" 로 전체 width지정도가능-->
@@ -37,7 +37,7 @@ const form = ref({ writer: '' }, { addDate: '' });
 
 // 제품 리스트
 const rowData1 = ref([
-  { 입고일자: '불러오기', 제품코드:'불러오기', 제품명:'불러오기', 수량:'입력', LOT번호:'불러오기' },
+  { 입고일자: '불러오기', 제품코드:'불러오기', 제품명:'불러오기', 수량:'입력', LOT번호:'등록하기' },
   { 입고일자: '', 제품코드:'', 제품명:'', 수량:'', LOT번호:'' },
   { 입고일자: '', 제품코드:'', 제품명:'', 수량:'', LOT번호:'' },
   { 입고일자: '', 제품코드:'', 제품명:'', 수량:'', LOT번호:'' },

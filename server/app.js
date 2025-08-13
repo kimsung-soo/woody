@@ -15,7 +15,13 @@ app.listen(PORT, () => {
 
 const boardRouter = require("./routers/board_router.js");
 app.use(boardRouter);
-const MatarialRouter = require("./routers/martarials_router.js");
-app.use(MatarialRouter);
 const productionRouter = require("./routers/production_router.js");
 app.use(productionRouter);
+
+// 품질
+const qualityRouter = require("./routers/quality_router.js");
+app.use(qualityRouter);
+const MasterRouter = require("./routers/master_router.js");
+app.use(MasterRouter);
+const materialsRouter = require("./routers/materials_router.js");
+app.use(materialsRouter);

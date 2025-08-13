@@ -17,8 +17,7 @@
 
         <br /><br />
         <v-row justify="end">
-              <v-btn color="error" class="mr-3" @click="resetForm">초기화</v-btn>
-              <v-btn color="primary" class="mr-6" @click="submitForm">등록</v-btn>
+           <v-btn color="primary" class="mr-6" @click="submitForm">등록</v-btn>
         </v-row>
 
 
@@ -33,10 +32,12 @@
           @cell-value-changed="onCellValueChanged"
         >
         </ag-grid-vue>
+
         <div class="d-flex align-right mb-4">
          <v-text-field label="검색" v-model="searchKeyword" hide-details class="mr-2" style="max-width: 280px"></v-text-field>
          <v-btn color="darkText" @click="searchData">검색</v-btn>
         </div>
+
       </div>  
        <MoDal
       ref="modalRef"
@@ -44,7 +45,12 @@
       :rowData="modalRowData"
       :colDefs="modalColDefs"
       @confirm="modalConfirm"
-    /> 
+      />
+    <div class="d-flex align-right mb-4">
+     
+     
+  
+</div> 
     </div>
   </UiParentCard>
 </template>
@@ -61,17 +67,18 @@ import MoDal from '../common/NewModal.vue'; // 수정된 부분: 모달 컴포�
 const quartz = themeQuartz;
 
 const form = ref({ writer: '' }, { addDate: '' }, { bomVer: '' }, { bomCode: '' });
-
+const selectedRowIndex = ref(null)
 
 
 // 거래처등록테이블
 const rowData1 = ref([
-  { 거래처코드: '자동생성', 거래처유형: '모달', 사업자등록번호: '수기입력', 거래처명: '수기입력', 담당자: '수기입력', 대표자:'수기입력', 사용여부:'모달', 비고:'입력또는공란' }
+  { 거래처코드: '자동생성', 거래처유형: '', 사업자등록번호: '수기입력', 거래처명: '수기입력', 담당자: '수기입력', 대표자:'수기입력', 사용여부:'모달', 비고:'입력또는공란' }
 ]);
 
 const colDefs1 = ref([
   { field: '거래처코드', flex: 1, editable: false },
-  { field: '거래처유형', flex: 1 },
+  { field: '거래처유형', flex: 1,  cellClass: 'clickable-cell', headerClass: 'with-mag',  editable: false, 
+  onCellClicked: (params) => { selectedRowIndex.value = params.node.rowIndex; openModal('거래처유형', materialRowData.value, materialColDefs) } },
   { field: '사업자등록번호', flex: 1, editable: true },
   { field: '거래처명', flex: 1, editable: true },
   { field: '담당자', flex: 1, editable: true },
@@ -96,9 +103,8 @@ const rowData2 = ref([
 ]);
 
 const colDefs2 = ref([
- { field: '거래처코드', flex: 1, editable: false },
- { field: '거래처유형', flex: 1, editable: false, cellClass: 'clickable-cell',
-    onCellClicked: (params) => { selectedRowIndex.value = params.node.rowIndex; openModal('거래처유형', materialRowData.value, materialColDefs) } },
+  { field: '거래처코드', flex: 1, editable: false },
+  { field: '거래처유형', flex: 1, editable: false,},
   { field: '사업자등록번호',flex: 1, editable: false },
   { field: '거래처명', flex: 1, editable: false },
   { field: '담당자', flex: 1, editable: false },
@@ -127,62 +133,45 @@ const onCellValueChanged = (event) => {
   console.log(rowData1.value);
 };
 
-const submitForm = () => {
-  // rowData1 배열에 새로운 행을 추가합니다.
-  const newRow = {
-    '✅': false,
-    BOM코드: form.value.bomCode,
-    제품명: '하얀책상', // 필요에 따라 기본값 설정
-    BOM버젼: form.value.bomVer, // 필요에 따라 기본값 설정
-    작성자: form.value.writer,
-    등록일: form.value.addDate
-  };
-  rowData2.value.push(newRow);
 
-  // 폼 데이터를 초기화합니다.
-  resetForm();
-};
 
-// 폼 데이터를 초기화하는 함수
-const resetForm = () => {
-  form.value = {
-    writer: '',
-    addDate: ''
-  };
-};
-
-//모달 value들
-const modalRef = ref(null);
-const modalTitle = ref('');
-const modalRowData = ref([]);
-const modalColDefs = ref([]);
-const materialColDefs = [
-  { field: '자재코드', headerName: '자재코드', flex: 2 },
-  { field: '자재명', headerName: '자재명', flex: 2 },
-  { field: '자재유형', headerName: '자재유형', flex: 2 },
-  { field: '수량', headerName: '수량', flex: 1, editable: true },
-  { field: '단위', headerName: '단위', flex: 1, editable: true }
-];
-const materialRowData = ref([
-  { 자재코드: 'ABC-001', 자재명: '나사', 자재유형: '부자재', 수량: 100, 단위: 'EA' },
-  { 자재코드: 'XYZ-002', 자재명: '강철판', 자재유형: '원자재', 수량: 10, 단위: 'KG' }
-]);
-
-//모달 열때 데이터값 자식컴포넌트로
+// 모달
+const modalRef = ref(null)
+const modalTitle = ref('')
+const modalRowData = ref([])
+const modalColDefs = ref([])
 const openModal = (title, rowData, colDefs) => {
-  modalTitle.value = title;
-  modalRowData.value = rowData;
-  modalColDefs.value = colDefs;
-  if (modalRef.value) {
-    modalRef.value.open();
-  }
-};
-
-// 모달에서 확인시 행추가
+  modalTitle.value = title
+  modalRowData.value = rowData
+  modalColDefs.value = colDefs
+  modalRef.value?.open?.()
+}
 const modalConfirm = (selectedRow) => {
-  console.log(selectedRow);
-  rowData3.value.push(selectedRow);
-};
+  if (selectedRowIndex.value == null) return
+  const idx = selectedRowIndex.value
+  rowData1.value = rowData1.value.map((row, i) =>
+    i === idx ? { ...row, 거래처유형: selectedRow.거래처유형} : row
+  )
+  modalRef.value?.close?.()
+}
+
+// 모달창 내용
+const materialColDefs = [
+  { field: '거래처유형', headerName: '거래처유형', flex: 1 },
+
+]
+const materialRowData = ref([
+  { 거래처유형: '고객사' },
+  { 거래처유형: '공급사' },
+  { 거래처유형: '외주업체' },
+  { 거래처유형: '운송업체' },
+  { 거래처유형: '폐기업체' },
+ 
+])
+
+
+
+
 </script>
 
 <style scoped>
@@ -203,5 +192,14 @@ const modalConfirm = (selectedRow) => {
   text-decoration: underline;
 }
 
+/* 거래처유형 헤더 왼쪽에 돋보기 아이콘 */
+:deep(.ag-header .with-mag .ag-header-cell-text)::before {
+  content: "";
+  display: inline-block;
+  width: 16px; height: 16px;
+  margin-right: 6px;
+  background: url('/icons/magnify.svg') no-repeat center / contain;
+  transform: translateY(2px);
+}
 
 </style>

@@ -4,10 +4,8 @@
   <UiParentCard>
     <!-- 상단 버튼 -->
     <v-row justify="end" class="mb-2">
-      <v-col>
-        <v-btn color="error" class="top_btn_ser" variant="elevated" @click="resetForm">초기화</v-btn>
-        <v-btn color="primary" class="top_btn_ser" @click="saveForm">등록</v-btn>
-      </v-col>
+      <v-btn color="error" class="top_btn_ser" variant="elevated" @click="resetForm">초기화</v-btn>
+      <v-btn color="primary" class="top_btn_ser" @click="saveForm">등록</v-btn>
     </v-row>
 
     <!-- 1) 검사기준 그리드 (체크박스=합격) -->
@@ -44,6 +42,16 @@
       :theme="quartz"
       style="height: 160px; width: 100%"
     />
+    <!-- 처리상태가 불합격으로 판정나면 불량 사유를 기입하는 란을 생성 (미완성)-->
+    <p v-if="finalStatus='합격'" >
+      <table>
+        <th>불합격사유</th>
+        <td>
+          <tr>기록란</tr>
+        </td>
+      </table> </p>
+    <p v-else-if="finalStatus='불합격'">
+    합격</p>
   </UiParentCard>
 </template>
 
@@ -61,20 +69,22 @@ ModuleRegistry.registerModules([ClientSideRowModelModule, RowSelectionModule, ..
 const quartz = themeQuartz;
 
 /* breadcrumb */
-const page = ref({ title: '원자재 검수관리 등록' });
+const page = ref({ title: '제품 검수관리 등록' });
 const breadcrumbs = ref([
   { title: '품질', disabled: true, href: '#' },
-  { title: '원자재 검수관리 등록', disabled: false, href: '#' }
+  { title: '제품 검수관리 등록', disabled: false, href: '#' }
 ]);
 
 /* ------------ 1) 검사기준 그리드 (선택=합격) ------------ */
 // 행 데이터 (rowId로 쓸 고유 키 _id 포함)
 const criteriaRows = ref([
-  { _id: 'moisture', label: '함수율', allow: '수분 함량 12~15% (KS범위)' },
-  { _id: 'appearance', label: '외관결점', allow: '옹이≤150mm, 활결≤50%, 전체길이 1% 이내' },
-  { _id: 'thickness', label: '치수정밀도', allow: '입고자재 ±2mm 이내' },
-  { _id: 'strength', label: '강도', allow: 'KS F 2207, 횡강도 ≥ 35MPa' },
-  { _id: 'surface', label: '외관/표면 결함', allow: '육안확인 시 결점 없음' }
+  { _id: 'moisture', label: '함수율', allow: '수분 함량 12~15% (KS범위)', value: '' },
+  { _id: 'moisture', label: '치수정밀도', allow: '입고자재 ±2mm 이내', value: '' },
+  { _id: 'moisture', label: '강도/내구성', allow: '횡강도 35MPa 이상', value: '' },
+  { _id: 'appearance', label: '안정성', allow: '전도 없음, 전기부 안전, 모서리 등금 위험요소 없음', value: '' },
+  { _id: 'thickness', label: '왼관 결점', allow: '옹이, 할렬, 긁힘 육안확인 시 결점이 없을 시', value: '' },
+  { _id: 'strength', label: '포름알데히드 방출률', allow: '친환경 E0 등급(0.3mg/L)이하', value: '' },
+  { _id: 'surface', label: '표면 마감/도장', allow: '도맏 들뜸 박리 없음, 균일한 색상 광택 유지', value: '' }
 ]);
 
 const criteriaApi = shallowRef(null);
@@ -96,26 +106,26 @@ const selectionColumnDef = ref({
 const criteriaCols = ref([
   { headerName: '검사기준', field: 'label', minWidth: 160, flex: 1 },
   { headerName: '허용수치', field: 'allow', minWidth: 360, flex: 2 },
+  { headerName: '측정값', field: 'value', minWidth: 360, flex: 2, editable: true },
   {
     headerName: '판정',
     colId: 'result',
     minWidth: 120,
     maxWidth: 140,
     valueGetter: (p) => (p.node?.isSelected() ? '합격' : '불합격'),
-    cellClass: (p) => (p.value === '합격' ? 'ag-cell-success' : 'ag-cell-error'),
+    cellClass: (p) => (p.value == '합격' ? 'ag-cell-success' : 'ag-cell-error'),
     sortable: false
   }
 ]);
 
 const criteriaGridOptions = ref({
-  defaultColDef: defaultColDef.value,
-  getRowId: (p) => p.data._id // 선택 안정화
+  defaultColDef: defaultColDef.value
 });
 
 // 합격/불합격 계산
 const totalCount = ref(0);
 const selectedCount = ref(0);
-const finalStatus = computed(() => (selectedCount.value === totalCount.value ? '합격' : '불합격'));
+const finalStatus = computed(() => (selectedCount.value == totalCount.value ? '합격' : '불합격'));
 
 function onCriteriaReady(e) {
   criteriaApi.value = e.api;
@@ -140,24 +150,24 @@ function recalcCriteria() {
 /* ------------ 2) 하단 입력 그리드(1행) ------------ */
 const detailRows = ref([
   {
-    id: '(자동입력)',
-    inNo: '(자동입력)',
-    materialCode: '(자동입력)',
-    materialName: '(자동입력)',
+    certid: '(자동입력)',
+    proCode: '(자동입력)',
+    prdName: '(자동입력)',
     totalQty: 40,
-    user: '사람1',
-    inDate: '2025-07-30',
+    passQty: 30,
+    writer: '사람1',
+    writeDate: '2025-07-30',
     doneDate: '2025-07-30'
   }
 ]);
 
 const detailCols = ref([
-  { headerName: '원자재검사번호', field: 'id', width: 170, editable: false },
-  { headerName: '입고번호', field: 'inNo', width: 140, editable: false },
-  { headerName: '원자재코드', field: 'materialCode', width: 150, editable: false },
-  { headerName: '원자재명', field: 'materialName', width: 160, editable: false },
+  { headerName: '제품검사번호', field: 'id', width: 170, editable: false },
+  { headerName: '제품코드', field: 'inNo', width: 140, editable: false },
+  { headerName: '제품명', field: 'materialCode', width: 150, editable: false },
+  { headerName: '합격품수량', field: 'materialName', width: 160, editable: false },
   { headerName: '총수량', field: 'totalQty', width: 110, editable: true, valueParser: numParser },
-  { headerName: '작성자', field: 'user', width: 120, editable: true },
+  { headerName: '작성자', field: 'writer', width: 120, editable: true },
   { headerName: '입고일자', field: 'inDate', width: 140, editable: true },
   { headerName: '검사완료일자', field: 'doneDate', width: 140, editable: true }
 ]);
@@ -209,6 +219,7 @@ function saveForm() {
   });
   alert('등록되었습니다! (콘솔 payload 확인)');
 }
+
 </script>
 
 <style scoped>

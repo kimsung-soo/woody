@@ -23,6 +23,7 @@ const query = async (alias, values) => {
     conn = await connectionPool.getConnection();
     let exeuteSql = sqlList[alias];
     let result = await conn.query(exeuteSql, values);
+
     return result;
   } catch (e) {
     console.log(e);
