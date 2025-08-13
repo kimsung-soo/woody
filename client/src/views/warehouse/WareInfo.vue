@@ -116,16 +116,18 @@ const modalRef = ref(null);
 const modalTitle = ref('');
 const modalRowData = ref([]);
 const modalColDefs = ref([]);
+// 모달 열 정의.
 const materialColDefs = [
   {
     headerCheckboxSelection: true,
     checkboxSelection: true,
     flex: 0.5
   },
-  { field: '창고번호', headerName: '창고번호', flex: 1 },
-  { field: '창고명', headerName: '창고명', flex: 1 },
-  { field: '창고주소', headerName: '창고주소', flex: 3 }
+  { field: '창고번호', headerName: '창고번호', flex: 1, editable: true },
+  { field: '창고명', headerName: '창고명', flex: 1, editable: true },
+  { field: '창고주소', headerName: '창고주소', flex: 3, editable: true }
 ];
+// 모달행에 들어갈 값.
 const materialRowData = ref([
   { 창고번호: 'ABC-001', 창고명: '백호', 창고주소: '대구시 수성구 카카오 API' },
   { 창고번호: 'XYZ-002', 창고명: '사자', 창고주소: '대구시 수성구 카카오 API' }
