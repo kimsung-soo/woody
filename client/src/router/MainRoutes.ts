@@ -233,6 +233,16 @@ const MainRoutes = {
       path: '/production/performancecheck',
       component: () => import('@/views/production/PerformanceCheck.vue')
     },
+    {
+      name: 'ProductionCheck',
+      path: '/production/productioncheck',
+      component: () => import('@/views/production/ProductionCheck.vue')
+    },
+    {
+      name: 'ProductionModify',
+      path: '/production/productionmodify',
+      component: () => import('@/views/production/ProductionModify.vue')
+    },
 
     // 설비
     {

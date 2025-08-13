@@ -1,30 +1,29 @@
-<!-- 작업지시 수정/삭제 페이지 -->
-<!-- src/views/production/OrderModify.vue -->
+<!-- src/views/production/ProductionModify.vue -->
 <template>
   <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs" />
 
   <UiParentCard>
     <!-- 헤더: 제목 + 우측 삭제 -->
     <div class="card-headline">
-      <h5 class="title">작업지시 수정/삭제</h5>
+      <h5 class="title">생산계획 수정/삭제</h5>
       <div class="head-actions">
         <v-btn class="ml-4" color="error" variant="elevated" @click="bulkDelete">삭제</v-btn>
       </div>
     </div>
 
-    <!-- 검색 조건 (지시번호 / 제품코드 / 제품명 / 작성자) -->
+    <!-- 검색 조건 (계획번호 / 계획명 / 작성자 / 납기일자) -->
     <v-row class="mb-4" dense>
       <v-col cols="3">
-        <v-text-field label="지시번호" v-model.trim="searchForm.issueNumber" dense outlined hide-details @keyup.enter="applySearch" />
+        <v-text-field label="계획번호" v-model.trim="searchForm.planNo" dense outlined hide-details @keyup.enter="applySearch" />
       </v-col>
       <v-col cols="3">
-        <v-text-field label="제품코드" v-model.trim="searchForm.productCode" dense outlined hide-details @keyup.enter="applySearch" />
+        <v-text-field label="계획명" v-model.trim="searchForm.planName" dense outlined hide-details @keyup.enter="applySearch" />
       </v-col>
       <v-col cols="3">
-        <v-text-field label="제품명" v-model.trim="searchForm.productName" dense outlined hide-details @keyup.enter="applySearch" />
+        <v-text-field label="작성자" v-model.trim="searchForm.writer" dense outlined hide-details @keyup.enter="applySearch" />
       </v-col>
       <v-col cols="3">
-        <v-text-field label="작성자" v-model.trim="searchForm.contact" dense outlined hide-details @keyup.enter="applySearch" />
+        <v-text-field label="납기일자" v-model="searchForm.dueDate" type="date" dense outlined hide-details @keyup.enter="applySearch" />
       </v-col>
     </v-row>
 
@@ -40,7 +39,7 @@
     <div class="grid-wrap">
       <ag-grid-vue
         class="ag-theme-quartz ag-no-wrap"
-        :rowData="pagedOrders"
+        :rowData="pagedPlans"
         :columnDefs="colDefs"
         :pagination="true"
         :paginationPageSize="PAGE_SIZE"
@@ -60,29 +59,20 @@
     <v-dialog v-model="edit.open" max-width="760" persistent>
       <v-card>
         <v-card-title class="d-flex align-center justify-space-between">
-          <span>작업지시 수정</span>
+          <span>생산계획 수정</span>
           <v-chip size="small" v-if="edit.dirty" color="warning" variant="tonal">변경됨</v-chip>
         </v-card-title>
 
         <v-card-text>
           <v-row>
             <v-col cols="6" md="4">
-              <v-text-field label="지시번호" v-model="edit.form.issueNumber" readonly density="compact" variant="outlined" />
+              <v-text-field label="계획번호" v-model="edit.form.planNo" readonly density="compact" variant="outlined" />
             </v-col>
-            <v-col cols="6" md="4">
+
+            <v-col cols="6" md="8">
               <v-text-field
-                label="지시일자"
-                v-model.lazy="edit.form.orderDate"
-                type="date"
-                density="compact"
-                variant="outlined"
-                @update:modelValue="markDirty"
-              />
-            </v-col>
-            <v-col cols="6" md="4">
-              <v-text-field
-                label="작성자"
-                v-model.lazy="edit.form.contact"
+                label="계획명"
+                v-model.lazy="edit.form.planName"
                 density="compact"
                 variant="outlined"
                 @update:modelValue="markDirty"
@@ -98,10 +88,12 @@
                 @update:modelValue="markDirty"
               />
             </v-col>
-            <v-col cols="6" md="8">
+
+            <v-col cols="6" md="4">
               <v-text-field
-                label="제품명칭"
-                v-model.lazy="edit.form.productName"
+                label="작성일시"
+                v-model.lazy="edit.form.createdAt"
+                type="datetime-local"
                 density="compact"
                 variant="outlined"
                 @update:modelValue="markDirty"
@@ -110,8 +102,29 @@
 
             <v-col cols="6" md="4">
               <v-text-field
-                label="목표수량"
-                v-model.number.lazy="edit.form.targetQty"
+                label="작성자"
+                v-model.lazy="edit.form.writer"
+                density="compact"
+                variant="outlined"
+                @update:modelValue="markDirty"
+              />
+            </v-col>
+
+            <v-col cols="6" md="4">
+              <v-text-field
+                label="납기일자"
+                v-model.lazy="edit.form.dueDate"
+                type="date"
+                density="compact"
+                variant="outlined"
+                @update:modelValue="markDirty"
+              />
+            </v-col>
+
+            <v-col cols="6" md="4">
+              <v-text-field
+                label="총 수량"
+                v-model.number.lazy="edit.form.totalQty"
                 type="number"
                 min="0"
                 step="1"
@@ -121,19 +134,11 @@
               />
             </v-col>
 
-            <v-col cols="12" md="8">
-              <v-radio-group v-model="edit.form.productType" inline @update:modelValue="markDirty">
-                <label class="v-label mr-4">제품유형</label>
-                <v-radio label="완제품" value="완제품" />
-                <v-radio label="반제품" value="반제품" />
-              </v-radio-group>
-            </v-col>
-
             <v-col cols="12">
               <v-text-field
-                label="투입자재"
-                v-model.lazy="edit.form.inputMaterial"
-                placeholder="예) 합판, 철재"
+                label="비고"
+                v-model.lazy="edit.form.memo"
+                placeholder="메모를 입력하세요"
                 density="compact"
                 variant="outlined"
                 @update:modelValue="markDirty"
@@ -158,94 +163,87 @@ import UiParentCard from '@/components/shared/UiParentCard.vue';
 import { AgGridVue } from 'ag-grid-vue3';
 
 /* 헤더 */
-const page = ref({ title: '작업지시 수정/삭제' });
+const page = ref({ title: '생산계획 수정/삭제' });
 const breadcrumbs = shallowRef([
   { title: '생산', disabled: true, href: '#' },
-  { title: '작업지시 수정/삭제', disabled: false, href: '#' }
+  { title: '생산계획 수정/삭제', disabled: false, href: '#' }
 ]);
 
 /* 샘플 데이터 */
 function pad2(n) {
   return String(n).padStart(2, '0');
 }
-function makeOrders() {
-  const products = [
-    { code: 'P001', name: '블랙 데스크' },
-    { code: 'P002', name: '화이트 데스크' },
-    { code: 'P003', name: '블랙 데스크(소형)' },
-    { code: 'P004', name: '라운드 테이블' },
-    { code: 'P005', name: '워런트 책상' },
-    { code: 'P006', name: '메이플 책상' }
-  ];
-  const contacts = ['이민호', '이민우', '김찬용', '이동현', '김근영', '박지현'];
-  const mats = ['합판, 철재', '목재, 나사', '재공품', '원목, 철재', '합판, 볼트'];
+function genPlanNo(i, m, d) {
+  return `PL-2025${pad2(m)}${pad2(d)}-${1000 + i}`;
+}
+function makePlans() {
+  const names = ['월간 생산 계획', '주간 생산 계획', '수요 대응 계획', '특별 증산 계획'];
+  const writers = ['이동현', '김찬용', '김근영', '박지현', '최은수'];
+  const products = ['P001', 'P002', 'P003', 'P004', 'P005'];
 
-  return Array.from({ length: 56 }, (_, i) => {
-    const p = products[i % products.length];
-    const contact = contacts[i % contacts.length];
-    const m = mats[i % mats.length];
-    const month = 6 + (i % 3),
-      day = 1 + (i % 27);
+  return Array.from({ length: 58 }, (_, i) => {
+    const m = 6 + (i % 3);
+    const d = 1 + (i % 27);
+    const created = `2025-${pad2(m)}-${pad2(d)}T${pad2(9 + (i % 8))}:${pad2((i * 7) % 60)}`;
+    const due = `2025-${pad2(m)}-${pad2(((d + 15) % 28) + 1)}`;
     const row = {
-      id: 1000 + i,
-      issueNumber: `WO-2025${pad2(month)}${pad2(day)}-${3000 + i}`,
-      orderDate: `2025-${pad2(month)}-${pad2(day)}`,
-      contact,
-      productCode: p.code,
-      productName: p.name,
-      dueDate: `2025-${pad2(month)}-${pad2(((day + 15) % 28) + 1)}`,
-      targetQty: 40 + (i % 12) * 10,
-      inputMaterial: m,
-      productType: i % 5 === 0 ? '반제품' : '완제품'
+      id: 2000 + i,
+      planNo: genPlanNo(i, m, d),
+      productCode: products[i % products.length],
+      planName: names[i % names.length],
+      createdAt: created,
+      writer: writers[i % writers.length],
+      dueDate: due,
+      totalQty: 50 + (i % 10) * 20,
+      memo: i % 4 === 0 ? '긴급 일부' : ''
     };
-    row._hay = (row.issueNumber + row.productCode + row.productName + row.contact).toLowerCase();
+    row._hay = (row.planNo + row.planName + row.writer + row.productCode).toLowerCase();
     return row;
   });
 }
-const orders = shallowRef(makeOrders());
+const plans = shallowRef(makePlans());
 
 /* 검색 폼 */
 const searchForm = ref({
-  issueNumber: '',
-  productCode: '',
-  productName: '',
-  contact: ''
+  planNo: '',
+  planName: '',
+  writer: '',
+  dueDate: ''
 });
 const PAGE_SIZE = 10;
 
 /* 필터링 */
-const filteredOrders = computed(() => {
+const filteredPlans = computed(() => {
   const f = searchForm.value;
-  return orders.value.filter(
+  return plans.value.filter(
     (o) =>
-      (!f.issueNumber || o.issueNumber.includes(f.issueNumber)) &&
-      (!f.productCode || o.productCode.includes(f.productCode)) &&
-      (!f.productName || o.productName.includes(f.productName)) &&
-      (!f.contact || o.contact.includes(f.contact))
+      (!f.planNo || o.planNo.includes(f.planNo)) &&
+      (!f.planName || o.planName.includes(f.planName)) &&
+      (!f.writer || o.writer.includes(f.writer)) &&
+      (!f.dueDate || o.dueDate === f.dueDate)
   );
 });
-const pagedOrders = computed(() => filteredOrders.value);
+const pagedPlans = computed(() => filteredPlans.value);
 
 function applySearch() {
-  // computed 기반이라 별도 로직 없음. UX용으로 첫 페이지 보이게만.
   gridApi?.ensureIndexVisible(0);
 }
 function resetFilters() {
-  searchForm.value = { issueNumber: '', productCode: '', productName: '', contact: '' };
+  searchForm.value = { planNo: '', planName: '', writer: '', dueDate: '' };
   gridApi?.ensureIndexVisible(0);
 }
 
 /* 컬럼 (markRaw로 고정) */
 const colDefs = markRaw([
   { headerName: '', checkboxSelection: true, headerCheckboxSelection: true, width: 70 },
-  { headerName: '지시번호', field: 'issueNumber', flex: 1.4, minWidth: 160, cellClass: 'cell-ellipsis' },
-  { headerName: '지시일자', field: 'orderDate', flex: 0.9, minWidth: 120, cellClass: 'cell-ellipsis' },
-  { headerName: '작성자', field: 'contact', flex: 0.8, minWidth: 90, cellClass: 'cell-ellipsis' },
+  { headerName: '계획번호', field: 'planNo', flex: 1.4, minWidth: 160, cellClass: 'cell-ellipsis' },
   { headerName: '제품코드', field: 'productCode', flex: 0.9, minWidth: 110, cellClass: 'cell-ellipsis' },
-  { headerName: '제품명칭', field: 'productName', flex: 1.2, minWidth: 150, cellClass: 'cell-ellipsis' },
-  { headerName: '목표수량', field: 'targetQty', flex: 0.7, minWidth: 90, cellClass: 'ag-right-aligned-cell cell-ellipsis' },
-  { headerName: '투입자재', field: 'inputMaterial', flex: 1.2, minWidth: 140, cellClass: 'cell-ellipsis' },
-  { headerName: '제품유형', field: 'productType', flex: 0.8, minWidth: 90, cellClass: 'cell-ellipsis' }
+  { headerName: '계획명', field: 'planName', flex: 1.4, minWidth: 150, cellClass: 'cell-ellipsis' },
+  { headerName: '작성일시', field: 'createdAt', flex: 1.2, minWidth: 160, cellClass: 'cell-ellipsis' },
+  { headerName: '작성자', field: 'writer', flex: 0.8, minWidth: 90, cellClass: 'cell-ellipsis' },
+  { headerName: '납기일자', field: 'dueDate', flex: 0.9, minWidth: 120, cellClass: 'cell-ellipsis' },
+  { headerName: '총 수량', field: 'totalQty', flex: 0.7, minWidth: 90, cellClass: 'ag-right-aligned-cell cell-ellipsis' },
+  { headerName: '비고', field: 'memo', flex: 1.2, minWidth: 140, cellClass: 'cell-ellipsis' }
 ]);
 
 /* ag-Grid */
@@ -264,15 +262,14 @@ const edit = reactive({
   dirty: false,
   form: {
     id: null,
-    issueNumber: '',
-    orderDate: '',
-    contact: '',
+    planNo: '',
     productCode: '',
-    productName: '',
+    planName: '',
+    createdAt: '',
+    writer: '',
     dueDate: '',
-    targetQty: 0,
-    inputMaterial: '',
-    productType: '완제품'
+    totalQty: 0,
+    memo: ''
   },
   original: null
 });
@@ -284,15 +281,14 @@ function openEdit(ev) {
   const r = ev?.data;
   if (!r) return;
   edit.form.id = r.id;
-  edit.form.issueNumber = r.issueNumber;
-  edit.form.orderDate = r.orderDate;
-  edit.form.contact = r.contact;
+  edit.form.planNo = r.planNo; // readonly
   edit.form.productCode = r.productCode;
-  edit.form.productName = r.productName;
+  edit.form.planName = r.planName;
+  edit.form.createdAt = r.createdAt;
+  edit.form.writer = r.writer;
   edit.form.dueDate = r.dueDate;
-  edit.form.targetQty = r.targetQty;
-  edit.form.inputMaterial = r.inputMaterial;
-  edit.form.productType = r.productType;
+  edit.form.totalQty = r.totalQty;
+  edit.form.memo = r.memo;
   edit.original = r;
   edit.dirty = false;
   edit.open = true;
@@ -302,39 +298,38 @@ function closeEdit() {
   edit.open = false;
 }
 function validateForm() {
-  if (!edit.form.orderDate || !edit.form.contact?.trim() || !edit.form.productCode?.trim() || !edit.form.productName?.trim()) {
-    alert('지시일자, 작성자, 제품코드, 제품명은 필수입니다.');
-    return false;
-  }
-  if (!edit.form.targetQty || edit.form.targetQty <= 0) {
-    alert('목표수량은 1 이상이어야 합니다.');
-    return false;
-  }
+  if (!edit.form.planNo) return false; // 키
+  if (!edit.form.planName?.trim()) return alert('계획명은 필수입니다.'), false;
+  if (!edit.form.productCode?.trim()) return alert('제품코드는 필수입니다.'), false;
+  if (!edit.form.createdAt) return alert('작성일시는 필수입니다.'), false;
+  if (!edit.form.writer?.trim()) return alert('작성자는 필수입니다.'), false;
+  if (!edit.form.dueDate) return alert('납기일자는 필수입니다.'), false;
+  if (!edit.form.totalQty || edit.form.totalQty <= 0) return alert('총 수량은 1 이상이어야 합니다.'), false;
   return true;
 }
 function saveEdit() {
   if (!validateForm()) return;
+
   const updated = {
     ...edit.original,
-    issueNumber: edit.form.issueNumber,
-    orderDate: edit.form.orderDate,
-    contact: edit.form.contact,
+    planNo: edit.form.planNo, // readonly 유지
     productCode: edit.form.productCode,
-    productName: edit.form.productName,
+    planName: edit.form.planName,
+    createdAt: edit.form.createdAt,
+    writer: edit.form.writer,
     dueDate: edit.form.dueDate,
-    targetQty: edit.form.targetQty,
-    inputMaterial: edit.form.inputMaterial,
-    productType: edit.form.productType
+    totalQty: edit.form.totalQty,
+    memo: edit.form.memo
   };
-  updated._hay = (updated.issueNumber + updated.productCode + updated.productName + updated.contact).toLowerCase();
+  updated._hay = (updated.planNo + updated.planName + updated.writer + updated.productCode).toLowerCase();
 
   gridApi?.applyTransactionAsync({ update: [updated] });
 
-  const arr = orders.value;
+  const arr = plans.value;
   const idx = arr.findIndex((r) => r.id === updated.id);
   if (idx > -1) {
     arr[idx] = updated;
-    orders.value = arr;
+    plans.value = arr;
   }
   edit.open = false;
   edit.dirty = false;
@@ -352,7 +347,7 @@ function bulkDelete() {
 
   const ids = new Set(selected.map((r) => r.id));
   gridApi.applyTransactionAsync({ remove: selected });
-  orders.value = orders.value.filter((r) => !ids.has(r.id));
+  plans.value = plans.value.filter((r) => !ids.has(r.id));
   if (edit.open && edit.form.id && ids.has(edit.form.id)) edit.open = false;
   alert('삭제되었습니다.');
 }

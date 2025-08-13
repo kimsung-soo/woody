@@ -10,7 +10,7 @@
     </div>
 
     <!-- 상단 기본정보 -->
-    <v-row class="mb-4">
+    <v-row class="mb-2">
       <v-col cols="4">
         <v-text-field label="지시번호" v-model="form.issueNumber" readonly dense outlined />
       </v-col>
@@ -38,6 +38,12 @@
         <v-text-field label="제품명칭" v-model="form.productName" readonly dense outlined />
       </v-col>
     </v-row>
+
+    <!-- ✅ 입력창 아래 가운데 정렬: 초기화 / 저장 -->
+    <div class="center-actions-under-form">
+      <v-btn variant="flat" color="error" @click="resetForm">초기화</v-btn>
+      <v-btn color="primary" @click="submitForm">작업지시 등록</v-btn>
+    </div>
 
     <!-- 본문 2열: 좌(제품목록) / 우(재공품현황 -> BOM목록) -->
     <div class="main-2col">
@@ -111,11 +117,7 @@
       </section>
     </div>
 
-    <!-- 하단 버튼 -->
-    <v-row justify="end" class="mt-6">
-      <v-btn color="error" class="mr-2" @click="resetForm">초기화</v-btn>
-      <v-btn color="success" @click="submitForm">저장</v-btn>
-    </v-row>
+    <!-- ⛔ 기존 하단 오른쪽 정렬 버튼 블록은 제거했습니다 -->
   </UiParentCard>
 
   <!-- 계획서 모달 -->
@@ -499,6 +501,14 @@ function resetForm() {
 .card-headline .title {
   margin: 0;
   font-weight: 600;
+}
+
+/* 입력창 아래 중앙 버튼 */
+.center-actions-under-form {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 6px 0 14px;
 }
 
 /* 2열 레이아웃 */
