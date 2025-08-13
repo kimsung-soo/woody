@@ -5,14 +5,14 @@
     <v-btn color="warning" class="mr-2" @click="openModal('자재 조회', materialRowData, materialColDefs)" style="margin-bottom: 2rem">
       자재 조회
     </v-btn>
-    <MoDal ref="modalRef" :title="modalTitle" :rowData="modalRowData" :colDefs="modalColDefs" />
+    <MoDal ref="modalRef" :title="modalTitle" :rowData="modalRowData" :colDefs="modalColDefs" @confirm="onModalConfirm" />
 
     <v-row class="mb-4">
       <v-col cols="6">
         <v-text-field label="공급처" v-model="form.supplier" dense outlined />
       </v-col>
       <v-col cols="6">
-        <v-text-field label="발행번호" v-model="form.issueNumber" :readonly="true" placeholder="발행번호" dense outlined />
+        <v-text-field label="담당자" v-model="form.manager" outlined />
       </v-col>
       <v-col cols="6">
         <v-text-field label="발주일자" v-model="form.orderDate" type="date" dense outlined />
@@ -32,17 +32,10 @@
     >
     </ag-grid-vue>
 
-    <!-- 총금액 / 담당자 -->
-    <v-row class="mb-4 margin">
-      <v-col cols="6">
-        <v-text-field label="담당자" v-model="form.manager" outlined />
-      </v-col>
-    </v-row>
-
     <!-- 버튼 -->
-    <v-row justify="end">
+    <v-row justify="end" class="button">
       <v-btn color="error" class="mr-2" @click="resetForm">초기화</v-btn>
-      <v-btn color="primary" @click="submitForm">저장</v-btn>
+      <v-btn color="primary" @click="submitForm">등록</v-btn>
     </v-row>
   </UiParentCard>
 </template>
@@ -59,11 +52,7 @@ import axios from 'axios';
 const quartz = themeQuartz;
 
 // ----------------- 그리드 데이터 (독립) -----------------
-const rowData = ref([
-  // 초기 샘플. 필요하면 빈 배열 [] 로 시작해도 됨.
-  { 자재명: '합판', 자재코드: 'MLT-00123', 규격: 'SD400', 단위: 'EA', 단가: 1200000, 수량: 10, 비고: '' },
-  { 자재명: '원목', 자재코드: 'MLT-00124', 규격: 'SD400', 단위: 'EA', 단가: 800000, 수량: 5, 비고: '' }
-]);
+const rowData = ref([]);
 
 const colDefs = ref([
   { field: '자재명', flex: 1 },
@@ -78,8 +67,7 @@ const colDefs = ref([
 // ----------------- 폼 입력 필드 (유지) -----------------
 const form = reactive({
   supplier: '',
-  issueNumber: '',
-  orderDate: '',
+  orderDate: new Date().toISOString().substring(0, 10),
   dueDate: '',
   manager: ''
 });
@@ -91,65 +79,104 @@ const modalRowData = ref([]);
 const modalColDefs = ref([]);
 
 const materialColDefs = [
-  { field: 'code', headerName: '자재코드', flex: 2 },
-  { field: 'Name', headerName: '자재명', flex: 2 },
-  { field: 'Type', headerName: '자재유형', flex: 2 },
-  { field: 'Qty', headerName: '수량', flex: 1 },
-  { field: 'unit', headerName: '단위', flex: 1 }
+  { field: '자재코드', headerName: '자재코드', flex: 1 },
+  { field: '자재명', headerName: '자재명', flex: 1 },
+  { field: '자재유형', headerName: '자재유형', flex: 1 },
+  { field: '규격', headerName: '규격', flex: 1 },
+  { field: '단위', headerName: '단위', flex: 1 }
 ];
-const materialRowData = ref([
-  { code: 'ABC-001', Name: '나사', Type: '부자재', Qty: 100, unit: 'EA' },
-  { code: 'XYZ-002', Name: '강철판', Type: '원자재', Qty: 10, unit: 'KG' }
-]);
+const materialRowData = ref([]);
 
-// const openModal = (title, rowData, colDefs) => {
-//   modalTitle.value = title;
-//   modalRowData.value = rowData;
-//   modalColDefs.value = colDefs;
-//   if (modalRef.value) {
-//     modalRef.value.open();
-//   }
-// };
-
-// openModal 함수를 수정하여 API를 호출하도록 변경
 const openModal = async (title) => {
   modalTitle.value = title;
   modalColDefs.value = materialColDefs;
 
   try {
-    // ----------------- 서버 API 엔드포인트로 GET 요청 보내기 -----------------
-    const response = await axios.get('http://localhost:3000/api/materials'); // 서버 주소와 엔드포인트에 맞게 수정
-
-    // 서버에서 받은 데이터를 모달의 rowData에 할당
-    modalRowData.value = response.data;
+    const res = await axios.get('http://localhost:3000/materials');
+    console.log('호출성공 = ', res.data);
+    modalRowData.value = res.data.map((mat) => ({
+      자재코드: mat.MAT_CODE,
+      자재명: mat.MAT_NAME,
+      자재유형: mat.MAT_TYPE,
+      규격: `${mat.MAT_WIDTH ?? 0} X ${mat.MAT_HEIGHT ?? 0} X ${mat.MAT_DEPT ?? 0}`,
+      단위: mat.MAT_UNIT
+    }));
 
     if (modalRef.value) {
       modalRef.value.open();
     }
   } catch (error) {
-    console.error('자재 목록을 가져오는 중 오류가 발생했습니다:', error);
+    console.error('자재 목록을 가져오는 중 오류가 발생했습니다:' + error);
     alert('자재 목록을 불러오는 데 실패했습니다.');
   }
 };
+
+function onModalConfirm(selectedRow) {
+  if (!Array.isArray(selectedRow)) selectedRow = [selectedRow];
+
+  // 선택된 항목들 그리드에 추가
+  selectedRow.forEach((row) => {
+    rowData.value.push({
+      자재명: row.자재명 || '',
+      자재코드: row.자재코드 || '',
+      자재유형: row.자재유형 || '',
+      규격: row.규격 || '',
+      단위: row.단위 || ''
+    });
+  });
+}
 
 // ----------------- 리셋 / 제출 -----------------
 function resetForm() {
   // 폼 필드 초기화
   form.supplier = '';
-  form.issueNumber = '';
   form.orderDate = '';
   form.dueDate = '';
   form.manager = '';
-  alert('초기화 되었습니다.');
+
+  rowData.value = [];
 }
 
-function submitForm() {
-  // 실제 제출 시에는 숫자/형식 검사 및 페이로드 변환 필요
-  console.log('제출된 폼:', { form: { ...form }, items: rowData.value });
-  alert('폼 제출 성공');
+async function submitForm() {
+  try {
+    if (!form.supplier || !form.manager || !form.orderDate || !form.dueDate) {
+      alert('모든 필드를 입력해주세요.');
+      return;
+    }
+    if (rowData.value.length === 0) {
+      alert('자재를 선택해주세요.');
+      return;
+    }
+
+    // 1. 발주서 데이터
+    const orderData = {
+      PO_NO: '20250815-001',
+      SUPPLYER: form.supplier,
+      ORDER_DATE: form.orderDate,
+      PO_DDAY: form.dueDate,
+      MANAGER: form.manager
+    };
+
+    // 2. 상세 데이터
+    const detailList = rowData.value.map((row) => ({
+      MAT_CODE: row.자재코드,
+      RECEIPT_QTY: row.수량 || 0
+    }));
+
+    // 3. POST 요청
+    await axios.post('http://localhost:3000/materialOrder', {
+      orderData,
+      detailList
+    });
+
+    alert('등록 되었습니다.');
+    resetForm(); // 등록 후 초기화
+  } catch (error) {
+    console.error(error);
+    alert('등록 중 오류가 발생했습니다.');
+  }
 }
 
-// 페이지/브레드크럼
 const page = ref({ title: '자재발주서' });
 const breadcrumbs = shallowRef([
   { title: '자재', disabled: true, href: '#' },
@@ -160,5 +187,9 @@ const breadcrumbs = shallowRef([
 <style scoped>
 .margin {
   margin-top: 2.5rem;
+}
+
+.button {
+  margin-top: 1.5rem;
 }
 </style>

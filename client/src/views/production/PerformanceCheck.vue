@@ -1,3 +1,4 @@
+<!-- 생산 실적 조회 -->
 <!-- src/views/production/PerformanceCheck.vue -->
 <template>
   <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs" />
@@ -9,17 +10,11 @@
 
       <v-row class="mt-2" dense>
         <v-col cols="12" md="4">
-          <v-text-field
-            label="지시번호"
-            v-model.trim="q.issueNumber"
-            density="compact"
-            variant="outlined"
-            placeholder="예) WO-20250811-2856"
-          />
+          <v-text-field label="지시번호" v-model.trim="q.issueNumber" dense outlined placeholder="예) WO-20250811-2856" />
         </v-col>
 
         <v-col cols="12" md="4">
-          <v-text-field label="제품명" v-model.trim="q.productName" density="compact" variant="outlined" placeholder="예) 블랙 데스크" />
+          <v-text-field label="제품명" v-model.trim="q.productName" dense outlined placeholder="예) 블랙 데스크" />
         </v-col>
 
         <v-col cols="12" md="4">
@@ -31,37 +26,92 @@
               { title: '완제품', value: '완제품' },
               { title: '반제품', value: '반제품' }
             ]"
-            density="compact"
-            variant="outlined"
+            dense
+            outlined
+            clearable
           />
         </v-col>
 
         <v-col cols="12" md="4">
-          <v-text-field label="시작일시" v-model="q.startAt" type="datetime-local" density="compact" variant="outlined" />
-        </v-col>
-        <v-col cols="12" md="4">
-          <v-text-field label="종료일시" v-model="q.endAt" type="datetime-local" density="compact" variant="outlined" />
+          <v-text-field label="시작일시" v-model="q.startAt" type="datetime-local" dense outlined />
         </v-col>
 
-        <v-col cols="12" md="4" class="btn-center">
-          <div class="btn-group">
-            <v-btn variant="tonal" @click="resetQuery">초기화</v-btn>
-            <v-btn color="primary" class="ml-2" @click="doSearch">검색</v-btn>
-          </div>
+        <v-col cols="12" md="4">
+          <v-text-field label="종료일시" v-model="q.endAt" type="datetime-local" dense outlined />
         </v-col>
       </v-row>
 
+      <!-- 검색 버튼 (중앙 정렬 유지) -->
+      <div class="search-actions">
+        <v-btn variant="flat" color="error" @click="resetQuery">초기화</v-btn>
+        <v-btn class="ml-2" color="darkText" @click="doSearch">검색</v-btn>
+      </div>
+
       <!-- 선택 요약 -->
-      <div class="mini-summary" v-if="headerInfo">
+      <div class="mini-summary" v-if="result">
         <v-alert type="info" variant="tonal" density="compact">
-          지시번호: <b>{{ headerInfo.issueNumber }}</b>
+          지시번호: <b>{{ result.issueNumber }}</b>
           <span class="divider">|</span>
-          제품명: {{ headerInfo.productName }}
+          제품명: {{ result.productName }}
           <span class="divider">|</span>
-          제품유형: {{ headerInfo.productType }}
+          제품유형: {{ result.productType }}
         </v-alert>
       </div>
     </div>
+
+    <!-- 상단 기본정보 패널 (검색 성공 시에만 표시) -->
+    <v-card class="info-card mt-4" variant="outlined" v-if="result">
+      <v-card-title class="py-2">기본정보</v-card-title>
+      <v-card-text>
+        <v-row class="mb-2" dense>
+          <v-col cols="12" md="4">
+            <v-text-field label="지시번호" v-model="form.issueNumber" readonly dense outlined />
+          </v-col>
+
+          <v-col cols="12" md="4">
+            <v-text-field label="지시일자" v-model="form.orderDate" type="date" dense outlined />
+          </v-col>
+
+          <v-col cols="12" md="4">
+            <v-text-field label="작성자" v-model="form.contact" dense outlined />
+          </v-col>
+
+          <v-col cols="12" md="4">
+            <v-text-field label="제품코드" v-model="form.productCode" readonly dense outlined />
+          </v-col>
+
+          <v-col cols="12" md="4">
+            <v-text-field label="납기일자" v-model="form.dueDate" type="date" dense outlined />
+          </v-col>
+
+          <v-col cols="12" md="4">
+            <v-text-field
+              label="목표수량"
+              v-model.number="form.targetQty"
+              type="number"
+              min="0"
+              step="1"
+              dense
+              outlined
+              @input="recalcNeed"
+            />
+          </v-col>
+
+          <v-col cols="12" md="4">
+            <v-text-field label="제품명칭" v-model="form.productName" readonly dense outlined />
+          </v-col>
+        </v-row>
+
+        <!-- 목표/실적/미생산 요약 배지 -->
+        <div class="summary-chips">
+          <v-chip size="small" variant="tonal">목표 {{ (form.targetQty ?? 0).toLocaleString() }}</v-chip>
+          <v-chip size="small" color="primary" variant="tonal">기생산 {{ producedTotal.toLocaleString() }}</v-chip>
+          <v-chip size="small" color="error" variant="tonal"
+            >미생산 {{ Math.max((form.targetQty || 0) - producedTotal, 0).toLocaleString() }}</v-chip
+          >
+        </div>
+      </v-card-text>
+    </v-card>
 
     <!-- 결과 그리드 -->
     <div class="section-head mt-4">
@@ -124,22 +174,21 @@ const q = ref({
   startAt: '',
   endAt: ''
 });
+
 function resetQuery() {
   q.value.issueNumber = '';
   q.value.productName = '';
   q.value.productType = '';
   q.value.startAt = '';
   q.value.endAt = '';
-}
-function doSearch() {
-  // computed 기반이라 여기선 칼럼 사이즈만
+  // 결과도 초기화
+  result.value = null;
+  rows.value = [];
+  resetForm();
   sizeFit();
 }
 
-/* ===== 더미 데이터(단건 조회용) =====
-   - issueNumber별로 공정 실적 목록을 갖는 형태
-   - 실제 연동 시 API: GET /performances?issueNumber=...&from=...&to=...
-*/
+/* ===== 더미 데이터 / 유틸 ===== */
 function pad2(n) {
   return String(n).padStart(2, '0');
 }
@@ -149,13 +198,13 @@ function toDT(y, m, d, hh, mm) {
 const processOrder = ['재단', '가공', '연마', '도장', '조립'];
 
 const perfDB = shallowRef([
+  /* ... (기존 더미 데이터 그대로) ... */
   {
     issueNumber: 'WO-20250811-2856',
     productCode: 'P001',
     productName: '블랙 데스크',
     productType: '완제품',
     items: [
-      // 공정명, 작업자, 시작~종료, 지시량/투입량/불량/생산
       {
         process: '재단',
         worker: '최윤수',
@@ -274,7 +323,7 @@ const perfDB = shallowRef([
     items: [
       {
         process: '재단',
-        worker: '최윤수',
+        worker: '최은수',
         startAt: toDT(2025, 6, 21, 9, 10),
         endAt: toDT(2025, 6, 21, 10, 0),
         orderQty: 200,
@@ -312,26 +361,30 @@ const perfDB = shallowRef([
         defectQty: 1,
         outputQty: 193
       }
-      // 반제품이라 '조립' 없음
+      // 반제품은 조립 없음
     ]
   }
 ]);
 
-/* ===== 필터링 & 결과 ===== */
-const headerInfo = computed(() => {
-  // issueNumber 우선 → 없으면 제품명/유형으로 첫 항목
-  const kwNo = q.value.issueNumber.trim();
-  const kwName = q.value.productName.trim();
-  const type = q.value.productType;
+/* ===== 검색 실행 결과 상태 ===== */
+const result = ref(null);
+const rows = ref([]);
 
-  let hit = null;
-  if (kwNo) hit = perfDB.value.find((x) => x.issueNumber.includes(kwNo));
-  if (!hit && (kwName || type)) {
-    hit = perfDB.value.find((x) => (!kwName || x.productName.includes(kwName)) && (!type || x.productType === type));
-  }
-  return hit || null;
+/* ===== 폼(상단 기본정보) ===== */
+const form = ref({
+  issueNumber: '',
+  orderDate: '',
+  contact: '',
+  productCode: '',
+  dueDate: '',
+  targetQty: 0,
+  productName: ''
 });
+function resetForm() {
+  form.value = { issueNumber: '', orderDate: '', contact: '', productCode: '', dueDate: '', targetQty: 0, productName: '' };
+}
 
+/* ===== 검색 로직 ===== */
 function inRange(dt) {
   const from = q.value.startAt ? new Date(q.value.startAt).getTime() : null;
   const to = q.value.endAt ? new Date(q.value.endAt).getTime() : null;
@@ -341,21 +394,64 @@ function inRange(dt) {
   return true;
 }
 
-const rows = computed(() => {
-  if (!headerInfo.value) return [];
-  // 공정 순서대로 정렬
-  const base = [...headerInfo.value.items].sort((a, b) => processOrder.indexOf(a.process) - processOrder.indexOf(b.process));
-  // 기간 필터
+function doSearch() {
+  const kwNo = q.value.issueNumber.trim();
+  const kwName = q.value.productName.trim();
+  const type = q.value.productType;
+
+  let hit = null;
+  if (kwNo) hit = perfDB.value.find((x) => x.issueNumber.includes(kwNo));
+  if (!hit && (kwName || type)) {
+    hit = perfDB.value.find((x) => (!kwName || x.productName.includes(kwName)) && (!type || x.productType === type));
+  }
+
+  if (!hit) {
+    result.value = null;
+    rows.value = [];
+    resetForm();
+    alert('검색결과가 없습니다.');
+    sizeFit();
+    return;
+  }
+
+  result.value = hit;
+
+  const base = [...hit.items].sort((a, b) => processOrder.indexOf(a.process) - processOrder.indexOf(b.process));
   const ranged = base.filter((r) => (!q.value.startAt && !q.value.endAt) || inRange(r.startAt) || inRange(r.endAt));
-  // 표시용 포맷
-  return ranged.map((r, i) => ({
+  rows.value = ranged.map((r, i) => ({
     seq: i + 1,
     ...r,
     startText: r.startAt.replace('T', ' '),
     endText: r.endAt.replace('T', ' '),
     durationMin: diffMinutes(r.startAt, r.endAt)
   }));
+
+  const firstStart = hit.items?.[0]?.startAt ?? '';
+  const lastEnd = hit.items?.[hit.items.length - 1]?.endAt ?? '';
+  form.value.issueNumber = hit.issueNumber;
+  form.value.orderDate = (firstStart || '').split('T')[0] || '';
+  form.value.contact = '홍길동';
+  form.value.productCode = hit.productCode;
+  form.value.dueDate = (lastEnd || '').split('T')[0] || '';
+  form.value.targetQty = hit.items?.[0]?.orderQty ?? 0;
+  form.value.productName = hit.productName;
+
+  sizeFit();
+}
+
+/* ===== 실적 합계/요약 ===== */
+function requiredProcessNames(productType) {
+  return productType === '반제품' ? ['재단', '가공', '연마', '도장'] : ['재단', '가공', '연마', '도장', '조립'];
+}
+const producedTotal = computed(() => {
+  const hit = result.value;
+  if (!hit) return 0;
+  const req = requiredProcessNames(hit.productType);
+  const outs = req.map((name) => hit.items.find((it) => it.process === name)?.outputQty ?? 0);
+  if (!outs.length) return 0;
+  return Math.max(0, Math.min(...outs));
 });
+function recalcNeed() {}
 
 /* ===== 소계 ===== */
 const totals = computed(() => {
@@ -373,8 +469,7 @@ const totalDurationText = computed(() => toHrMin(totals.value.durationMin));
 
 /* ===== 유틸 ===== */
 function diffMinutes(a, b) {
-  const ms = new Date(b).getTime() - new Date(a).getTime();
-  return Math.max(0, Math.round(ms / 60000));
+  return Math.max(0, Math.round((new Date(b) - new Date(a)) / 60000));
 }
 function toHrMin(mins) {
   const h = Math.floor(mins / 60);
@@ -391,7 +486,6 @@ function onGridReady(e) {
 function sizeFit() {
   gridApi?.sizeColumnsToFit();
 }
-
 const colDefs = markRaw([
   { headerName: '공정명', field: 'process', width: 110, cellClass: 'cell-ellipsis' },
   { headerName: '작업자', field: 'worker', width: 100, cellClass: 'cell-ellipsis' },
@@ -420,15 +514,15 @@ const colDefs = markRaw([
   padding-bottom: 8px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
-.btn-center {
+
+/* ✅ 검색 버튼 중앙정렬 */
+.search-actions {
   display: flex;
-  align-items: center;
   justify-content: center;
+  gap: 8px;
+  margin-top: 6px;
 }
-.btn-group {
-  display: flex;
-  align-items: center;
-}
+
 .section-head {
   display: flex;
   align-items: center;
@@ -440,6 +534,15 @@ const colDefs = markRaw([
 }
 .mini-summary {
   margin-top: 10px;
+}
+
+.info-card .v-card-title {
+  font-weight: 700;
+}
+.summary-chips {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 /* ag-grid looks */
@@ -468,5 +571,13 @@ const colDefs = markRaw([
   .totals {
     grid-template-columns: repeat(2, auto);
   }
+}
+
+/* 공용 마진/간격 */
+.ml-2 {
+  margin-left: 8px;
+}
+.mt-4 {
+  margin-top: 1rem;
 }
 </style>

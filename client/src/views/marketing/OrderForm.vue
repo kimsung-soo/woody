@@ -61,6 +61,7 @@ import { themeQuartz } from 'ag-grid-community'
 import { AgGridVue } from 'ag-grid-vue3'
 import MoDal from '../common/NewModal.vue'
 
+const selectedRowIndex = ref(null)
 const quartz = themeQuartz
 
 // ✅ 주문번호 기본값 1
@@ -85,7 +86,7 @@ const rowData1 = ref([
   { 제품코드: '선택하세요', 제품명: '', 수량: '', 비고: '' }
 ])
 
-const selectedRowIndex = ref(null)
+
 
 
 
@@ -93,10 +94,8 @@ const selectedRowIndex = ref(null)
 // 주문서테이블에서 모달적용
 const colDefs1 = ref([
   { headerName: '번호', valueGetter: p => p.node.rowIndex + 1, flex: 1, editable: false, sortable: false, filter: false },
-  { field: '제품코드', flex: 1, editable: false, cellClass: 'clickable-cell', headerName: `<i class="fa-solid fa-magnifying-glass" 
-                    style="cursor:pointer;margin-right:5px"
-                    onclick="window.openProductModal()"></i>제품코드`,
-    onCellClicked: (params) => { selectedRowIndex.value = params.node.rowIndex; openModal('제품 선택', materialRowData.value, materialColDefs) } },
+  { field: '제품코드', flex: 1, editable: false, cellClass: 'clickable-cell', 
+      onCellClicked: (params) => { selectedRowIndex.value = params.node.rowIndex; openModal('제품 선택', materialRowData.value, materialColDefs) } },
   { field: '제품명', flex: 1, editable: false, cellClass: 'clickable-cell',
     onCellClicked: (params) => { selectedRowIndex.value = params.node.rowIndex; openModal('제품 선택', materialRowData.value, materialColDefs) } },
   { field: '수량', flex: 1, editable: true },
