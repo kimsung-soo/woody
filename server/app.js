@@ -15,6 +15,8 @@ app.listen(PORT, () => {
 
 const boardRouter = require("./routers/board_router.js");
 app.use(boardRouter);
+const productionRouter = require("./routers/production_router.js");
+app.use(productionRouter);
 
 // 품질
 const qualityRouter = require("./routers/quality_router.js");

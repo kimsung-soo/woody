@@ -1,11 +1,10 @@
 const express = require("express");
 const router = express.Router();
-const matarialService = require("../services/matarials_service");
+const productionService = require("../services/production_service");
 
-router.get("/productions", async (req, res) => {
-  let matarialList = await matarialService
-    .matarialSelect()
-    .catch((err) => console.log(err));
-
-  res.send(matarialList);
+router.get("/production", async (req, res) => {
+  let list = await productionService.productionSelect();
+  res.send(list);
 });
+
+module.exports = router;
