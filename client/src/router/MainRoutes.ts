@@ -109,12 +109,12 @@ const MainRoutes = {
       path: '/marketing/MfOrderFormList',
       component: () => import('@/views/marketing/MfOrderFormList.vue')
     },
-     {
+    {
       name: 'MkInbound',
       path: '/marketing/MkInbound',
       component: () => import('@/views/marketing/MkInbound.vue')
     },
-     {
+    {
       name: 'MkOutbound',
       path: '/marketing/MkOutbound',
       component: () => import('@/views/marketing/MkOutbound.vue')
@@ -277,40 +277,52 @@ const MainRoutes = {
       path: '/utils/RepairManagement',
       component: () => import('@/views/facility/repair/RepairManagement.vue')
     },
-
     // 품질
     {
+      // 원자재조회
       name: 'QualityMatList',
       path: '/qm/matlst',
-      component: () => import('../views/quality/material/MaterialList.vue')
+      component: () => import('@/views/quality/material/MaterialList.vue')
     },
     {
+      // 원자재검수관리
       name: 'QualityMatManagement',
       path: '/qm/matmng',
-      component: () => import('../views/quality/material/MaterialManagement.vue')
+      component: () => import('@/views/quality/material/MaterialManagement.vue')
     },
     {
+      // 완반제품검사성적서 조회
       name: 'QualityPrdList',
       path: '/qm/prdlst',
       component: () => import('@/views/quality/product/ProductList.vue')
     },
 
     {
+      // 완반제품검사성적서 단건 조회
       name: 'QualityPrdListDetail',
       path: '/qm/prdlstdtl',
-      component: () => import('../views/quality/product/ProductListDetail.vue')
+      component: () => import('@/views/quality/product/ProductListDetail.vue')
     },
     {
+      // 완반제품겅사성적서 조회
       name: 'QualityPrdManagement',
       path: '/qm/prdmng',
       component: () => import('@/views/quality/product/ProductManagement.vue')
     },
     {
+      // 완반제품검사성적서 관리
+      name: 'QualityPrdManagementCertificate',
+      path: '/qm/prdmngcert',
+      component: () => import('@/views/quality/product/ProductManagementCertificate.vue')
+    },
+    {
+      // 품질기준 조회
       name: 'QualityStandardList',
       path: '/qm/qslist',
       component: () => import('@/views/quality/standard/QualityStandardList.vue')
     },
     {
+      // 품질기준 관리
       name: 'QualityStandardManagement',
       path: '/qm/qsmng',
       component: () => import('@/views/quality/standard/QualityStandardManagement.vue')

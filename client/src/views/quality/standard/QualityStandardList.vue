@@ -4,12 +4,10 @@
   <UiParentCard>
     <!-- 상단 툴바 -->
     <div class="toolbar">
-      <div class="title">검사기준서</div>
-
       <div class="filters">
-        <label class="lbl">기준</label>
-        <input class="input" v-model="search.keyword" placeholder="예: 함수율, 강도, 외관..." @keyup.enter="onSearch" />
-
+        <v-row cols="3">
+          <v-text-field label="기준" @keyup.enter="onSearch" dense outlined />
+        </v-row>
         <div class="radios">
           <label class="radio">
             <input type="radio" value="완/반제품" v-model="search.type" />
