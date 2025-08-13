@@ -1,9 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const matarialService = require("../services/materials_service");
+const materialService = require("../services/materials_service");
 
 router.get("/materials", async (req, res) => {
-  let materialList = await matarialService.materialsSelect();
+  let materialList = await materialService.materialsSelect();
   res.send(materialList);
 });
 
@@ -11,10 +11,10 @@ router.post("/materialOrder", async (req, res) => {
   try {
     const { orderData, detailList } = req.body;
 
-    await matarialService.materialOrder(orderData);
+    await materialService.materialOrder(orderData);
 
     for (const detail of detailList) {
-      await matarialService.materialOrderDetail({
+      await materialService.materialOrderDetail({
         ...detail,
         PO_NO: orderData.PO_NO,
       });

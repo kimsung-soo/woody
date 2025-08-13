@@ -23,5 +23,5 @@ const qualityRouter = require("./routers/quality_router.js");
 app.use(qualityRouter);
 const MasterRouter = require("./routers/master_router.js");
 app.use(MasterRouter);
-const materialsRouter = require("./routers/materials_router.js");
-app.use(materialsRouter);
+const MaterialsRouter = require("./routers/materials_router.js");
+app.use(MaterialsRouter);
