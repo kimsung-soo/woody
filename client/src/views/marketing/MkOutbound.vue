@@ -55,11 +55,11 @@ const rowData1 = ref([
 
 const colDefs1 = ref([
   { field: '출고일자', flex: 1 },
+  { field: '거래처명', flex: 1 },
+  { field: 'LOT번호', flex: 1 },
   { field: '제품코드', flex: 1 },
   { field: '제품명', flex: 1 },
-  { field: '의뢰수량', flex: 1 },
-  { field: 'LOT번호', flex: 1 },
-  { field: '거래처명', flex: 1 }
+  { field: '의뢰수량', flex: 1 }
   
 ]);
 
