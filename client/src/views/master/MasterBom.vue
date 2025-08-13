@@ -213,6 +213,7 @@ const delMat = () => {
   }
   rowData3.value = rowData3.value.filter((row) => !row['✅']);
 };
+
 //모달 value들
 const modalRef = ref(null);
 const modalTitle = ref('');

@@ -20,7 +20,7 @@
     "ag-grid-react": "^34.1.1",
     "ag-grid-vue3": "^34.1.1",
     "apexcharts": "4.3.0",
-    "axios": "1.7.9",
+    "axios": "^1.7.9",
     "axios-mock-adapter": "2.1.0",
     "chance": "1.1.12",
     "cors": "^2.8.5",
