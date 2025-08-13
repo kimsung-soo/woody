@@ -109,12 +109,12 @@ const MainRoutes = {
       path: '/marketing/MfOrderFormList',
       component: () => import('@/views/marketing/MfOrderFormList.vue')
     },
-     {
+    {
       name: 'MkInbound',
       path: '/marketing/MkInbound',
       component: () => import('@/views/marketing/MkInbound.vue')
     },
-     {
+    {
       name: 'MkOutbound',
       path: '/marketing/MkOutbound',
       component: () => import('@/views/marketing/MkOutbound.vue')
@@ -232,6 +232,16 @@ const MainRoutes = {
       name: 'PerformanceCheck',
       path: '/production/performancecheck',
       component: () => import('@/views/production/PerformanceCheck.vue')
+    },
+    {
+      name: 'ProductionCheck',
+      path: '/production/productioncheck',
+      component: () => import('@/views/production/ProductionCheck.vue')
+    },
+    {
+      name: 'ProductionModify',
+      path: '/production/productionmodify',
+      component: () => import('@/views/production/ProductionModify.vue')
     },
 
     // 설비

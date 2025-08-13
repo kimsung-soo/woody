@@ -207,11 +207,11 @@ const sidebarItem: menu[] = [
           },
           {
             title: '계획조회',
-            to: '/dashboard/default'
+            to: '/production/productioncheck'
           },
           {
             title: '계획 수정/삭제',
-            to: '/dashboard/default'
+            to: '/production/productionmodify'
           }
         ]
       },
