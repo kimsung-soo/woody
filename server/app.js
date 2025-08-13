@@ -15,5 +15,5 @@ app.listen(PORT, () => {
 
 const boardRouter = require("./routers/board_router.js");
 app.use(boardRouter);
-const MatarialRouter = require("./routers/martarials_router.js");
-app.use(MatarialRouter);
+const materialsRouter = require("./routers/materials_router.js");
+app.use(materialsRouter);
