@@ -25,3 +25,7 @@ const MasterRouter = require("./routers/master_router.js");
 app.use(MasterRouter);
 const MaterialsRouter = require("./routers/materials_router.js");
 app.use(MaterialsRouter);
+
+//설비
+const FacilityRouter = require("./routers/facility_router.js");
+app.use(FacilityRouter);
