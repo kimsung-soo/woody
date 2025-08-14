@@ -1,4 +1,3 @@
-<!-- 생산계획조회 -->
 <!-- src/views/production/ProductionCheck.vue -->
 <template>
   <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs" />
@@ -26,15 +25,15 @@
     <!-- 버튼 중앙 정렬 -->
     <v-row justify="center" class="mt-2 mb-4">
       <v-col cols="auto">
-        <v-btn variant="flat" color="error" class="mx-2" @click="resetFilters"> 초기화 </v-btn>
-        <v-btn variant="flat" color="darkText" class="mx-2" @click="applySearch"> 검색 </v-btn>
+        <v-btn variant="flat" color="error" class="mx-2" @click="resetFilters">초기화</v-btn>
+        <v-btn variant="flat" color="darkText" class="mx-2" @click="applySearch">검색</v-btn>
       </v-col>
     </v-row>
 
     <!-- 목록 -->
     <ag-grid-vue
       class="ag-theme-quartz ag-no-wrap mt-4"
-      :rowData="pagedPlans"
+      :rowData="plans"
       :columnDefs="colDefs"
       :pagination="true"
       :paginationPageSize="PAGE_SIZE"
@@ -44,19 +43,26 @@
       @grid-ready="onGridReady"
       @first-data-rendered="sizeFit"
       @grid-size-changed="sizeFit"
-      @row-double-clicked="goDetail"
     />
+
+    <div class="mt-4" style="text-align: right">
+      <small class="muted">총 {{ total.toLocaleString() }}건</small>
+    </div>
+
+    <v-snackbar v-model="snack.open" :color="snack.color" :timeout="2000">
+      {{ snack.msg }}
+    </v-snackbar>
   </UiParentCard>
 </template>
 
 <script setup>
-import { ref, shallowRef, computed, markRaw } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, shallowRef, markRaw, onMounted } from 'vue';
+import axios from 'axios';
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
 import { AgGridVue } from 'ag-grid-vue3';
 
-const router = useRouter();
+const API = 'http://localhost:3000';
 
 /* 헤더 */
 const page = ref({ title: '생산계획 조회' });
@@ -73,62 +79,52 @@ const search = ref({
   dueDate: '' // yyyy-MM-dd
 });
 
-/* 더미 데이터 */
-function makePlans() {
-  return [
-    {
-      planNo: 'PL-20250811-1234',
-      planName: '생산예방물량',
-      createdAt: '2025-08-11',
-      writer: '이동현',
-      totalQty: 100,
-      dueDate: '2025-08-30',
-      remark: '납기일지켜주세요'
-    },
-    {
-      planNo: 'PL-20250726-2201',
-      planName: '월간생산',
-      createdAt: '2025-07-26',
-      writer: '김찬용',
-      totalQty: 200,
-      dueDate: '2025-08-25',
-      remark: '불량체크 꼼꼼히'
-    },
-    {
-      planNo: 'PL-20250626-9010',
-      planName: '재고보충',
-      createdAt: '2025-06-26',
-      writer: '김근영',
-      totalQty: 150,
-      dueDate: '2025-07-21',
-      remark: '빠르게'
-    }
-  ];
-}
-const plans = ref(makePlans());
+/* 서버 데이터 */
+const plans = ref([]); // rows
+const total = ref(0); // total count
 const PAGE_SIZE = 10;
 
-/* 필터링 */
-const filteredPlans = computed(() => {
-  const { planNo, planName, writer, dueDate } = search.value;
-  return plans.value.filter((p) => {
-    const okNo = !planNo || p.planNo.includes(planNo);
-    const okName = !planName || p.planName.includes(planName);
-    const okWriter = !writer || p.writer.includes(writer);
-    const okDue = !dueDate || p.dueDate === dueDate;
-    return okNo && okName && okWriter && okDue;
-  });
-});
-const pagedPlans = computed(() => filteredPlans.value);
+/* 검색 호출 */
+async function fetchPlans() {
+  try {
+    // 서버는 kw만 받음
+    const kw = (search.value.planNo || search.value.planName || '').trim();
+    const { data } = await axios.get(`${API}/plans`, {
+      params: { kw, page: 1, size: 200 }
+    });
+    if (data?.ok) {
+      // 1차: 서버 결과
+      const rows = data.rows ?? [];
 
-/* 동작 */
+      // 2차: 작성자/납기일자 프론트 필터
+      const writer = (search.value.writer || '').trim();
+      const dueDate = (search.value.dueDate || '').trim(); // yyyy-MM-dd
+
+      plans.value = rows.filter((r) => (!writer || (r.writer || '').includes(writer)) && (!dueDate || r.dueDate === dueDate));
+      total.value = data.total ?? plans.value.length ?? 0;
+
+      sizeFit();
+    } else {
+      toast('조회 실패', 'error');
+    }
+  } catch (e) {
+    console.error(e);
+    toast('조회 중 오류', 'error');
+  }
+}
+
 function applySearch() {
-  sizeFit(); // 단순 리사이즈
+  fetchPlans();
 }
 function resetFilters() {
   search.value = { planNo: '', planName: '', writer: '', dueDate: '' };
-  sizeFit();
+  fetchPlans();
 }
+
+/* 최초 로드 시 목록 */
+onMounted(() => {
+  fetchPlans();
+});
 
 /* ag-Grid */
 const textCell = {
@@ -140,11 +136,11 @@ const numRight = { ...textCell, cellClass: 'ag-right-aligned-cell' };
 const colDefs = markRaw([
   { headerName: '계획번호', field: 'planNo', flex: 1.3, minWidth: 160, ...textCell },
   { headerName: '계획명', field: 'planName', flex: 1.4, minWidth: 160, ...textCell },
-  { headerName: '작성일자', field: 'createdAt', flex: 0.9, minWidth: 120, ...textCell },
+  { headerName: '작성일자', field: 'createdDate', flex: 0.9, minWidth: 120, ...textCell },
   { headerName: '작성자', field: 'writer', flex: 0.8, minWidth: 90, ...textCell },
   { headerName: '총수량', field: 'totalQty', flex: 0.7, minWidth: 90, ...numRight },
   { headerName: '납기일자', field: 'dueDate', flex: 0.9, minWidth: 120, ...textCell },
-  { headerName: '비고', field: 'remark', flex: 1.2, minWidth: 140, ...textCell }
+  { headerName: '비고', field: 'memo', flex: 1.2, minWidth: 140, ...textCell }
 ]);
 
 let gridApi;
@@ -155,35 +151,26 @@ function onGridReady(e) {
 function sizeFit() {
   gridApi?.sizeColumnsToFit();
 }
-function goDetail(ev) {
-  const row = ev?.data;
-  if (!row) return;
-  // 상세 라우팅 이름은 프로젝트에 맞게 변경하세요.
-  router.push({ name: 'ProductionPlanModify', query: { planNo: row.planNo } });
-}
+
+/* 토스트 */
+const snack = ref({ open: false, msg: '', color: 'primary' });
+const toast = (msg, color = 'primary') => (snack.value = { open: true, msg, color });
 </script>
 
 <style scoped>
-/* 입력창 아래 버튼 중앙 정렬 */
-.center-actions {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin: 6px 0 10px;
-}
-
-/* ag-grid: 한 줄 말줄임 */
 .ag-no-wrap .ag-cell {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* Quartz 테마 컴팩트 */
 .ag-theme-quartz {
   --ag-font-size: 12px;
   --ag-grid-size: 4px;
 }
 .mt-4 {
   margin-top: 1rem;
+}
+.muted {
+  color: #6b7280;
 }
 </style>
