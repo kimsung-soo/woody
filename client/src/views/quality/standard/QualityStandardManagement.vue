@@ -2,17 +2,17 @@
   <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs" />
   <UiParentCard>
     <!-- 상단 버튼 -->
-    <v-row justify="end" class="mb-2">
-      <v-btn color="primary" class="top_btn_ser" @click="saveForm">등록</v-btn>
+    <v-row>
+      <!-- 왼쪽: 셀렉트 -->
+      <v-col cols="3">
+        <v-select v-model="search.type" :items="['완제품', '반제품', '원목', '합판']" label="제품 구분" density="compact" />
+      </v-col>
+
+      <!-- 오른쪽: 버튼들 -->
+      <v-col cols="auto" class="d-flex justify-end">
+        <v-btn class="ml-2" color="primary" @click="saveForm">등록</v-btn>
+      </v-col>
     </v-row>
-
-    <!-- 라디오 -->
-    <div class="radios">
-      <label class="radio"> <input type="radio" value="완반제품" v-model="search.type" /> 완/반제품 </label>
-      <label class="radio"> <input type="radio" value="원목" v-model="search.type" /> 원목 </label>
-      <label class="radio"> <input type="radio" value="합판" v-model="search.type" /> 합판 </label>
-    </div>
-
     <!-- 상단 그리드: 카테고리 목록 -->
     <div class="grid-wrap">
       <ag-grid-vue
@@ -67,7 +67,26 @@ const breadcrumbs = shallowRef([
 
 // 카테고리별 기준(데이터 맵) 정의
 const dataMap = ref({
-  완반제품: [
+  완제품: [
+    { id: 1, 기준: '함수율', 검사내용: '수분 함량 검사', 허용수치: '수분 함량이 12 ~ 13% 이하' },
+    { id: 2, 기준: '치수정밀도', 검사내용: '전체 외형치수, 가공 및 조립 후 치수', 허용수치: '입고자재에서 ± 2mm 이내' },
+    { id: 3, 기준: '강도/내구성', 검사내용: '하중, 휨, 낙하, 반복 사용시험(횡강도, 압축)', 허용수치: '횡강도 35MPa 이상' },
+    {
+      id: 4,
+      기준: '안정성',
+      검사내용: '전도방지, 전기부 위험, 모서리 안전성 시험',
+      허용수치: '전도 없음, 전기부 안전, 모서리 둥글림 위험요소 없음'
+    },
+    { id: 5, 기준: '외관 결정', 검사내용: '옹이, 훼절, 균열 등 외관', 허용수치: '옹이, 훼절, 균열 유약확인 시 결점이 없을 시' },
+    { id: 6, 기준: '포름알데히드 방출량', 검사내용: '완/반제품 목재의 포름알데히드 방출 시험', 허용수치: '친환경 E0 등급(0.3mg/L)이하' },
+    {
+      id: 7,
+      기준: '표면 마감/도장',
+      검사내용: '도막 균일성, 접착력, 내마모성 검사',
+      허용수치: '도막 들뜸·박리 없음, 균일한 색상·광택 유지'
+    }
+  ],
+  반제품: [
     { id: 1, 기준: '함수율', 검사내용: '수분 함량 검사', 허용수치: '수분 함량이 12 ~ 13% 이하' },
     { id: 2, 기준: '치수정밀도', 검사내용: '전체 외형치수, 가공 및 조립 후 치수', 허용수치: '입고자재에서 ± 2mm 이내' },
     { id: 3, 기준: '강도/내구성', 검사내용: '하중, 휨, 낙하, 반복 사용시험(횡강도, 압축)', 허용수치: '횡강도 35MPa 이상' },
@@ -127,10 +146,12 @@ const dataMap = ref({
 });
 
 // 현 라디오 상태
-const search = ref({ type: '완반제품' });
+const search = ref({ type: '구분' });
 
 // 현재 선택된 타입의 데이터
 const currentRowData = computed(() => dataMap.value[search.value.type] ?? []);
+
+console.log(`dataMap value 찍어봄 : ` + dataMap.value['완제품']);
 
 // 상단 그리드
 const colDefs = ref([
@@ -287,19 +308,28 @@ function saveForm() {
   console.log('현재 모든 데이터:', currentData);
   alert(`${search.value.type} 데이터가 저장되었습니다. (총 ${currentData.length}건)`);
 }
+
+// 초기화 버튼
+// function resetForm() {
+//   const r = form.value;
+//   r.chkedDate = '';
+//   r.certId = '';
+//   r.prdName = '';
+//   r.prdType = '';
+// }
 </script>
 
 <style scoped>
-.radios {
+/* .radios {
   display: flex;
   gap: 16px;
   margin: 8px 0 12px;
-}
-.radio {
+} */
+/* .radio {
   display: flex;
   align-items: center;
   gap: 6px;
-}
+} */
 .grid-wrap {
   border: 1px solid #e5e5e5;
   border-radius: 10px;

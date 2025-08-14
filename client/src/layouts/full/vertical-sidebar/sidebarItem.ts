@@ -319,7 +319,11 @@ const sidebarItem: menu[] = [
         title: '원자재 검수',
         children: [
           {
-            title: '원자재 검수 조회 및 관리',
+            title: '원자재 검수이력 조회',
+            to: '/qm/matlsthst'
+          },
+          {
+            title: '원자재 검수 관리',
             to: '/qm/matlst'
           }
         ]
