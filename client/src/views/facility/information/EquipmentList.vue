@@ -2,30 +2,26 @@
   <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs" />
 
   <UiParentCard title="설비 정보조회">
-    <v-row align="center" class="mb-2">
-      <v-col cols="12" md="8" class="d-flex align-center">
-        <v-text-field
-          v-model.trim="productKeyword"
-          placeholder="공정선택"
-          hide-details
-          density="compact"
-          variant="outlined"
-          style="max-width: 280px"
-        />
+    <v-row class="mb-2 py-0">
+      <v-col cols="12" class="d-flex align-center">
+        <v-btn color="warning" variant="flat" @click="openModal('공정 조회', RowData, ColDefs)"> 공정 조회 </v-btn>
+      </v-col>
+    </v-row>
 
-        <v-btn class="ml-2" color="darkText" @click="openModal('공정 조회', RowData, ColDefs)"> 검색 </v-btn>
+    <v-row class="mb-4 pt-0">
+      <v-col cols="12" md="6">
+        <v-text-field label="공정코드" v-model="processCode" readonly hide-details density="comfortable" variant="outlined" />
       </v-col>
     </v-row>
 
     <MoDal ref="modalRef" :title="modalTitle" :rowData="modalRowData" :colDefs="modalColDefs" @confirm="modalConfirm" />
 
-    <!-- AG Grid: 조회 전용 -->
+    <!-- AG Grid -->
     <ag-grid-vue
-      style="height: 420px"
+      style="height: 420px; margin-top: 8px"
       :theme="quartz"
       :rowData="form.items"
       :columnDefs="columnDefs"
-      :defaultColDef="defaultColDef"
       :animateRows="true"
       :suppressClickEdit="true"
       @grid-ready="onGridReady"
@@ -34,7 +30,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, shallowRef } from 'vue';
+import { ref, reactive, shallowRef, onMounted } from 'vue';
+import axios from 'axios';
 
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
@@ -44,16 +41,23 @@ import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-communi
 ModuleRegistry.registerModules([AllCommunityModule]);
 const quartz = themeQuartz;
 
+const page = ref({ title: '설비 정보조회' });
+const breadcrumbs = shallowRef([
+  { title: '설비', disabled: true, href: '#' },
+  { title: '전체 조회', disabled: false, href: '#' }
+]);
+
 const columnDefs = ref([
+  { field: '공정코드', hide: true, filter: 'agTextColumnFilter' },
   { field: '설비코드', flex: 1 },
   { field: '설비명', flex: 1 },
   { field: '설비유형', flex: 1 },
   {
     field: '사용유무',
     flex: 1,
-    cellStyle: (params) => {
-      if (params.value == '사용') return { color: 'blue', fontWeight: 'bold' };
-      if (params.value == '정지') return { color: 'red', fontWeight: 'bold' };
+    cellStyle: (p) => {
+      if (p.value == '사용') return { color: 'blue', fontWeight: 'bold' };
+      if (p.value == '정지') return { color: 'red', fontWeight: 'bold' };
       return null;
     }
   },
@@ -65,67 +69,64 @@ const columnDefs = ref([
   { field: '담당자', flex: 1 }
 ]);
 
-/* ===================== 검색/그리드 핸들러 ===================== */
-const productKeyword = ref('');
 const gridApi = ref(null);
-const onGridReady = (e) => (gridApi.value = e.api);
-const searchProducts = () => {
-  gridApi.value?.setGridOption('quickFilterText', productKeyword.value || '');
+const gridColumnApi = ref(null);
+const onGridReady = (e) => {
+  gridApi.value = e.api;
+  gridColumnApi.value = e.columnApi;
+
+  if (processCode.value) applyProcessFilter(processCode.value);
 };
 
-/* ===================== 더미 데이터 ===================== */
+const applyProcessFilter = (procCode) => {
+  if (!gridApi.value) return;
+  gridApi.value.setFilterModel({
+    공정코드: { filterType: 'text', type: 'equals', filter: procCode }
+  });
+  gridApi.value.onFilterChanged();
+};
+
+const processCode = ref('');
+const processName = ref('');
+
 const form = reactive({
-  items: [
-    {
-      설비코드: 'EQ-001',
-      설비명: '드릴 프레스',
-      설비유형: '가공',
-      사용유무: '사용',
-      제조사: 'A사',
-      설비제조일: '2025-01-15',
-      설비설치일: '2025-02-18',
-      점검주기일: 180,
-      고장유형: '-',
-      담당자: '최은수'
-    },
-    {
-      설비코드: 'EQ-002',
-      설비명: '직각 왕복 판톱',
-      설비유형: '재단설비',
-      사용유무: '사용',
-      제조사: 'A사',
-      설비제조일: '2025-01-15',
-      설비설치일: '2025-02-18',
-      점검주기일: 180,
-      고장유형: '-',
-      담당자: '이동섭'
-    },
-    {
-      설비코드: 'EQ-003',
-      설비명: 'CNC조각기',
-      설비유형: '재단설비',
-      사용유무: '정지',
-      제조사: 'B사',
-      설비제조일: '2024-11-15',
-      설비설치일: '2025-02-18',
-      점검주기일: 180,
-      고장유형: '전기이상',
-      담당자: '정경준'
-    }
-  ]
+  items: []
 });
 
-const defaultColDef = { editable: false, sortable: true, resizable: true };
+const API_URL = 'http://localhost:3000/facility';
 
-const page = ref({ title: '설비 정보 관리' });
-const breadcrumbs = shallowRef([
-  { title: '설비', disabled: true, href: '#' },
-  { title: '전체 조회', disabled: false, href: '#' }
-]);
+const fmtDate = (v) => (typeof v === 'string' ? v.slice(0, 10) : (v ?? ''));
 
-/* ===================== 공정 조회 모달 ===================== */
+const mapRow = (r) => ({
+  공정코드: r.PR_ID ?? '',
+  설비코드: r.FAC_ID ?? '',
+  설비명: r.FAC_NAME ?? '',
+  설비유형: r.FAC_TYPE ?? '',
+  사용유무: (r.FAC_USE ?? 1) === 1 ? '사용' : '정지',
+  제조사: r.FAC_COMPANY ?? '',
+  설비제조일: fmtDate(r.FAC_MDATE),
+  설비설치일: fmtDate(r.FAC_IDATE),
+  점검주기일: r.FAC_CHECKDAY ?? '',
+  고장유형: r.FAIL_TYPE ?? '-',
+  담당자: r.MANAGER ?? ''
+});
+
+const fetchList = async () => {
+  try {
+    const res = await axios.get(API_URL);
+    const list = Array.isArray(res?.data) ? res.data : [];
+    form.items = list.map(mapRow);
+
+    if (processCode.value) applyProcessFilter(processCode.value);
+  } catch (e) {
+    console.error('[facility list] error:', e);
+    alert('설비 목록 조회 실패');
+  }
+};
+
+onMounted(fetchList);
+
 import MoDal from '@/views/common/NewModal.vue';
-
 const modalRef = ref(null);
 const modalTitle = ref('');
 const modalRowData = ref([]);
@@ -153,7 +154,8 @@ const openModal = (title, rowData, colDefs) => {
 
 const modalConfirm = (selectedRow) => {
   if (!selectedRow) return;
-  productKeyword.value = selectedRow.공정코드 || selectedRow.공정명 || '';
-  searchProducts();
+  processCode.value = selectedRow.공정코드 || '';
+  processName.value = selectedRow.공정명 || '';
+  if (selectedRow.공정코드) applyProcessFilter(selectedRow.공정코드);
 };
 </script>

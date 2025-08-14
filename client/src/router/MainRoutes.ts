@@ -287,6 +287,11 @@ const MainRoutes = {
       path: '/utils/RepairManagement',
       component: () => import('@/views/facility/repair/RepairManagement.vue')
     },
+    {
+      name: 'StatusOperational',
+      path: '/utils/StatusOperational',
+      component: () => import('@/views/facility/state/StatusOperational.vue')
+    },
     // 품질
     {
       // 원자재조회
