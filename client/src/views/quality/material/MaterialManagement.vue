@@ -140,14 +140,14 @@ function recalcCriteria() {
 /* ------------ 2) 하단 입력 그리드(1행) ------------ */
 const detailRows = ref([
   {
-    id: '(자동입력)',
+    id: '(자동생성)',
     inNo: '(자동입력)',
     materialCode: '(자동입력)',
-    materialName: '(자동입력)',
-    totalQty: 40,
-    user: '사람1',
-    inDate: '2025-07-30',
-    doneDate: '2025-07-30'
+    materialName: '(필요할꺼같은데?)',
+    totalQty: '(자동입력)',
+    user: '(세션사용자)',
+    inDate: '(자동입력)',
+    doneDate: '(현재 yyyyMMdd)'
   }
 ]);
 

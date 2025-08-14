@@ -8,4 +8,16 @@ router.get("/prdcertlist", async (req, res) => {
   res.send(list);
 });
 
+// 품질기준 조회
+router.get("/qstdlist", async (req, res) => {
+  let list = await qualityService.selectQstd();
+  res.send(list);
+});
+
+// 품질공통코드
+router.get("/qccommon", async (req, res) => {
+  let list = await qualityService.qcCommonCode();
+  res.send(list);
+});
+
 module.exports = router;
