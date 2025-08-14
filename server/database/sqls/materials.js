@@ -8,15 +8,45 @@ const materialsAllSelect = `SELECT MAT_CODE, MAT_NAME, MAT_TYPE, MAT_UNIT, MAT_W
 FROM MATERIALS`;
 
 // 자재발주서 insert
-const materialOrder = `INSERT INTO PURCHASE_ORDER (PO_NO, SUPPLYER, ORDER_DATE, PO_DDAY, MANAGER)
-VALUES (?, ?, ?, ?, ?)`;
+const materialOrder = `INSERT INTO PURCHASE_ORDER (PO_NO, SUPPLYER, ORDER_DATE, PO_DDAY, MANAGER, PO_STATUS)
+VALUES (?, ?, ?, ?, ?, ?)`;
 
 // 자재발주서 상세 insert
 const materialOrderDetail = `INSERT INTO PURCHASE_DETAIL (MAT_CODE, RECEIPT_QTY, PO_NO)
 VALUES (?, ?, ?)`;
 
+// 발행번호 프로시저 호출
+const GetNextPoNo = `CALL GetNextPO_NO()`;
+
+// 자재발주서 조회
+const orderSelect = `SELECT O.PO_NO,
+       O.SUPPLYER,
+       D.MAT_CODE,
+       M.MAT_NAME,
+       M.MAT_TYPE,
+       CONCAT(M.MAT_WIDTH, ' X ', M.MAT_HEIGHT, ' X ', M.MAT_DEPT) AS '규격',
+       M.MAT_UNIT,
+       O.ORDER_DATE,
+       O.PO_DDAY,
+       O.MANAGER,
+       D.RECEIPT_QTY,
+       O.PO_STATUS
+FROM PURCHASE_ORDER AS O 
+LEFT JOIN PURCHASE_DETAIL AS D
+  ON O.PO_NO = D.PO_NO
+LEFT JOIN MATERIALS AS M
+  ON D.MAT_CODE = M.MAT_CODE
+  ORDER BY O.PO_NO DESC`;
+
+// 임시 입고 등록
+const tmpMaterialInsert = `INSERT INTO MAT_IN_TMP (RECEIPT_NO, PO_NO, RECEIPT_DATE, SUPPLYER, MAT_CODE, RECEIPT_QTY, RECEIVED_QTY, TMP_STATUS, MANAGER)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?),`;
+
 module.exports = {
   materialsAllSelect,
   materialOrder,
   materialOrderDetail,
+  GetNextPoNo,
+  orderSelect,
+  tmpMaterialInsert,
 };

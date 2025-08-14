@@ -12,7 +12,7 @@
         @click="openModal('자재발주서 조회', materialRowData, materialColDefs)"
         style="margin-bottom: 2rem"
       >
-        자재 조회
+        자재발주서 조회
       </v-btn>
       <MoDal ref="modalRef" :title="modalTitle" :rowData="modalRowData" :colDefs="modalColDefs" @confirm="onModalConfirm" />
     </v-row>
@@ -55,22 +55,17 @@ import UiParentCard from '@/components/shared/UiParentCard.vue';
 import { AgGridVue } from 'ag-grid-vue3';
 import { themeQuartz } from 'ag-grid-community';
 import MoDal from '../common/NewModal.vue';
+import axios from 'axios';
 
 const quartz = themeQuartz;
 
-// ----------------- 그리드 데이터 (독립) -----------------
-const rowData = ref([
-  // 초기 샘플. 필요하면 빈 배열 [] 로 시작해도 됨.
-  // { 자재명: '합판', 자재코드: 'MLT-00123', 규격: 'SD400', 단위: 'EA', 단가: 1200000, 수량: 10, 비고: '' },
-  // { 자재명: '원목', 자재코드: 'MLT-00124', 규격: 'SD400', 단위: 'EA', 단가: 800000, 수량: 5, 비고: '' }
-]);
+const rowData = ref([]);
 
 const colDefs = ref([
   { field: '자재명', flex: 1 },
   { field: '자재코드', flex: 1 },
   { field: '규격', flex: 1 },
   { field: '단위', flex: 1 },
-  { field: '자재유형', flex: 1 },
   { field: '발주수량', flex: 1 },
   { field: '입고수량', editable: true, flex: 1 }
 ]);
@@ -88,44 +83,48 @@ const modalRef = ref(null);
 const modalTitle = ref('');
 const modalRowData = ref([]);
 const modalColDefs = ref([]);
-
 const materialColDefs = [
-  { field: '발행번호', headerName: '발행번호', flex: 1.2 },
+  { field: '발행번호', headerName: '발행번호', flex: 1 },
   { field: '업체', headerName: '공급업체', flex: 1 },
-  { field: '자재명', headerName: '자재명', flex: 0.8 },
-  { field: '자재코드', headerName: '자재코드', flex: 0.8 },
-  { field: '규격', headerName: '규격', flex: 0.6 },
-  { field: '발주일자', headerName: '발주일자', flex: 1 },
-  { field: '수량', headerName: '수량', flex: 0.6 },
-  { field: '상태', headerName: '상태', flex: 0.6 }
-];
-const materialRowData = ref([
+  { field: '자재코드', headerName: '자재코드', flex: 1 },
+  { field: '자재명', headerName: '자재명', flex: 1 },
+  { field: '수량', headerName: '수량', flex: 1 },
   {
-    발행번호: '20250808-001',
-    업체: '원목세상',
-    자재명: '원목',
-    규격: 'mm',
-    자재코드: 'ZCB-558',
-    발주일자: '2025-08-08',
-    수량: 10,
-    상태: '완료'
-  },
-  {
-    발행번호: '20250808-001',
-    업체: '원목세상',
-    자재명: '원목',
-    규격: 'mm',
-    자재코드: 'ZCB-558',
-    발주일자: '2025-08-08',
-    수량: 10,
-    상태: '완료'
+    field: '상태',
+    headerName: '상태',
+    flex: 0.8,
+    cellStyle: (params) => {
+      if (params.value === '대기') {
+        return { color: 'black', fontWeight: 'bold' };
+      } else if (params.value === '진행중') {
+        return { color: 'blue', fontWeight: 'bold' };
+      } else if (params.value == '완료') {
+        return { color: 'red', fontWeight: 'bold' };
+      }
+      return null;
+    }
   }
-]);
+];
+// const materialRowData = ref([]);
 
-const openModal = (title, rowData, colDefs) => {
+const openModal = async (title) => {
   modalTitle.value = title;
-  modalRowData.value = rowData;
-  modalColDefs.value = colDefs;
+  modalColDefs.value = materialColDefs;
+
+  const res = await axios.get('http://localhost:3000/materials/order/select');
+  modalRowData.value = res.data
+    .filter((item) => item.PO_STATUS !== '대기')
+    .map((item) => ({
+      발행번호: item.PO_NO,
+      업체: item.SUPPLYER,
+      자재코드: item.MAT_CODE,
+      자재명: item.MAT_NAME,
+      수량: item.RECEIPT_QTY,
+      상태: item.PO_STATUS,
+      규격: item.규격,
+      단위: item.MAT_UNIT
+    }));
+
   if (modalRef.value) {
     modalRef.value.open();
   }
@@ -144,8 +143,7 @@ function onModalConfirm(selectedRow) {
     자재명: selectedRow.자재명 || '',
     자재코드: selectedRow.자재코드 || '',
     규격: selectedRow.규격 || '',
-    단위: selectedRow.단위 || 'EA',
-    자재유형: selectedRow.자재유형 || '',
+    단위: selectedRow.단위 || '',
     발주수량: selectedRow.수량 || 0
   });
 }
@@ -156,13 +154,46 @@ function resetForm() {
   form.issueNumber = '';
   form.insertDate = '';
   form.manager = '';
-  alert('초기화 되었습니다.');
+  form.name = '';
+  rowData.value = [];
 }
 
-function submitForm() {
-  // 실제 제출 시에는 숫자/형식 검사 및 페이로드 변환 필요
-  console.log('제출된 폼:', { form: { ...form }, items: rowData.value });
-  alert('폼 제출 성공');
+async function submitForm() {
+  try {
+    if (!form.issueNumber || !form.insertDate || !form.manager || !form.name) {
+      alert('모든 필드를 입력해주세요.');
+      return;
+    }
+
+    for (const row of rowData.value) {
+      if ((row.입고수량 || 0) > (row.발주수량 || 0)) {
+        alert(`자재 "${row.자재명}"의 입고수량이 발주수량보다 많을 수 없습니다.`);
+        return;
+      }
+    }
+
+    const data = rowData.value.map((row) => ({
+      RECEIPT_NO: '임시입고번호',
+      PO_NO: form.issueNumber,
+      RECEIPT_DATE: form.insertDate,
+      SUPPLYER: form.name,
+      MANAGER: form.manager,
+      MAT_CODE: row.자재코드,
+      RECEIPT_QTY: row.발주수량,
+      RECEIVED_QTY: row.입고수량,
+      TMP_STATUS: '입고'
+    }));
+
+    for (const row of data) {
+      await axios.post('http://localhost:3000/materialInsert', row);
+    }
+
+    alert('등록 되었습니다.');
+    resetForm();
+  } catch (error) {
+    console.error(error);
+    alert('등록 중 오류가 발생했습니다.' + error);
+  }
 }
 
 // 페이지/브레드크럼
