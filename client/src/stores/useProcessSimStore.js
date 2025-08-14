@@ -10,6 +10,13 @@ export const PROCESS_LIST = [
   { code: 'ASM', name: '조립' }
 ];
 
+// 설비 상태 상수
+export const EQ = {
+  AVAILABLE: 'AVAILABLE',
+  IN_USE: 'IN_USE',
+  MAINT: 'MAINT'
+};
+
 function pad2(n) {
   return String(n).padStart(2, '0');
 }
@@ -37,7 +44,7 @@ function makeOrders() {
     PROCESS_LIST.forEach((pr) => {
       if (p.type === '반제품' && pr.code === 'ASM') return;
       procInit[pr.code] = {
-        status: 'WAIT', // WAIT/RUN/PAUSE/DONE
+        status: 'WAIT', // WAIT/RUN/PAUSE/IDLE/DONE
         progress: 0, // % (해당 공정의 진행률)
         prodQty: 0, // 공정별 누적 생산량
         inProgress: null, // { inputQty, doneQty, startAt, endAt, workerId, equipIds }
@@ -55,8 +62,7 @@ function makeOrders() {
       productName: p.name,
       productType: p.type,
       targetQty: 100 + (i % 4) * 50,
-      // 아래 producedQty는 "전체 기생산량" (필요 공정들의 최소 prodQty)로 유지
-      producedQty: 0,
+      producedQty: 0, // 전체 기생산량(필요 공정 최소)
       get remainingQty() {
         return Math.max(0, this.targetQty - this.producedQty);
       },
@@ -84,15 +90,15 @@ function makeEquipments() {
     { code: 'PAI', prefix: 'PAI', name: '도장기' },
     { code: 'ASM', prefix: 'ASM', name: '조립대' }
   ];
-  let id = 1;
+  let seq = 1;
   base.forEach((b) => {
     for (let i = 1; i <= 4; i++) {
       arr.push({
-        id: `EQ-${id++}`,
+        id: `EQ-${seq++}`,
         code: `${b.prefix}-${i}`,
         name: `${b.name}-${i}`,
         process: b.code,
-        status: '사용가능'
+        status: EQ.AVAILABLE
       });
     }
   });
@@ -115,6 +121,14 @@ export const useProcessSimStore = defineStore('process-sim', () => {
   // { id, orderId, process, inputQty, startTime, durationMs, progress }
   const jobs = reactive([]);
 
+  // 설비 상태 변경 유틸
+  function setEquipStatus(ids = [], status) {
+    const set = new Set(ids);
+    equipments.forEach((e) => {
+      if (set.has(e.id)) e.status = status;
+    });
+  }
+
   const flatRowsForStatus = computed(() => {
     const rows = [];
     orders.forEach((o) => {
@@ -129,7 +143,7 @@ export const useProcessSimStore = defineStore('process-sim', () => {
           state: st.status,
           progress: st.progress,
           targetQty: o.targetQty,
-          producedQty: o.producedQty, // 전체 기생산량(필요 공정 최소)
+          producedQty: o.producedQty,
           remainingQty: o.remainingQty,
           start: st.startedAt,
           end: st.endedAt
@@ -141,7 +155,6 @@ export const useProcessSimStore = defineStore('process-sim', () => {
 
   function _recalcProcProgress(order, process) {
     const rt = order.processes[process];
-    // 공정 진행률 = (해당 공정 누적 prodQty / target) * 100
     const pct = Math.floor((rt.prodQty / Math.max(order.targetQty, 1)) * 100);
     rt.progress = Math.max(0, Math.min(100, pct));
     if (rt.progress >= 100) rt.status = 'DONE';
@@ -161,14 +174,20 @@ export const useProcessSimStore = defineStore('process-sim', () => {
     const ps = ord.processes[process];
     if (!ps) return { ok: false, msg: '해당 공정이 지시에 없음' };
 
-    // 일시정지 상태에서 "이어하기"
+    // ✅ 1) PAUSE → 재개를 최우선 처리 (설비 가용성 검사 안함)
     if (ps.status === 'PAUSE' && ps.inProgress) {
-      const remain = Math.max(ps.inProgress.inputQty - ps.inProgress.doneQty, 0);
+      const remain = Math.max(ps.inProgress.inputQty - (ps.inProgress.doneQty || 0), 0);
       if (remain <= 0) return { ok: false, msg: '남은 투입량 없음(종료로 확정하세요)' };
+
+      const useEquipIds = (equipIds && equipIds.length ? equipIds : ps.equipIds).slice();
+
       ps.status = 'RUN';
       ps.startedAt = new Date().toISOString();
       ps.worker = workerId;
-      ps.equipIds = (equipIds || []).slice();
+      ps.equipIds = useEquipIds;
+
+      // 재개 시 설비는 계속 점유
+      setEquipStatus(ps.equipIds, EQ.IN_USE);
 
       jobs.push({
         id: `${orderId}-${process}-${Date.now()}`,
@@ -179,10 +198,18 @@ export const useProcessSimStore = defineStore('process-sim', () => {
         durationMs: durationSec * 1000,
         progress: 0
       });
+
       return { ok: true };
     }
 
-    // 신규 시작
+    // ✅ 2) 신규 시작일 때만 설비 가용성 검사
+    const blocked = (equipIds || []).some((eid) => {
+      const eq = equipments.find((e) => e.id === eid);
+      return !eq || eq.status !== EQ.AVAILABLE;
+    });
+    if (blocked) return { ok: false, msg: '선택한 설비 중 사용중/점검중이 있습니다.' };
+
+    // 신규 시작 처리
     const overallRemain = _overallRemaining(ord);
     if (overallRemain <= 0) return { ok: false, msg: '남은수량 없음' };
     const want = Math.min(Math.max(inputQty || 0, 0), overallRemain);
@@ -193,14 +220,17 @@ export const useProcessSimStore = defineStore('process-sim', () => {
     ps.equipIds = (equipIds || []).slice();
     ps.startedAt = new Date().toISOString();
     ps.endedAt = null;
-    // 새 작업 inProgress 생성
+
+    // 시작 → 설비 점유
+    setEquipStatus(ps.equipIds, EQ.IN_USE);
+
     ps.inProgress = {
       inputQty: want,
       doneQty: 0,
       startAt: ps.startedAt,
       endAt: null,
       workerId,
-      equipIds: (equipIds || []).slice()
+      equipIds: ps.equipIds.slice()
     };
 
     jobs.push({
@@ -225,7 +255,6 @@ export const useProcessSimStore = defineStore('process-sim', () => {
     const idx = jobs.findIndex((j) => j.orderId === orderId && j.process === process);
     if (idx >= 0) {
       const j = jobs[idx];
-      // 현재까지의 부분완료량
       const partialDone = Math.max(0, Math.round((j.progress / 100) * j.inputQty));
       if (ps.inProgress) {
         ps.inProgress.doneQty = Math.min(ps.inProgress.inputQty, (ps.inProgress.doneQty || 0) + partialDone);
@@ -234,6 +263,7 @@ export const useProcessSimStore = defineStore('process-sim', () => {
       jobs.splice(idx, 1);
     }
 
+    // 설비는 점유 유지
     ps.status = 'PAUSE';
     ps.endedAt = new Date().toISOString();
   }
@@ -249,7 +279,6 @@ export const useProcessSimStore = defineStore('process-sim', () => {
     let addQty = 0;
     if (idx >= 0) {
       const j = jobs[idx];
-      // 진행 중이던 퍼센트만큼 완료 처리
       const partialDone = Math.max(0, Math.round((j.progress / 100) * j.inputQty));
       addQty += partialDone;
       jobs.splice(idx, 1);
@@ -257,7 +286,6 @@ export const useProcessSimStore = defineStore('process-sim', () => {
 
     // inProgress 남은 양(확정) 더하기
     if (ps.inProgress) {
-      // 남은분(입력량 - done)을 전부 완료로 본다(확정 종료 시)
       const remain = Math.max(ps.inProgress.inputQty - (ps.inProgress.doneQty || 0), 0);
       addQty += remain;
       ps.inProgress.endAt = new Date().toISOString();
@@ -265,26 +293,19 @@ export const useProcessSimStore = defineStore('process-sim', () => {
     }
 
     if (addQty > 0) {
-      // 공정별 누적 반영 (target 초과 방지)
       const canAdd = Math.max(ord.targetQty - ps.prodQty, 0);
       const realAdd = Math.min(addQty, canAdd);
       ps.prodQty += realAdd;
     }
 
-    // 공정 진행률 재계산 및 상태
     _recalcProcProgress(ord, process);
-
-    // 전체 기생산량(필요 공정 최소) 재계산 → remainingQty도 자동 반영(getter)
     _recalcOrderProduced(ord);
 
-    // RUN이면 잔량 남아있는 것 → IDLE 로 전환 (100%면 DONE)
-    if (ps.progress >= 100) {
-      ps.status = 'DONE';
-    } else {
-      ps.status = 'IDLE';
-    }
-
+    ps.status = ps.progress >= 100 ? 'DONE' : 'IDLE';
     ps.endedAt = new Date().toISOString();
+
+    // ✅ 종료 시 설비 해제
+    setEquipStatus(ps.equipIds, EQ.AVAILABLE);
   }
 
   function tick(now) {
@@ -319,22 +340,29 @@ export const useProcessSimStore = defineStore('process-sim', () => {
 
         if (ps.inProgress) {
           ps.inProgress.doneQty = Math.min(ps.inProgress.inputQty, (ps.inProgress.doneQty || 0) + j.inputQty);
-          // inProgress가 입력량을 다 채웠다면 비우기
           if (ps.inProgress.doneQty >= ps.inProgress.inputQty) {
+            // 이번 배치 완주 → 배치 정보 제거
             ps.inProgress = null;
           }
         }
 
-        // 공정 진행률 재계산
         _recalcProcProgress(ord, j.process);
-        // 전체 기생산량 재계산
-        _recalcOrderProduced(ord);
 
-        // 상태 업데이트
+        // 배치 완료 후 상태 정리
         ps.status = ps.progress >= 100 ? 'DONE' : 'IDLE';
         ps.endedAt = new Date().toISOString();
 
+        // ✅ 배치가 끝났고 더 이상 진행중/일시정지 배치가 없으면 설비 해제
+        //  - IDLE(다음 배치 대기)에서도 풀어주어 다시 선택 가능
+        //  - DONE(해당 공정 목표 달성)도 당연히 해제
+        if (!ps.inProgress && ps.status !== 'RUN') {
+          setEquipStatus(ps.equipIds, EQ.AVAILABLE);
+        }
+
         jobs.splice(i, 1);
+
+        // 전체 기생산량 갱신 (필요 공정 최소)
+        _recalcOrderProduced(ord);
       }
     }
   }
@@ -343,10 +371,13 @@ export const useProcessSimStore = defineStore('process-sim', () => {
     const fresh = makeOrders();
     orders.splice(0, orders.length, ...fresh);
     jobs.splice(0, jobs.length);
+    // 모든 설비 가용화
+    equipments.forEach((e) => (e.status = EQ.AVAILABLE));
   }
 
   return {
     PROCESS_LIST,
+    EQ,
     orders,
     workers,
     equipments,
@@ -356,6 +387,7 @@ export const useProcessSimStore = defineStore('process-sim', () => {
     pauseJob,
     finishJob,
     tick,
-    resetAll
+    resetAll,
+    setEquipStatus
   };
 });

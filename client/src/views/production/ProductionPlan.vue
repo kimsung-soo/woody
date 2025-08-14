@@ -1,4 +1,3 @@
-<!-- 생산계획 등록 -->
 <!-- src/views/production/ProductionPlan.vue -->
 <template>
   <BaseBreadcrumb :title="pageMeta.title" :breadcrumbs="breadcrumbs" />
@@ -25,7 +24,7 @@
       </v-col>
 
       <v-col cols="4">
-        <v-text-field label="주문번호" v-model="form.productCode" readonly dense outlined />
+        <v-text-field label="주문번호" v-model="form.orderNo" readonly dense outlined />
       </v-col>
       <v-col cols="4">
         <v-text-field label="작성일자" v-model="form.dueDate" type="date" dense outlined />
@@ -59,7 +58,6 @@
     <section class="pane mt-4">
       <div class="pane-head">
         <h5 class="pane-title">제품목록</h5>
-        <!-- 우측: 검색 입력 + 제품등록 버튼 -->
         <div class="pane-action">
           <v-text-field
             v-model.trim="productKeyword"
@@ -68,7 +66,7 @@
             density="compact"
             variant="outlined"
             class="search-input-right"
-            @keyup.enter="doProductSearch"
+            @keyup.enter="fetchProducts"
           />
           <v-btn color="primary" class="ml-2" @click="applySelectedProduct">제품 등록</v-btn>
         </div>
@@ -89,13 +87,12 @@
         @grid-size-changed="sizeFitProduct"
       />
 
-      <!-- 선택 고정 유형 배지(선택적 표시) -->
       <div class="table-footline">
         <v-chip v-if="lockedType" size="small" color="primary" variant="tonal"> 선택 고정 유형: {{ lockedType }} </v-chip>
       </div>
     </section>
 
-    <!-- 생산의뢰 모달 (ag-Grid) -->
+    <!-- 생산의뢰 모달 -->
     <v-dialog v-model="planDialog" width="90vw">
       <v-card class="plan-card">
         <v-card-title class="d-flex align-center justify-space-between">
@@ -107,9 +104,10 @@
             density="compact"
             variant="outlined"
             style="width: 320px"
-            @keyup.enter="doPlanSearch"
+            @keyup.enter="fetchRequests"
           />
         </v-card-title>
+
         <v-card-text class="dialog-body">
           <ag-grid-vue
             class="ag-theme-quartz ag-no-wrap"
@@ -127,6 +125,7 @@
             @selection-changed="onPlanSelectionChanged"
           />
         </v-card-text>
+
         <v-card-actions class="justify-end">
           <v-btn variant="flat" color="darkText" @click="planDialog = false">닫기</v-btn>
           <v-btn variant="flat" color="success" @click="applyPlans">적용</v-btn>
@@ -142,9 +141,12 @@
 
 <script setup>
 import { ref, computed, shallowRef, onMounted } from 'vue';
+import axios from 'axios';
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
 import { AgGridVue } from 'ag-grid-vue3';
+
+const API = 'http://localhost:3000'; // prefix 없이 /products, /requests, /plans 사용
 
 /* 헤더 */
 const pageMeta = ref({ title: '생산계획 관리' });
@@ -158,32 +160,41 @@ const form = ref({
   issueNumber: '',
   orderDate: '',
   contact: '',
+  orderNo: '',
   productCode: '',
   dueDate: '',
   dueDate2: '',
   targetQty: 0,
   productName: '',
   memo: '',
-  productType: '' // 유형 잠금
+  productType: ''
 });
+
 function genPlanNo() {
   const d = new Date();
   return `PL-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}-${Math.floor(Math.random() * 9000) + 1000}`;
 }
+
 onMounted(() => {
   form.value.issueNumber = genPlanNo();
+  fetchProducts().catch(() => {});
 });
 
-/* ===== 제품 데이터/검색 ===== */
-const products = ref([
-  { code: 'ABC-1234', name: '블랙 데스크', uom: 'EA', spec: '1200x600', type: '완제품', stock: 12 },
-  { code: 'B-2201', name: '화이트 데스크', uom: 'EA', spec: '1200x600', type: '완제품', stock: 4 },
-  { code: 'C-0003', name: '협탁', uom: 'EA', spec: '500x500', type: '반제품', stock: 11 },
-  { code: 'C-0004', name: '상판', uom: 'EA', spec: '1200x600', type: '반제품', stock: 50 },
-  { code: 'P-9001', name: '라운드 테이블', uom: 'EA', spec: 'Ø900', type: '완제품', stock: 7 }
-]);
+/* ===== 제품 리스트(API) ===== */
+const products = ref([]);
 const productKeyword = ref('');
 const PROD_PAGE_SIZE = 5;
+
+async function fetchProducts() {
+  try {
+    const { data } = await axios.get(`${API}/products`, { params: { kw: productKeyword.value, page: 1, size: 50 } });
+    if (data?.ok) products.value = data.rows;
+    else toast('제품 조회 실패', 'error');
+  } catch (e) {
+    console.error(e);
+    toast('제품 조회 오류', 'error');
+  }
+}
 
 const lockedType = computed(() => form.value.productType || null);
 const filteredProducts = computed(() => {
@@ -193,9 +204,6 @@ const filteredProducts = computed(() => {
     .filter((p) => !kw || p.code.toLowerCase().includes(kw) || p.name.toLowerCase().includes(kw));
 });
 const pagedProducts = computed(() => filteredProducts.value);
-function doProductSearch() {
-  if (!filteredProducts.value.length) toast('검색결과가 없습니다.', 'error');
-}
 
 /* ag-Grid 공통 셀 옵션 */
 const textCell = {
@@ -231,7 +239,7 @@ function sizeFitProduct() {
   sizeFit(productApi);
 }
 
-/* 제품 등록 버튼: 현재 선택 행 사용 */
+/* 제품 등록 버튼 */
 function applySelectedProduct() {
   if (!productApi) return toast('그리드 준비중입니다.', 'error');
   const rows = productApi.getSelectedRows?.() ?? [];
@@ -247,39 +255,23 @@ function applySelectedProduct() {
   toast('제품이 계획서에 등록되었습니다.');
 }
 
-/* ===== 생산의뢰 모달 ===== */
+/* ===== 생산의뢰 모달(API) ===== */
 const planDialog = ref(false);
 const planKeyword = ref('');
 const PLAN_PAGE_SIZE = 10;
+const plans = ref([]);
 
-const plans = ref([
-  {
-    id: '1',
-    seq: 1,
-    reqNo: 'REQ-20250811-2856',
-    orderNo: 'ORD-001',
-    createdAt: '2025-08-11 09:10',
-    writer: '이동현',
-    totalQty: 100,
-    dueDate: '2025-08-30',
-    productCode: 'ABC-1234',
-    productName: '블랙 데스크',
-    productType: '완제품'
-  },
-  {
-    id: '2',
-    seq: 2,
-    reqNo: 'REQ-20250705-4112',
-    orderNo: 'ORD-002',
-    createdAt: '2025-07-05 10:10',
-    writer: '김태완',
-    totalQty: 120,
-    dueDate: '2025-09-05',
-    productCode: 'C-0003',
-    productName: '협탁',
-    productType: '반제품'
+async function fetchRequests() {
+  try {
+    const { data } = await axios.get(`${API}/requests`, { params: { kw: planKeyword.value, page: 1, size: 50 } });
+    if (data?.ok) plans.value = data.rows;
+    else toast('의뢰 조회 실패', 'error');
+  } catch (e) {
+    console.error(e);
+    toast('의뢰 조회 오류', 'error');
   }
-]);
+}
+
 const filteredPlans = computed(() => {
   const kw = planKeyword.value.trim().toLowerCase();
   if (!kw) return plans.value;
@@ -291,7 +283,7 @@ const pagedPlans = computed(() => filteredPlans.value);
 
 const planColDefs = [
   { headerName: '', checkboxSelection: true, headerCheckboxSelection: true, width: 70 },
-  { headerName: '순번', field: 'seq', width: 80, ...numRight },
+  { headerName: '순번', valueGetter: 'node.rowIndex + 1', width: 80, ...numRight },
   { headerName: '의뢰번호', field: 'reqNo', minWidth: 150, flex: 1, ...textCell },
   { headerName: '주문번호', field: 'orderNo', minWidth: 120, ...textCell },
   { headerName: '제품코드', field: 'productCode', minWidth: 120, ...textCell },
@@ -312,11 +304,6 @@ function onPlanGridReady(e) {
 function sizeFitPlan() {
   sizeFit(planApi);
 }
-function doPlanSearch() {
-  if (!filteredPlans.value.length) toast('검색결과가 없습니다.', 'error');
-}
-
-/* 선택 제약: 같은 제품/유형만 복수 선택 허용 */
 function onPlanSelectionChanged(e) {
   const selected = e.api.getSelectedRows();
   if (selected.length <= 1) return;
@@ -340,13 +327,19 @@ function openPlanDialog() {
   setTimeout(() => {
     planApi?.deselectAll?.();
   }, 0);
+  fetchRequests().catch(() => {});
 }
+
 function applyPlans() {
   if (!planApi) return toast('그리드 준비중입니다.', 'error');
   const selected = planApi.getSelectedRows?.() ?? [];
   if (!selected.length) return toast('선택된 의뢰가 없습니다.', 'error');
 
   const first = selected[0];
+
+  // 주문번호 반영
+  form.value.orderNo = first.orderNo;
+
   form.value.productCode = first.productCode;
   form.value.productName = first.productName;
   form.value.productType = first.productType;
@@ -358,25 +351,52 @@ function applyPlans() {
   toast('생산의뢰가 적용되었습니다.');
 }
 
-/* 저장/초기화/토스트 (✅ 콘솔 목업 출력 추가) */
-function savePlan() {
+/* 저장 */
+async function savePlan() {
+  // 최소 검증
   if (!form.value.issueNumber || !form.value.orderDate) return toast('계획번호/계획명을 입력하세요.', 'error');
   if (!form.value.productCode) return toast('제품을 등록하세요.', 'error');
 
-  const selectedPlans = planApi?.getSelectedRows?.() ?? [];
-  console.log('저장(생산계획 목업)', {
-    form: { ...form.value },
-    selectedPlans
-  });
+  const selectedReqs = planApi?.getSelectedRows?.() ?? [];
 
-  alert('저장(목업). 콘솔 확인');
+  try {
+    const { data } = await axios.post(`${API}/plans`, {
+      form: form.value,
+      selectedReqs
+    });
+    if (data?.ok) {
+      toast('저장되었습니다.');
+      // 저장 후 생산계획 목록 갱신
+      await fetchPlanList();
+    } else {
+      toast('저장 실패', 'error');
+    }
+  } catch (e) {
+    console.error(e);
+    toast('저장 중 오류', 'error');
+  }
 }
+
+/* (선택) 저장 후 목록 조회 */
+async function fetchPlanList() {
+  try {
+    const { data } = await axios.get(`${API}/plans`, { params: { kw: '', page: 1, size: 20 } });
+    if (data?.ok) {
+      console.log('생산계획 목록', data.rows);
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+/* 초기화/토스트 */
 function resetPlan() {
   const keepNo = genPlanNo();
   form.value = {
     issueNumber: keepNo,
     orderDate: '',
     contact: '',
+    orderNo: '',
     productCode: '',
     dueDate: '',
     dueDate2: '',
@@ -389,12 +409,12 @@ function resetPlan() {
   planApi?.deselectAll?.();
   toast('초기화되었습니다.');
 }
+
 const snack = ref({ open: false, msg: '', color: 'primary' });
 const toast = (msg, color = 'primary') => (snack.value = { open: true, msg, color });
 </script>
 
 <style scoped>
-/* 상단 헤더: 좌 제목 / 우 버튼 */
 .card-headline.only-right {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -417,7 +437,7 @@ const toast = (msg, color = 'primary') => (snack.value = { open: true, msg, colo
   margin: 6px 0 10px;
 }
 
-/* 제품목록 헤더: 검색을 우측으로 밀고 버튼을 옆에 */
+/* 제품목록 헤더 */
 .pane-head {
   display: flex;
   align-items: center;
