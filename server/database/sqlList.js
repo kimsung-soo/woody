@@ -4,6 +4,7 @@ const materials = require("./sqls/materials.js");
 const production = require("./sqls/production.js");
 const quality = require("./sqls/quality.js");
 const master = require("./sqls/master.js");
+const facility = require("./sqls/facility.js");
 
 module.exports = {
   ...boards,
@@ -12,4 +13,5 @@ module.exports = {
   ...production,
   ...quality,
   ...master,
+  ...facility,
 };
