@@ -2,36 +2,39 @@
   <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs"></BaseBreadcrumb>
   <UiParentCard title="제품 목록">
     <div class="d-flex align-center mb-4">
-      <v-text-field label="제품 검색" v-model="searchKeyword" hide-details class="mr-2" style="max-width: 280px"></v-text-field>
+      <v-text-field label="제품명 검색" v-model="searchKeyword" hide-details class="mr-2" style="max-width: 280px"></v-text-field>
       <v-btn color="darkText" @click="searchData">검색</v-btn>
     </div>
     <div class="main-container">
       <div class="list-container">
         <ag-grid-vue
-          :rowData="rowData1"
-          :columnDefs="colDefs1"
+          :rowData="prdData"
+          :columnDefs="prdDefs"
           :theme="quartz"
           style="height: 200px; width: 100%"
           @cell-value-changed="onCellValueChanged"
+          @rowClicked="onRowClicked1"
         >
           <!--  :defaultColDef="{ width: 150 }" 로 전체 width지정도가능-->
         </ag-grid-vue>
 
         <br /><br />
-        <h5>BOM목록</h5>
-        <div class="btn-list">
-          <v-row justify="end" class="mb-2 w-100">
-            <v-btn color="error" class="mr-1" @click="del">삭제</v-btn>
-          </v-row>
+        <!-- 수정 -->
+        <div class="d-flex align-center mb-2">
+          <h5 class="mb-0 mr-3">BOM목록</h5>
+          <v-text-field label="제품명" v-model="form.prdName" hide-details readonly="true" style="max-width: 150px"></v-text-field>
         </div>
+        <v-row justify="end" class="mb-2 w-100">
+          <v-btn color="error" class="mr-1" @click="del">삭제</v-btn>
+        </v-row>
         <ag-grid-vue
-          :rowData="rowData2"
-          :columnDefs="colDefs2"
+          :rowData="bomData"
+          :columnDefs="bomDefs"
           :theme="quartz"
           style="height: 200px; width: 100%"
           @cell-value-changed="onCellValueChanged"
           :rowSelection="rowSelection"
-          @rowClicked="onRowClicked"
+          @rowClicked="onRowClicked2"
         >
         </ag-grid-vue>
       </div>
@@ -73,8 +76,8 @@
 
           <MoDal ref="modalRef" :title="modalTitle" :rowData="modalRowData" :colDefs="modalColDefs" @confirm="modalConfirm" />
           <ag-grid-vue
-            :rowData="rowData3"
-            :columnDefs="colDefs3"
+            :rowData="matData"
+            :columnDefs="matDefts"
             :theme="quartz"
             style="height: 200px; width: 100%"
             @cell-value-changed="onCellValueChanged"
@@ -89,59 +92,52 @@
 
 <script setup>
 // 기존 스크립트 내용은 동일합니다.
-import { ref, shallowRef } from 'vue';
+import { onMounted, ref, shallowRef } from 'vue';
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
 import { themeQuartz } from 'ag-grid-community';
 import { AgGridVue } from 'ag-grid-vue3';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
+import axios from 'axios';
 // 모달 임포트
 import MoDal from '../common/NewModal.vue'; // 수정된 부분: 모달 컴포넌트 임포트
 const quartz = themeQuartz;
 
-const form = ref({ writer: '' }, { addDate: '' }, { bomVer: '' }, { bomCode: '' });
-
-// 제품 리스트
-const rowData1 = ref([
-  { 제품명: 'Tesla', 제품유형: '완제품', BOM코드: 'BOM_121', 작성자: '김태완', 등록일: '2025-12-31' },
-  { 제품명: 'Ford', 제품유형: '반제품', BOM코드: 'BOM_122', 작성자: '김태완', 등록일: '2025-12-31' }
-]);
-
-const colDefs1 = ref([
-  { field: '제품명', editable: true, width: 120 },
-  { field: '제품유형', width: 150 },
-  { field: 'BOM코드', width: 150 },
-  { field: '작성자', width: 110, editable: true },
-  { field: '등록일', width: 110, editable: true }
-]);
-
-// BOM 리스트
 const rowSelection = ref({
   mode: 'multiRow'
 });
-const rowData2 = ref([
-  { BOM코드: 'Tesla', 제품명: 'Model Y', BOM버젼: 1.01, 작성자: '경준', 등록일: '2025-07-01' },
-  { BOM코드: 'Ford', 제품명: 'F-Series', BOM버젼: 1.02, 작성자: '덩섭', 등록일: '2025-08-12' }
+const form = ref({ writer: '', addDate: '', bomVer: '', bomCode: '', prdName: '' });
+
+// 제품 리스트
+const prdData = ref([]);
+
+const prdDefs = ref([
+  { field: '제품명', flex: 1 },
+  { field: '제품코드', flex: 1 },
+  { field: '제품유형', flex: 1 },
+  { field: 'BOM코드', flex: 1 },
+  { field: '작성자', flex: 1 },
+  { field: '등록일', flex: 1 }
 ]);
 
-const colDefs2 = ref([
-  { field: 'BOM코드', editable: true, width: 120 },
-  { field: '제품명', width: 150 },
-  { field: 'BOM버젼', width: 150 },
-  { field: '작성자', width: 110 },
-  { field: '등록일', width: 110 }
+// BOM 리스트
+const bomData = ref([]);
+
+const bomDefs = ref([
+  { field: 'BOM코드', editable: true, flex: 1 },
+  { field: '제품명', flex: 1 },
+  { field: 'BOM버젼', flex: 1 },
+  { field: '작성자', flex: 1 },
+  { field: '등록일', flex: 1 }
 ]);
 
 // 자재 리스트
-const rowData3 = ref([
-  { 자재코드: 'Tesla', 자재명: 'Model Y', 자재유형: '원자재', 수량: 1, 단위: 'EA' },
-  { 자재코드: 'Ford', 자재명: 'F-Series', 자재유형: '부자재', 수량: 2, 단위: 'EA' }
-]);
+const matData = ref([]);
 
-const colDefs3 = ref([
+const matDefts = ref([
   { field: '자재코드', editable: true, width: 150 },
   { field: '자재명', width: 150 },
   { field: '자재유형', width: 150 },
-  { field: '수량', width: 110, editable: true },
+  { field: '소요수량', width: 110, editable: true },
   { field: '단위', width: 110, editable: true }
 ]);
 
@@ -159,13 +155,30 @@ const breadcrumbs = shallowRef([
   }
 ]);
 
+// 제품 조회
+const prdList = async () => {
+  const res = await axios.get('http://localhost:3000/BOMprdSelect');
+  prdData.value = res.data.map((prd) => ({
+    제품명: prd.PRD_NAME,
+    제품코드: prd.PRD_CODE,
+    제품유형: prd.PRD_TYPE,
+    BOM코드: prd.BOM_CODE,
+    작성자: prd.PRD_WRITER,
+    등록일: prd.PRD_DATE.substring(0, 10)
+  }));
+};
+
+onMounted(() => {
+  prdList();
+});
+
 const onCellValueChanged = (event) => {
   console.log(event.value);
-  console.log(rowData1.value);
+  console.log(prdData.value);
 };
 
 const submitForm = () => {
-  // rowData1 배열에 새로운 행을 추가합니다.
+  // prdData 배열에 새로운 행을 추가합니다.
   const newRow = {
     '✅': false,
     BOM코드: form.value.bomCode,
@@ -174,7 +187,7 @@ const submitForm = () => {
     작성자: form.value.writer,
     등록일: form.value.addDate
   };
-  rowData2.value.push(newRow);
+  bomData.value.push(newRow);
 
   // 폼 데이터를 초기화합니다.
   resetForm();
@@ -187,8 +200,23 @@ const resetForm = () => {
     addDate: ''
   };
 };
+
+const onRowClicked1 = async (e) => {
+  //e.data.제품코드
+  const bomList = { PRD_CODE: e.data.제품코드 };
+  const res = await axios.post('http://localhost:3000/BOMbomSelect', bomList);
+  bomData.value = res.data.map((prd) => ({
+    BOM코드: prd.BOM_CODE,
+    제품명: prd.PRD_NAME,
+    BOM버젼: prd.BOM_VER,
+    작성자: prd.BOM_WRITER,
+    등록일: prd.BOM_RDATE.substring(0, 10)
+  }));
+  form.value.prdName = e.data.제품명;
+};
+
 // 행선택시 등록 폼으로
-const onRowClicked = (event) => {
+const onRowClicked2 = (event) => {
   form.value.bomCode = event.data.BOM코드;
   form.value.bomVer = event.data.BOM버젼;
   form.value.writer = event.data.작성자;
@@ -197,21 +225,21 @@ const onRowClicked = (event) => {
 // db연결시 필요없는 삭제 함수 => delete문 실행후 select문 실행하기때문에
 //BOM 버젼 삭제
 const del = () => {
-  const checkedRows = rowData2.value.filter((row) => row['✅']);
+  const checkedRows = bomData.value.filter((row) => row['✅']);
   if (checkedRows.length == false) {
     alert('삭제항목을 선택하세요');
     return;
   }
-  rowData2.value = rowData2.value.filter((row) => !row['✅']);
+  bomData.value = bomData.value.filter((row) => !row['✅']);
 };
 // 자재 목록 선택삭제
 const delMat = () => {
-  const checkedRows = rowData3.value.filter((row) => row['✅']);
+  const checkedRows = matData.value.filter((row) => row['✅']);
   if (checkedRows.length == false) {
     alert('삭제항목을 선택하세요');
     return;
   }
-  rowData3.value = rowData3.value.filter((row) => !row['✅']);
+  matData.value = matData.value.filter((row) => !row['✅']);
 };
 
 //모달 value들
@@ -244,7 +272,7 @@ const openModal = (title, rowData, colDefs) => {
 // 모달에서 확인시 행추가
 const modalConfirm = (selectedRow) => {
   console.log(selectedRow);
-  rowData3.value.push(selectedRow);
+  matData.value.push(selectedRow);
 };
 </script>
 
