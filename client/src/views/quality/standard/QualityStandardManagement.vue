@@ -13,6 +13,7 @@
         <v-btn class="ml-2" color="primary" @click="saveForm">등록</v-btn>
       </v-col>
     </v-row>
+
     <!-- 상단 그리드: 카테고리 목록 -->
     <div class="grid-wrap">
       <ag-grid-vue
@@ -20,7 +21,7 @@
         style="height: 420px; width: 100%"
         :columnDefs="colDefs"
         :rowData="currentRowData"
-        :defaultColDef="{ resizable: true, sortable: true }"
+        :defaultColDef="defaultColDef"
         rowSelection="single"
         :suppressRowClickSelection="false"
         @grid-ready="onMainGridReady"
@@ -29,6 +30,7 @@
       />
     </div>
     <br />
+
     <!-- 하단 그리드: 선택행 1건 (선택된 행이 있을 때만 표시) -->
     <div v-if="selectedRow" class="grid-wrap" style="margin-top: 12px">
       <div style="padding: 10px; background-color: #f5f5f5; font-weight: bold">선택한 기준</div>
@@ -50,7 +52,7 @@
 </template>
 
 <script setup>
-import { ref, shallowRef, computed, watch } from 'vue';
+import { ref, shallowRef, computed, watch, nextTick } from 'vue';
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
 import { AgGridVue } from 'ag-grid-vue3';
@@ -59,13 +61,14 @@ import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-communi
 ModuleRegistry.registerModules([AllCommunityModule]);
 const quartz = themeQuartz;
 
-const page = ref({ title: '품질 기준 관리' }, { detailTitle: '선택한 기준' });
+// 페이지 정보 수정
+const page = ref({ title: '품질 기준 관리' });
 const breadcrumbs = shallowRef([
   { title: '품질', disabled: true, href: '#' },
   { title: '품질 기준 관리', disabled: false, href: '#' }
 ]);
 
-// 카테고리별 기준(데이터 맵) 정의
+// 카테고리별 기준 데이터
 const dataMap = ref({
   완제품: [
     { id: 1, 기준: '함수율', 검사내용: '수분 함량 검사', 허용수치: '수분 함량이 12 ~ 13% 이하' },
@@ -145,22 +148,28 @@ const dataMap = ref({
   ]
 });
 
-// 현 라디오 상태
-const search = ref({ type: '구분' });
+// 검색 조건 초기값 수정
+const search = ref({ type: '완제품' });
 
 // 현재 선택된 타입의 데이터
-const currentRowData = computed(() => dataMap.value[search.value.type] ?? []);
+const currentRowData = computed(() => {
+  return dataMap.value[search.value.type] || [];
+});
 
-console.log(`dataMap value 찍어봄 : ` + dataMap.value['완제품']);
-
-// 상단 그리드
+// 상단 그리드 컬럼 정의
 const colDefs = ref([
   { field: '기준', flex: 0.9, headerName: '기준', editable: false },
   { field: '검사내용', flex: 1.4, headerName: '검사내용', editable: false },
   { field: '허용수치', flex: 1.3, headerName: '허용수치', editable: false }
 ]);
 
-// 하단 그리드용 컬럼 편집
+// 상단 그리드 기본 설정
+const defaultColDef = ref({
+  resizable: true,
+  sortable: true
+});
+
+// 하단 그리드 컬럼 정의
 const detailColDefs = ref([
   {
     field: '기준',
@@ -182,34 +191,37 @@ const detailColDefs = ref([
   }
 ]);
 
-// 하단 그리드 기본 컬럼 설정
+// 하단 그리드 기본 설정
 const detailDefaultColDef = ref({
   resizable: true,
   sortable: false,
   filter: false
 });
 
+// 그리드 API 참조
 let mainApi = null;
-const onMainGridReady = (e) => {
-  mainApi = e.api;
+
+// 메인 그리드 준비
+const onMainGridReady = (params) => {
+  mainApi = params.api;
   // 첫 행 자동 선택
-  setTimeout(() => {
-    if (e.api.getDisplayedRowCount() > 0) {
-      e.api.selectIndex(0);
+  nextTick(() => {
+    if (params.api.getDisplayedRowCount() > 0) {
+      params.api.selectIndex(0);
     }
-  }, 100);
+  });
 };
 
 // 선택된 행 상태
 const selectedRow = ref(null);
-const originalSelectedRow = ref(null); // 원본 데이터 백업
+const originalSelectedRow = ref(null);
 
-// 메인 그리드 선택 변경 시
-const onMainSelectionChanged = (e) => {
-  const selected = e.api.getSelectedRows();
+// 메인 그리드 선택 변경
+const onMainSelectionChanged = (params) => {
+  const selected = params.api.getSelectedRows();
   if (selected.length > 0) {
-    selectedRow.value = { ...selected[0] }; // 깊은 복사
-    originalSelectedRow.value = { ...selected[0] }; // 원본 백업
+    selectedRow.value = { ...selected[0] };
+    originalSelectedRow.value = { ...selected[0] };
     console.log('선택된 행:', selectedRow.value);
   } else {
     selectedRow.value = null;
@@ -217,38 +229,37 @@ const onMainSelectionChanged = (e) => {
   }
 };
 
-// 하단 그리드 데이터 (선택된 행만)
+// 하단 그리드 데이터
 const detailRows = computed(() => {
   return selectedRow.value ? [selectedRow.value] : [];
 });
 
-// 하단 그리드 셀 값 변경 시 (임시 저장)
-const onDetailCellValueChanged = (e) => {
-  const field = e.colDef.field;
-  const newValue = e.newValue;
+// 하단 그리드 셀 값 변경
+const onDetailCellValueChanged = (params) => {
+  const field = params.colDef.field;
+  const newValue = params.newValue;
 
   console.log(`하단 그리드 수정: ${field} = ${newValue}`);
 
-  // selectedRow만 업데이트 (원본 dataMap은 건드리지 않음)
   if (selectedRow.value) {
     selectedRow.value[field] = newValue;
   }
 };
 
-// 상단 그리드 셀 값 변경 시 (직접 수정 방지)
-const onMainCellValueChanged = (e) => {
+// 상단 그리드 셀 값 변경 방지
+const onMainCellValueChanged = (params) => {
   console.log('상단 그리드는 직접 수정할 수 없습니다.');
-  e.api.refreshCells();
+  // 변경사항 되돌리기
+  params.api.refreshCells();
 };
 
-// 하단 수정사항을 상단 그리드에 반영
+// 변경사항을 상단 그리드에 반영
 const applyChanges = () => {
   if (!selectedRow.value || !originalSelectedRow.value) {
     alert('선택된 항목이 없습니다.');
     return;
   }
 
-  // 원본 데이터에서 해당 행 찾기
   const currentData = dataMap.value[search.value.type];
   const rowIndex = currentData.findIndex((row) => row.id === originalSelectedRow.value.id);
 
@@ -256,21 +267,23 @@ const applyChanges = () => {
     // 원본 데이터 업데이트
     currentData[rowIndex] = { ...selectedRow.value };
 
-    // 원본 백업도 업데이트
+    // 원본 백업 업데이트
     originalSelectedRow.value = { ...selectedRow.value };
 
     // 상단 그리드 새로고침
     if (mainApi) {
       mainApi.refreshCells();
-      // 현재 선택 유지
-      setTimeout(() => {
+      // 선택 상태 유지
+      nextTick(() => {
         mainApi.forEachNode((node) => {
-          if (node.data.id === selectedRow.value.id) {
+          if (node.data && node.data.id === selectedRow.value.id) {
             node.setSelected(true);
           }
         });
-      }, 50);
+      });
     }
+
+    alert('변경사항이 상단 그리드에 반영되었습니다.');
     console.log('변경사항이 상단 그리드에 반영되었습니다:', selectedRow.value);
   } else {
     alert('해당 데이터를 찾을 수 없습니다.');
@@ -286,55 +299,38 @@ const resetDetailForm = () => {
   }
 };
 
-// 라디오 변경 시 선택 초기화
+// 제품 구분 변경 시 선택 초기화
 watch(
   () => search.value.type,
   () => {
     selectedRow.value = null;
     originalSelectedRow.value = null;
+
     if (mainApi) {
-      setTimeout(() => {
+      nextTick(() => {
         if (mainApi.getDisplayedRowCount() > 0) {
           mainApi.selectIndex(0);
         }
-      }, 100);
+      });
     }
   }
 );
 
-// 상단 버튼들
-function saveForm() {
+// 등록 버튼
+const saveForm = () => {
   const currentData = dataMap.value[search.value.type];
   console.log('현재 모든 데이터:', currentData);
   alert(`${search.value.type} 데이터가 저장되었습니다. (총 ${currentData.length}건)`);
-}
-
-// 초기화 버튼
-// function resetForm() {
-//   const r = form.value;
-//   r.chkedDate = '';
-//   r.certId = '';
-//   r.prdName = '';
-//   r.prdType = '';
-// }
+};
 </script>
 
 <style scoped>
-/* .radios {
-  display: flex;
-  gap: 16px;
-  margin: 8px 0 12px;
-} */
-/* .radio {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-} */
 .grid-wrap {
   border: 1px solid #e5e5e5;
   border-radius: 10px;
   overflow: hidden;
 }
+
 .top_btn_ser {
   margin-right: 10px;
 }

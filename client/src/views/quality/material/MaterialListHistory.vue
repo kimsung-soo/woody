@@ -67,7 +67,7 @@ interface Row {
   qty: number; // 총수량
   orderDate: string; // 입고일자
   status: string; // 합불 여부
-  inspector: string; // 검사완료일자
+  createdBy: string; // 검사완료일자
 }
 const rowData: Ref<Row[]> = ref([
   {
@@ -77,8 +77,8 @@ const rowData: Ref<Row[]> = ref([
     materialName: '원목',
     qty: 50,
     orderDate: '2025-07-28',
-    status: '합격',
-    inspector: '한지수'
+    status: '01',
+    createdBy: '2025-07-30'
   },
   {
     inspectionNo: 'QC002',
@@ -87,8 +87,8 @@ const rowData: Ref<Row[]> = ref([
     materialName: '합판',
     qty: 100,
     orderDate: '2025-07-28',
-    status: '불합격',
-    inspector: '한지수'
+    status: '02',
+    createdBy: '2025-07-30'
   },
   {
     inspectionNo: 'QC003',
@@ -97,8 +97,8 @@ const rowData: Ref<Row[]> = ref([
     materialName: '원목',
     qty: 100,
     orderDate: '2025-07-30',
-    status: '합격',
-    inspector: '한지수'
+    status: '01',
+    createdBy: '2025-08-01'
   },
   {
     inspectionNo: 'QC004',
@@ -107,8 +107,8 @@ const rowData: Ref<Row[]> = ref([
     materialName: '합판',
     qty: 150,
     orderDate: '2025-08-01',
-    status: '불합격',
-    inspector: '한지수'
+    status: '02',
+    createdBy: '2025-08-03'
   },
   {
     inspectionNo: 'QC005',
@@ -117,8 +117,8 @@ const rowData: Ref<Row[]> = ref([
     materialName: '합판',
     qty: 200,
     orderDate: '2025-08-03',
-    status: '합격',
-    inspector: '한지수'
+    status: '01',
+    createdBy: '2025-08-05'
   }
 ]);
 
@@ -130,22 +130,36 @@ const colDefs: Ref<ColDef<Row>[]> = ref([
   { headerName: '총수량', field: 'qty', flex: 1, resizable: true },
   { headerName: '입고일자', field: 'orderDate', flex: 1, resizable: true },
   { headerName: '최종상태', field: 'status', flex: 1, resizable: true },
-  { headerName: '검사완료일자', field: 'inspector', flex: 1, resizable: true }
+  {
+    headerName: '최종상태',
+    field: 'status',
+    flex: 1,
+    resizable: true,
+    cellRenderer: (params: any) => STATUS_MAP[params.value as keyof typeof STATUS_MAP] || params.value
+  }
 ]);
 
-// ----- 상단 필터를 적용한 그리드 데이터 -----
+// 공통코드의 상태 코드 라벨 매핑
+const STATUS_MAP = {
+  '01': '합격',
+  '02': '불합격'
+} as const;
+// ----- 상단 필터를 적용한 그리드 데이터 ----
 const gridData = computed(() => {
   const name = form.materialName.trim().toLowerCase();
   const nameIns = form.inspector.trim().toLowerCase();
-  const status = form.status.trim().toLowerCase();
+  const selectedStatusCode = form.status; // 드롭다운에서 선택한 코드 ('01' or '02')
   const from = form.orderDate || '';
 
   return rowData.value.filter((r) => {
     const byName = !name || r.materialName.toLowerCase().includes(name);
-    const byNameIns = !nameIns || r.inspector.toLowerCase().includes(nameIns);
-    const byStatus = !status || r.status.toLowerCase().includes(status);
+    const creBy = !nameIns || r.createdBy.toLowerCase().includes(nameIns);
+
+    // 상태 필터링: 선택된 코드에 해당하는 라벨과 데이터의 status 비교
+    const byStatus = !selectedStatusCode || r.status === STATUS_MAP[selectedStatusCode as keyof typeof STATUS_MAP];
+
     const byFrom = !from || r.orderDate >= from;
-    return byName && byNameIns && byStatus && byFrom;
+    return byName && creBy && byStatus && byFrom;
   });
 });
 
