@@ -57,14 +57,16 @@
 
           <MoDal ref="modalRef" :title="modalTitle" :rowData="modalRowData" :colDefs="modalColDefs" @confirm="modalConfirm" />
           <ag-grid-vue
-            :rowData="rowData3"
-            :columnDefs="colDefs3"
+            :rowData="prcData"
+            :columnDefs="prcDefs"
             :theme="quartz"
             style="height: 250px; width: 100%"
             @cell-value-changed="onCellValueChanged"
             :rowDragManaged="true"
             :animateRows="true"
-            :rowSelection="rowSelection"
+            :rowSelection="'multiple'"
+            @grid-ready="onGridReadyMat"
+            @row-drag-end="onRowDragEnd"
           >
           </ag-grid-vue>
         </div>
@@ -75,32 +77,27 @@
 
 <script setup>
 // 기존 스크립트 내용은 동일합니다.
-import { ref, shallowRef } from 'vue';
+import { ref, shallowRef, onMounted } from 'vue';
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
 import { themeQuartz } from 'ag-grid-community';
 import { AgGridVue } from 'ag-grid-vue3';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
+import axios from 'axios';
 // 모달 임포트
 import MoDal from '../common/NewModal.vue'; // 수정된 부분: 모달 컴포넌트 임포트
 const quartz = themeQuartz;
 
-const form = ref({ product: '' }, { diagram: '' }, { writer: '' }, { addDate: '' });
+const form = ref({ product: '', diagram: '', writer: '', addDate: '' });
+
+const gridApiMat = ref(null); // mat 그리드 API 저장용
+
+const onGridReadyMat = (params) => {
+  gridApiMat.value = params.api;
+};
 
 // 제품 리스트
-const rowData1 = ref([
-  { 제품명: 'Tesla', 제품코드: 'Model Y', 제품유형: '완제품', 공정흐름도: 'prc_010', 작성자: '김태완', 등록일: '2025-12-31' },
-  { 제품명: 'Ford', 제품코드: 'F-Series', 제품유형: '완제품', 공정흐름도: 'prc_010', 작성자: '김태완', 등록일: '2025-12-31' },
-  { 제품명: '빨간책상', 제품코드: 'Model Y', 제품유형: '완제품', 공정흐름도: 'prc_010', 작성자: '김태완', 등록일: '2025-12-31' },
-  { 제품명: '하얀책상', 제품코드: 'Model Y', 제품유형: '완제품', 공정흐름도: 'prc_010', 작성자: '김태완', 등록일: '2025-12-31' },
-  { 제품명: '멋진책상', 제품코드: 'Model Y', 제품유형: '완제품', 공정흐름도: 'prc_010', 작성자: '김태완', 등록일: '2025-12-31' },
-  { 제품명: '지린책상', 제품코드: 'Model Y', 제품유형: '완제품', 공정흐름도: 'prc_010', 작성자: '김태완', 등록일: '2025-12-31' },
-  { 제품명: 'Tesla', 제품코드: 'Model Y', 제품유형: '완제품', 공정흐름도: 'prc_010', 작성자: '김태완', 등록일: '2025-12-31' },
-  { 제품명: 'Tesla', 제품코드: 'Model Y', 제품유형: '완제품', 공정흐름도: 'prc_010', 작성자: '김태완', 등록일: '2025-12-31' }
-]);
+const rowData1 = ref([]);
 
-const rowSelection = ref({
-  mode: 'multiRow'
-});
 const colDefs1 = ref([
   { field: '제품명', editable: true, width: 120 },
   { field: '제품코드', width: 130 },
@@ -111,16 +108,14 @@ const colDefs1 = ref([
 ]);
 
 // 공정 리스트
-const rowData3 = ref([
-  { 공정순서: 1, 공정코드: 'Tesla', 공정명: 'Model Y', 설비유형: '절단기' },
-  { 공정순서: 2, 공정코드: 'Ford', 공정명: 'F-Series', 설비유형: '연마기' }
-]);
+const prcData = ref([]);
 
-const colDefs3 = ref([
-  { field: '공정순서', type: Number, width: 130, rowDrag: true, editable: true },
-  { field: '공정코드', editable: true, width: 180 },
-  { field: '공정명', width: 180 },
-  { field: '설비유형', width: 180, editable: true }
+const prcDefs = ref([
+  { headerCheckboxSelection: true, checkboxSelection: true, width: 50 },
+  { field: '공정순서', type: Number, flex: 1, rowDrag: true, editable: true },
+  { field: '공정코드', editable: true, flex: 1 },
+  { field: '공정명', flex: 1 },
+  { field: '설비유형', flex: 1 }
 ]);
 
 const page = ref({ title: '공정흐름도 관리' });
@@ -136,6 +131,23 @@ const breadcrumbs = shallowRef([
     href: '#'
   }
 ]);
+onMounted(() => {
+  prdList();
+  modalList();
+});
+
+// 제품 조회
+const prdList = async () => {
+  const res = await axios.get('http://localhost:3000/diaPrdList');
+  rowData1.value = res.data.map((prd) => ({
+    제품명: prd.PRD_NAME,
+    제품코드: prd.PRD_CODE,
+    제품유형: prd.PRD_TYPE,
+    공정흐름도: prd.DIA_CODE,
+    작성자: prd.PRD_WRITER,
+    등록일: prd.PRD_DATE.substring(0, 10)
+  }));
+};
 
 //cell 단위 수정
 const onCellValueChanged = (event) => {
@@ -166,6 +178,23 @@ const resetForm = () => {
     product: '',
     diagram: ''
   };
+  prcData.value = [];
+};
+// 공정 조회
+const prcList = async () => {
+  if (!form.value.diagram) {
+    return;
+  }
+  const condition = {
+    DIA_CODE: form.value.diagram
+  };
+  const res = await axios.post('http://localhost:3000/prcList', condition);
+  prcData.value = res.data.map((prd) => ({
+    공정순서: prd.PRC_ORDER,
+    공정코드: prd.PRC_CODE,
+    공정명: prd.PRC_NAME,
+    설비유형: prd.FAC_TYPE
+  }));
 };
 
 // 행선택시 등록 폼으로
@@ -174,15 +203,22 @@ const onRowClicked = (event) => {
   form.value.diagram = event.data.공정흐름도;
   form.value.writer = event.data.작성자;
   form.value.addDate = event.data.등록일;
+  prcList();
 };
-//BOM 버젼 삭제
-const del = () => {
-  const checkedRows = rowData3.value.filter((row) => row['✅']);
-  if (checkedRows.length == false) {
-    alert('삭제항목을 선택하세요');
+
+// 공정 삭제
+const del = async () => {
+  const selectedRows = gridApiMat.value.getSelectedRows();
+  if (selectedRows.length === 0) {
+    alert('삭제할 공정을 선택하세요.');
     return;
   }
-  rowData3.value = rowData3.value.filter((row) => !row['✅']);
+  const prcCode = selectedRows.map((r) => r.공정코드);
+  await axios.post('http://localhost:3000/prcDelete', {
+    diaCode: form.value.diagram,
+    prcCode
+  });
+  await prcList();
 };
 
 //모달 value들
@@ -194,15 +230,28 @@ const materialColDefs = [
   { field: '공정코드', headerName: '공정코드', flex: 1 },
   { field: '공정명', headerName: '공정명', flex: 1 },
   { field: '설비유형', headerName: '설비유형', flex: 1 },
-  { field: '등록일자', headerName: '등록일자', flex: 1, type: 'date' }
+  { field: '등록일자', headerName: '등록일자', flex: 1 }
 ];
-const materialRowData = ref([
-  { 공정코드: 'ABC-001', 공정명: '재단 공정', 설비유형: '절단기', 등록일자: '2025-12-11' },
-  { 공정코드: 'XYZ-002', 공정명: '연마 공정', 설비유형: '연마기', 등록일자: '2025-12-11' }
-]);
+const materialRowData = ref([]);
+
+// 모달 조회
+const modalList = async () => {
+  const res = await axios.get('http://localhost:3000/diaModalList');
+  console.log(res.data);
+  materialRowData.value = res.data.map((prd) => ({
+    공정코드: prd.PRC_CODE,
+    공정명: prd.PRC_NAME,
+    설비유형: prd.FAC_TYPE,
+    등록일자: prd.PRC_RDATE.substring(0, 10)
+  }));
+};
 
 //모달 열때 데이터값 자식컴포넌트로
 const openModal = (title, rowData, colDefs) => {
+  if (!form.value.product) {
+    alert('제품이 선택되지 않았습니다');
+    return;
+  }
   modalTitle.value = title;
   modalRowData.value = rowData;
   modalColDefs.value = colDefs;
@@ -211,16 +260,23 @@ const openModal = (title, rowData, colDefs) => {
   }
 };
 
-// 모달에서 확인시 행추가
-const modalConfirm = (selectedRow) => {
-  console.log(selectedRow);
-  const maxOrder = rowData3.value.reduce((max, row) => {
-    return row.공정순서 > max ? row.공정순서 : max;
-  }, 0);
-
-  // 선택한 행에 공정순서 할당 (기존 최대값 + 1)
-  selectedRow.공정순서 = maxOrder + 1;
-  rowData3.value.push(selectedRow);
+// 모달에서 확인시 공정추가
+const modalConfirm = async (selectedRow) => {
+  for (var i = 0; i < prcData.value.length; i++) {
+    if (selectedRow.공정코드 == prcData.value[i].공정코드) {
+      alert('등록된 공정입니다.');
+      return;
+    }
+  }
+  const confirmRow = {
+    DIA_CODE: form.value.diagram,
+    PRC_CODE: selectedRow.공정코드,
+    PRC_NAME: selectedRow.공정명,
+    FAC_TYPE: selectedRow.설비유형
+  };
+  const res = await axios.post('http://localhost:3000/prcModalConfirm', confirmRow);
+  console.log(res);
+  await prcList();
 };
 </script>
 
