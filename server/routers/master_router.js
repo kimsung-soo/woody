@@ -10,7 +10,7 @@ router.get("/masterEmp", async (req, res) => {
 });
 
 // 사원 검색
-router.get("/masterEmpName", async (req, res) => {
+router.post("/masterEmpName", async (req, res) => {
   try {
     const data = req.query.EMP_NAME;
     let list = await masterService.masterEmpSelectName(data);
@@ -68,6 +68,125 @@ router.post("/BOMbomSelect", async (req, res) => {
   try {
     let list = await masterService.BOMbomSelect(PRD_CODE);
     res.send(list);
+  } catch (e) {
+    console.log(e);
+  }
+});
+
+// BOM 자재 모달
+router.get("/BOMmodalSelect", async (req, res) => {
+  let list = await masterService.BOMmodalSelect();
+  res.send(list);
+});
+
+// BOM 모달 확인클릭
+router.post("/BOMmodalConfirm", async (req, res) => {
+  try {
+    const data = req.body;
+    console.log(req.body);
+    let result = await masterService.BOMmodalConfirm(data);
+    res.json(result);
+  } catch (e) {
+    console.log(e);
+  }
+});
+
+// BOM_DETAIL 조회
+router.post("/BOM_detailSelect", async (req, res) => {
+  const data = req.body;
+  try {
+    let list = await masterService.BOM_detailSelect(data);
+    res.send(list);
+  } catch (e) {
+    console.log(e);
+  }
+});
+
+// bom 추가
+router.post("/BOMInsert", async (req, res) => {
+  try {
+    const data = req.body;
+    console.log(req.body);
+    let result = await masterService.BOMInsert(data);
+    res.json(result);
+  } catch (e) {
+    console.log(e);
+  }
+});
+
+// bom 삭제
+router.post("/bomDelete", async (req, res) => {
+  try {
+    const data = req.body;
+    console.log(req.body);
+    let result = await masterService.bomDelete(data);
+    res.json(result);
+  } catch (e) {
+    console.log(e);
+  }
+});
+
+// bom 저장버튼
+router.post("/bomMatUpdate", async (req, res) => {
+  try {
+    const data = req.body;
+    let result = await masterService.bomMatUpdate(data);
+    res.json(result);
+  } catch (e) {
+    console.log(e);
+  }
+});
+// BOM 검색
+router.post("/bomSearch", async (req, res) => {
+  try {
+    const data = req.body;
+    let result = await masterService.bomSearch(data);
+    res.json(result);
+  } catch (e) {
+    console.log(e);
+  }
+});
+
+// 공정흐름도- 제품조회
+router.get("/diaPrdList", async (req, res) => {
+  let list = await masterService.diaPrdList();
+  res.send(list);
+});
+
+// 공정흐름도- 모달조회
+router.get("/diaModalList", async (req, res) => {
+  let list = await masterService.diaModalList();
+  res.send(list);
+});
+
+// 공정흐름도 - 공정조회
+router.post("/prcList", async (req, res) => {
+  const data = req.body;
+  try {
+    let list = await masterService.prcList(data);
+    res.send(list);
+  } catch (e) {
+    console.log(e);
+  }
+});
+
+// 공정흐름도 - 모달 확인시 insert
+router.post("/prcModalConfirm", async (req, res) => {
+  try {
+    const data = req.body;
+    console.log(req.body);
+    let result = await masterService.prcModalConfirm(data);
+    res.json(result);
+  } catch (e) {
+    console.log(e);
+  }
+});
+//공정흐름도 - 삭제
+router.post("/prcDelete", async (req, res) => {
+  try {
+    const data = req.body;
+    let result = await masterService.prcDelete(data);
+    res.json(result);
   } catch (e) {
     console.log(e);
   }

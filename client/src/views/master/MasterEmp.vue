@@ -153,7 +153,7 @@ const empList = async () => {
 const searchData = async (searchKeyword) => {
   if (!searchKeyword) return;
   const params = { EMP_NAME: `%${searchKeyword}%` };
-  const res = await axios.get('http://localhost:3000/masterEmpName', params);
+  const res = await axios.post('http://localhost:3000/masterEmpName', params);
   empData.value = res.data.map((emp) => ({
     사원번호: emp.EMP_NO,
     사원명: emp.EMP_NAME,
@@ -231,6 +231,7 @@ const del = async () => {
   console.log(deleteRow);
   const result = await axios.delete('http://localhost:3000/masterEmpDelete', { data: deleteRow });
   console.log(result);
+  empList();
 };
 // 폼 데이터를 초기화하는 함수
 const resetForm = () => {
