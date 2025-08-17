@@ -29,3 +29,7 @@ app.use(MaterialsRouter);
 //설비
 const FacilityRouter = require("./routers/facility_router.js");
 app.use(FacilityRouter);
+
+//영업
+const marketingRouter = require("./routers/marketingRouter.js");
+app.use(marketingRouter);
