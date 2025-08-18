@@ -15,18 +15,13 @@ const matMng = async () => {
 // 합격원자재 등록
 const addPassMat = async (data) => {
   const params = [
-    data.MAT_CERT_ID,
-    data.Q_STD_ID,
+    data.RECEIPT_NO,
     data.MAT_CODE,
-    data.MAT_NAME,
     data.TOTAL_QTY,
     data.Q_CHECKED_DATE,
-    data.MAT_STATUS,
     data.CREATED_BY,
-    data.RECEIPT_NO || null,
   ];
-  let result = await mariadb.query("passMat", params);
-  return result;
+  return mariadb.query("passMat", params);
 };
 
 // 제품성적서조회

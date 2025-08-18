@@ -65,7 +65,8 @@
 
 <script setup>
 import axios from 'axios';
-import { ref, shallowRef, computed } from 'vue';
+import { ref, shallowRef, computed, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
 
@@ -76,6 +77,7 @@ import { ModuleRegistry, themeQuartz, ClientSideRowModelModule, RowSelectionModu
 ModuleRegistry.registerModules([ClientSideRowModelModule, RowSelectionModule, ...(import.meta.env.PROD ? [] : [ValidationModule])]);
 
 const quartz = themeQuartz;
+const route = useRoute();
 
 /* breadcrumb */
 const page = ref({ title: '원자재 검수관리 등록' });
@@ -105,6 +107,8 @@ const failedItems = computed(() => {
   });
   return failed;
 });
+
+// 원자재 품질기준 조회
 
 /* ------------ 1) 검사기준 그리드 (선택=합격) ------------ */
 // 행 데이터 (rowId로 쓸 고유 키 _id 포함)
@@ -191,7 +195,6 @@ const detailRows = ref([
     id: '(자동생성)',
     inNo: '(자동입력)',
     materialCode: '(자동입력)',
-    materialName: '(필요할꺼같은데?)',
     totalQty: '(자동입력)',
     user: '(세션사용자)',
     inDate: '(자동입력)',
@@ -199,25 +202,39 @@ const detailRows = ref([
   }
 ]);
 
+function numParser(p) {
+  const v = Number(String(p.newValue).replace(/,/g, '').trim());
+  return Number.isFinite(v) ? v : p.oldValue;
+}
+
 const detailCols = ref([
   { headerName: '원자재검사번호', field: 'id', width: 170, editable: false },
   { headerName: '입고번호', field: 'inNo', width: 140, editable: false },
   { headerName: '원자재코드', field: 'materialCode', width: 150, editable: false },
-  { headerName: '원자재명', field: 'materialName', width: 160, editable: false },
   { headerName: '총수량', field: 'totalQty', width: 110, editable: true, valueParser: numParser },
   { headerName: '작성자', field: 'user', width: 120, editable: true },
   { headerName: '입고일자', field: 'inDate', width: 140, editable: true },
   { headerName: '검사완료일자', field: 'doneDate', width: 140, editable: true }
 ]);
 
-function numParser(p) {
-  const v = Number(String(p.newValue).replace(/,/g, '').trim());
-  return Number.isFinite(v) ? v : p.oldValue;
-}
-
 const detailGridOptions = ref({
   defaultColDef: { resizable: true, minWidth: 110 },
   autoSizeStrategy: { type: 'fitGridWidth' }
+});
+
+// 클릭한 행의 내용가져오기
+onMounted(() => {
+  const r = detailRows.value[0];
+
+  // 쿼리에서 값 채우기
+  r.inNo = String(route.query.receiptNo || '');
+  r.materialCode = String(route.query.matCode || '');
+  r.materialName = String(route.query.materialName || '');
+  r.totalQty = Number(route.query.totalQty || 0);
+  r.inDate = String(route.query.inDate || '');
+  r.user = String(route.query.createdBy || ''); // 세션값 받아오면 반영(스토어)
+  const today = new Date();
+  r.doneDate = today.toISOString().slice(0, 10);
 });
 
 /* ------------ 버튼 로직 ------------ */
@@ -247,52 +264,35 @@ function resetForm() {
 }
 
 async function saveForm() {
-  const api = criteriaApi.value;
-  if (!api) return;
+  const d = detailRows.value[0];
+  const isPass = finalStatus.value === '합격';
 
-  // 불합격 시 사유 필수
-  if (finalStatus.value === '불합격' && !defectReason.value.description.trim()) {
+  if (!isPass && !defectReason.value.description.trim()) {
     alert('불합격 사유를 입력해주세요.');
     return;
   }
 
-  // 클릭한 상단 목록행에서 넘어온 기본정보(예: 라우터 파라미터나 store로 보관)
-  // 예시: receiptNo / matCode / matName / totalQty / checkedDate / createdBy
-  const d = detailRows.value[0];
-
-  // 불합격 항목 라벨 모음(화면에 보이는 그 라벨들)
-  const failed = failedItems.value; // ["함수율","외관결점",...]
-
-  const payload = {
-    // 인증(검수) 본문
-    materialCertificate: {
-      // 백엔드에서 생성해도 됨
-      matCertId: undefined, // 서버에서 uuid 생성 권장
-      qStdId: null, // 있으면 넣고, 없으면 null
-      matCode: d.materialCode, // '(자동입력)' 대신 실제 코드
-      matName: d.materialName, // '(필요할꺼같은데?)' → 실제명
-      totalQty: d.totalQty, // 총수량
-      qCheckedDate: d.doneDate, // 검사완료일자(yyyyMMdd or yyyy-MM-dd)
-      matStatus: finalStatus.value, // '합격' or '불합격'
-      createdBy: d.user, // 작성자(세션 사용자명)
-      receiptNo: Number(d.inNo) // 입고번호
-    },
-
-    // 불합격일 때만 사용
-    rejected:
-      finalStatus.value === '불합격'
-        ? {
-            // 여러 건을 만들 수도 있지만, 질문 요구대로
-            // "불량유형은 무시하고 단순 사유 1건" 저장
-            reasonText: defectReason.value.description.trim(),
-            // 추적을 위해 어떤 항목이 떨어졌는지도 같이 넘겨두면 백엔드가 합쳐 저장 가능
-            failedItems: failed // ["함수율","외관결점",...]
-          }
-        : null
-  };
-
   try {
-    await axios.post('/api/material-inspections', payload);
+    if (isPass) {
+      // /passmat 은 "평평한 바디"를 기대
+      await axios.post('http://localhost:3000/passmat', {
+        RECEIPT_NO: d.inNo, // 문자열
+        MAT_CODE: d.materialCode,
+        TOTAL_QTY: d.totalQty,
+        Q_CHECKED_DATE: d.doneDate, // 'YYYY-MM-DD'
+        CREATED_BY: d.user
+      });
+    } else {
+      await axios.post('http://localhost:3000/rejectmat', {
+        RECEIPT_NO: d.inNo,
+        MAT_CODE: d.materialCode,
+        RJT_REASON: defectReason.value.description.trim().slice(0, 100),
+        Q_CHECKED_DATE: d.doneDate,
+        TOTAL_QTY: d.totalQty,
+        CREATED_BY: d.user
+      });
+    }
+
     alert('등록되었습니다!');
   } catch (e) {
     console.error(e);
