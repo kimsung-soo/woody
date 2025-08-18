@@ -35,21 +35,147 @@ const getMaterialOrders = async () => {
   return result;
 };
 
-const tmpMaterialInsert = async (data) => {
+// 자재발주서 목록 검색
+const orderSearch = async (data) => {
   const params = [
-    data.RECEIPT_NO,
-    data.PO_NO,
-    data.RECEIPT_DATE,
-    data.SUPPLYER,
-    data.MAT_CODE,
-    data.RECEIPT_QTY,
-    data.RECEIVED_QTY,
-    data.TMP_STATUS,
-    data.MANAGER,
+    data.poNo,
+    data.poNo,
+    data.matName,
+    data.matName,
+    data.matCode,
+    data.matCode,
+    data.manager,
+    data.manager,
+    data.orderDate,
+    data.orderDate,
+    data.dueDate,
+    data.dueDate,
+    data.status,
+    data.status,
   ];
-  let result = await mariadb.query("tmpMaterialInsert", params);
+
+  const result = await mariadb.query("orderSearch", params);
   return result;
 };
+
+// 임시 입고 등록
+const tmpMaterialInsert = async (dataArray) => {
+  const results = [];
+
+  for (const row of dataArray) {
+    // 1. 발주서에서 현재 남은 수량, 누적 입고량, 상태 조회
+    const [order] = await mariadb.query("qtyAndStatus", [
+      row.PO_NO,
+      row.MAT_CODE,
+    ]);
+
+    const remainingQty = order.RECEIPT_QTY - row.RECEIVED_QTY; // 발주 - 입고 = 입고되어야 할 남은 수량
+    console.log(remainingQty);
+    const newUpdateQty =
+      (order.UPDATE_QTY || 0) + Number(row.RECEIVED_QTY || 0); // 누적 입고량.
+
+    console.log("입력 입고수량:", row.RECEIVED_QTY);
+    console.log("발주수량:", order.RECEIPT_QTY);
+    console.log("누적 입고량:", newUpdateQty);
+
+    // 3. 임시 입고 테이블에 insert
+    const params = [
+      row.RECEIPT_NO,
+      row.PO_NO,
+      row.RECEIPT_DATE,
+      row.SUPPLYER,
+      row.MAT_CODE,
+      row.RECEIPT_QTY,
+      row.RECEIVED_QTY,
+      row.TMP_STATUS,
+      row.MANAGER,
+    ];
+    const result = await mariadb.query("tmpMaterialInsert", params);
+    results.push(result);
+
+    // 4. PURCHASE_DETAIL UPDATE_QTY 누적
+    await mariadb.query("updatePURCHASEDETAIL", [
+      newUpdateQty,
+      row.PO_NO,
+      row.MAT_CODE,
+    ]);
+
+    // 5. PURCHASE_ORDER 상태 변경
+    const newStatus = order.RECEIPT_QTY - newUpdateQty <= 0 ? "완료" : "진행중";
+    await mariadb.query("updatePURCHASEORDER", [newStatus, row.PO_NO]);
+  }
+
+  return results;
+};
+// 다음 입고 번호 가져오기 (프로시저 호출)
+const GetNextPeceiptNo = async () => {
+  const [peResult] = await mariadb.query("GetNextPeceiptNo");
+  return peResult[0].RECEIPT_NO;
+};
+
+// 임시 입고 목록 조회
+const tmpSelect = async () => {
+  const result = await mariadb.query("tmpSelect");
+  return result;
+};
+
+// 임시 입고 목록 검색
+const tmpSearch = async (data) => {
+  // data: { MAT_NAME, MAT_CODE, MAT_TYPE, RECEIPT_DATE, PO_STATUS }
+  const params = [
+    data.MAT_NAME,
+    data.MAT_NAME,
+    data.MAT_CODE,
+    data.MAT_CODE,
+    data.MAT_TYPE,
+    data.MAT_TYPE,
+    data.RECEIPT_DATE,
+    data.RECEIPT_DATE,
+    data.PO_STATUS,
+    data.PO_STATUS,
+  ];
+
+  const result = await mariadb.query("tmpSearch", params);
+  return result;
+};
+
+// 불량품 조회
+const failMaterials = async () => {
+  const result = await mariadb.query("failMaterials");
+  return result;
+};
+
+// 자재반품요청서 등록
+const reMaterialInsert = async (data) => {
+  const params = [
+    data.RR_NO,
+    data.CREATED_DATE,
+    data.RR_DATE,
+    data.MANAGER,
+    data.RE_STATUS,
+  ];
+  let result = await mariadb.query("reMaterialInsert", params);
+  return result;
+};
+
+// 자재반품요청서 상세 등록
+const reMaterialInsertDetail = async (data) => {
+  const params = [data.MAT_CODE, data.RE_QTY, data.RR_NO];
+  let result = await mariadb.query("reMaterialInsertDetail", params);
+  return result;
+};
+
+// 다음 RR_NO 가져오기 (프로시저 호출)
+const GetNextRRNO = async () => {
+  const [rrResult] = await mariadb.query("GetNextRRNO");
+  return rrResult[0].RR_NO;
+};
+
+// // 자재반품요청서 목록 조회
+// const getReturnRequests = async () => {
+//   const result = await mariadb.query("returnRequestSelect");
+//   return result;
+// };
 
 module.exports = {
   materialsSelect,
@@ -57,5 +183,13 @@ module.exports = {
   materialOrderDetail,
   getNextPONo,
   getMaterialOrders,
+  orderSearch,
   tmpMaterialInsert,
+  GetNextPeceiptNo,
+  tmpSelect,
+  tmpSearch,
+  failMaterials,
+  reMaterialInsert,
+  reMaterialInsertDetail,
+  GetNextRRNO,
 };
