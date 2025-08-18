@@ -30,11 +30,27 @@
       <v-col cols="12" class="py-1">
         <div class="d-flex align-center">
           <h5 class="mr-4">최종처리</h5>
-          <v-chip :color="finalStatus === '합격' ? 'primary' : 'error'">{{ finalStatus }}</v-chip>
+          <v-chip :color="finalStatus == '합격' ? 'primary' : 'error'">{{ finalStatus }}</v-chip>
           <span class="ml-auto text-caption">선택 {{ selectedCount }}/{{ totalCount }}</span>
         </div>
       </v-col>
     </v-row>
+
+    <!-- 불합격 사유 입력 섹션 -->
+    <v-card v-show="finalStatus === '불합격'" class="mb-4" elevation="2">
+      <v-card-title class="bg-red-lighten-5 text-red-darken-2"> </v-card-title>
+      <v-card-text>
+        <v-textarea
+          v-model="defectReason.description"
+          label="불합격 사유"
+          variant="outlined"
+          rows="3"
+          counter="500"
+          maxlength="500"
+          :rules="[(v) => finalStatus === '합격' || (v && v.length > 0) || '불합격 시 사유는 필수입니다.']"
+        />
+      </v-card-text>
+    </v-card>
 
     <!-- 2) 하단 입력 그리드(1행) -->
     <ag-grid-vue
@@ -48,6 +64,7 @@
 </template>
 
 <script setup>
+import axios from 'axios';
 import { ref, shallowRef, computed } from 'vue';
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
@@ -55,7 +72,7 @@ import UiParentCard from '@/components/shared/UiParentCard.vue';
 import { AgGridVue } from 'ag-grid-vue3';
 import { ModuleRegistry, themeQuartz, ClientSideRowModelModule, RowSelectionModule, ValidationModule } from 'ag-grid-community';
 
-// 모듈 등록 (개발 모드에서만 Validation)
+// 모듈 등록
 ModuleRegistry.registerModules([ClientSideRowModelModule, RowSelectionModule, ...(import.meta.env.PROD ? [] : [ValidationModule])]);
 
 const quartz = themeQuartz;
@@ -66,6 +83,28 @@ const breadcrumbs = ref([
   { title: '품질', disabled: true, href: '#' },
   { title: '원자재 검수관리 등록', disabled: false, href: '#' }
 ]);
+
+/* ------------ 불합격 사유 관련 데이터 ------------ */
+const defectReason = ref({
+  category: '',
+  severity: '',
+  description: ''
+});
+
+// 불합격 항목 목록 계산
+const failedItems = computed(() => {
+  const api = criteriaApi.value;
+  if (!api) return [];
+
+  const failed = [];
+  criteriaRows.value.forEach((row) => {
+    const node = api.getRowNode(row._id);
+    if (!node?.isSelected()) {
+      failed.push(row.label);
+    }
+  });
+  return failed;
+});
 
 /* ------------ 1) 검사기준 그리드 (선택=합격) ------------ */
 // 행 데이터 (rowId로 쓸 고유 키 _id 포함)
@@ -135,6 +174,15 @@ function recalcCriteria() {
   totalCount.value = api.getDisplayedRowCount();
   selectedCount.value = api.getSelectedNodes().length;
   api.refreshCells({ columns: ['result'], force: true });
+
+  // 모든 항목이 합격이 되면 불합격 사유 초기화
+  if (selectedCount.value === totalCount.value) {
+    defectReason.value = {
+      category: '',
+      severity: '',
+      description: ''
+    };
+  }
 }
 
 /* ------------ 2) 하단 입력 그리드(1행) ------------ */
@@ -189,25 +237,67 @@ function resetForm() {
   r.user = '';
   r.inDate = '';
   r.doneDate = '';
+
+  // 불합격 사유 초기화
+  defectReason.value = {
+    category: '',
+    severity: '',
+    description: ''
+  };
 }
 
-function saveForm() {
+async function saveForm() {
   const api = criteriaApi.value;
   if (!api) return;
-  const criteria = criteriaRows.value.map((r) => {
-    const node = api.getRowNode(r._id);
-    return { key: r._id, label: r.label, pass: !!node?.isSelected() };
-  });
 
+  // 불합격 시 사유 필수
+  if (finalStatus.value === '불합격' && !defectReason.value.description.trim()) {
+    alert('불합격 사유를 입력해주세요.');
+    return;
+  }
+
+  // 클릭한 상단 목록행에서 넘어온 기본정보(예: 라우터 파라미터나 store로 보관)
+  // 예시: receiptNo / matCode / matName / totalQty / checkedDate / createdBy
   const d = detailRows.value[0];
-  if (d.passQty > d.totalQty) return alert('합격수량이 총수량을 초과할 수 없습니다.');
 
-  console.log('payload', {
-    criteria, // 각 항목 합격 여부
-    status: finalStatus.value, // 최종처리 (합/불)
-    detail: d
-  });
-  alert('등록되었습니다! (콘솔 payload 확인)');
+  // 불합격 항목 라벨 모음(화면에 보이는 그 라벨들)
+  const failed = failedItems.value; // ["함수율","외관결점",...]
+
+  const payload = {
+    // 인증(검수) 본문
+    materialCertificate: {
+      // 백엔드에서 생성해도 됨
+      matCertId: undefined, // 서버에서 uuid 생성 권장
+      qStdId: null, // 있으면 넣고, 없으면 null
+      matCode: d.materialCode, // '(자동입력)' 대신 실제 코드
+      matName: d.materialName, // '(필요할꺼같은데?)' → 실제명
+      totalQty: d.totalQty, // 총수량
+      qCheckedDate: d.doneDate, // 검사완료일자(yyyyMMdd or yyyy-MM-dd)
+      matStatus: finalStatus.value, // '합격' or '불합격'
+      createdBy: d.user, // 작성자(세션 사용자명)
+      receiptNo: Number(d.inNo) // 입고번호
+    },
+
+    // 불합격일 때만 사용
+    rejected:
+      finalStatus.value === '불합격'
+        ? {
+            // 여러 건을 만들 수도 있지만, 질문 요구대로
+            // "불량유형은 무시하고 단순 사유 1건" 저장
+            reasonText: defectReason.value.description.trim(),
+            // 추적을 위해 어떤 항목이 떨어졌는지도 같이 넘겨두면 백엔드가 합쳐 저장 가능
+            failedItems: failed // ["함수율","외관결점",...]
+          }
+        : null
+  };
+
+  try {
+    await axios.post('/api/material-inspections', payload);
+    alert('등록되었습니다!');
+  } catch (e) {
+    console.error(e);
+    alert('등록 중 오류가 발생했습니다.');
+  }
 }
 </script>
 
