@@ -11,6 +11,14 @@ const masterEmpSelect = ` SELECT EMP_NO,
                                 EMP_STATUS
                          FROM EMPLOYEES `;
 
+// 공통코드 조회
+const commonDept = `SELECT code_name 
+from code_master
+where group_code = 'AA'`;
+const commonAuth = `SELECT code_name 
+from code_master
+where group_code = 'BB'`;
+
 // 사원 등록
 const masterEmpInsert = `
                          INSERT INTO EMPLOYEES (
@@ -58,9 +66,73 @@ const masterEmpSelectName = ` SELECT EMP_NO,
                          FROM EMPLOYEES 
                          WHERE EMP_NAME LIKE CONCAT('%', ?, '%')`;
 
-// 제품 조회
+// 제품관리 - 조회
 
-const masterPrdSelect = ``;
+const masterPrdSelect = `select PRD_CODE, 
+                              PRD_NAME, 
+                              PRD_TYPE, 
+                              PRD_UNIT, 
+                              PRD_SIZE, 
+                              PRD_SAFEQT, 
+                              PRD_WRITER, 
+                              PRD_DATE, 
+                              PRD_NOTE  
+                         from PRODUCT`;
+
+// 제품 관리 - 모달(규격)
+const masterPrdModal = `SELECT group_code, code_name, use_yn
+                         FROM code_master
+                         WHERE group_code = 'SZ'`;
+
+// 제품관리 - 유형
+const masterPrdType = `SELECT code_name FROM code_master 
+WHERE group_code = 'CC'
+AND code In('01','02');`;
+
+// 제품관리 - 단위
+const masterPrdUnit = `SELECT code_name FROM code_master 
+WHERE group_code = 'UN'`;
+
+// 제품관리 - 저장버튼(등록)
+const masterPrdInsert = `INSERT INTO PRODUCT(PRD_CODE, 
+                                             PRD_NAME, 
+                                             PRD_TYPE,
+                                             PRD_UNIT, 
+                                             PRD_SIZE, 
+                                             PRD_SAFEQT, 
+                                             PRD_WRITER, 
+                                             PRD_DATE, 
+                                             PRD_NOTE)
+                    VALUES(GetNextPrd_Code(), ?,?,?,?,?,?,?,?)`;
+
+// 제품관리 - 저장버튼(수정)
+const masterPrdUpdate = `UPDATE PRODUCT
+                         SET PRD_NAME = ?, 
+                              PRD_TYPE = ?,
+                              PRD_UNIT = ?, 
+                              PRD_SIZE = ?, 
+                              PRD_SAFEQT = ?, 
+                              PRD_WRITER = ?, 
+                              PRD_DATE = ?, 
+                              PRD_NOTE = ?
+                         WHERE PRD_CODE = ?`;
+
+// 제품관리 - 다중삭제
+const masterPrdDelete = `CALL delete_process_for_product(?)`;
+
+// 제품관리 - 검색
+const masterPrdSearch = `SELECT
+                              PRD_CODE, 
+                              PRD_NAME, 
+                              PRD_TYPE, 
+                              PRD_UNIT, 
+                              PRD_SIZE, 
+                              PRD_SAFEQT, 
+                              PRD_WRITER, 
+                              PRD_DATE, 
+                              PRD_NOTE
+                      FROM PRODUCT
+                      WHERE PRD_NAME LIKE CONCAT('%', ?, '%')`;
 
 // BOM 관리에서 제품조회
 const BOMprdSelect = `SELECT p.PRD_NAME,
@@ -202,4 +274,14 @@ module.exports = {
   prcList,
   prcDelete,
   prcModalConfirm,
+  commonDept,
+  commonAuth,
+  masterPrdSelect,
+  masterPrdModal,
+  masterPrdType,
+  masterPrdUnit,
+  masterPrdInsert,
+  masterPrdUpdate,
+  masterPrdDelete,
+  masterPrdSearch,
 };

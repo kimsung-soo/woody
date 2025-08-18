@@ -38,10 +38,10 @@
               <v-text-field label="이메일" v-model="form.email" dense outlined />
             </v-col>
             <v-col cols="6">
-              <v-text-field label="부서명" v-model="form.dept" dense outlined />
+              <v-select label="부서명" v-model="form.dept" :items="deptOptions" dense outlined />
             </v-col>
             <v-col cols="6">
-              <v-text-field label="직급" v-model="form.auth" dense outlined />
+              <v-select label="직급" v-model="form.auth" :items="authOptions" dense outlined />
             </v-col>
             <v-col cols="12">
               <v-text-field label="주소" v-model="form.addr" dense outlined />
@@ -109,6 +109,7 @@ const form = ref({
 
 onMounted(() => {
   empList();
+  fetchCommonCodes();
 });
 
 // 사원 행들.
@@ -149,6 +150,24 @@ const empList = async () => {
   }));
 };
 
+// 부서 및 직급 데이터 변수
+const deptOptions = ref([]);
+const authOptions = ref([]);
+
+// 공통코드 데이터를 가져오는 함수
+const fetchCommonCodes = async () => {
+  try {
+    // 부서 공통코드 API 호출 (예시)
+    const deptRes = await axios.get('http://localhost:3000/commonDept');
+
+    deptOptions.value = deptRes.data.map((item) => item.code_name); // `code_name`을 배열에 담기
+    // 직급 공통코드 API 호출 (예시)
+    const authRes = await axios.get('http://localhost:3000/commonAuth');
+    authOptions.value = authRes.data.map((item) => item.code_name); // `code_name`을 배열에 담기
+  } catch (error) {
+    console.error('공통코드 데이터를 불러오는 데 실패했습니다:', error);
+  }
+};
 //사원 검색
 const searchData = async (searchKeyword) => {
   if (!searchKeyword) return;

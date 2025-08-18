@@ -58,7 +58,9 @@
       :rowData="rowData"
       :columnDefs="colDefs"
       :theme="quartz"
-      style="height: 300px; width: 100%"
+      style="height: 19rem; width: 100%"
+      :pagination="true"
+      :pagination-page-size="5"
       @cell-value-changed="onCellValueChanged"
     >
     </ag-grid-vue>
@@ -83,13 +85,26 @@ const modalTitle = ref('');
 const modalRowData = ref([]);
 const modalColDefs = ref([]);
 const materialColDefs = [
-  { field: '발행번호', headerName: '발행번호', flex: 1 },
+  { field: '발행번호', headerName: '발행번호', flex: 1.5 },
   { field: '업체', headerName: '공급업체', flex: 1 },
   { field: '자재코드', headerName: '자재코드', flex: 1 },
-  { field: '자재명', headerName: '자재명', flex: 1 },
+  { field: '자재명', headerName: '자재명', flex: 0.8 },
   { field: '발주일자', headerName: '발주일자', flex: 1 },
-  { field: '수량', headerName: '수량', flex: 1 },
-  { field: '상태', headerName: '상태', flex: 1 }
+  { field: '수량', headerName: '수량', flex: 0.8 },
+  {
+    field: '상태',
+    flex: 0.8,
+    cellStyle: (params) => {
+      if (params.value === '대기') {
+        return { color: 'black', fontWeight: 'bold' };
+      } else if (params.value === '진행중') {
+        return { color: 'blue', fontWeight: 'bold' };
+      } else if (params.value == '완료') {
+        return { color: 'red', fontWeight: 'bold' };
+      }
+      return null;
+    }
+  }
 ];
 const materialColDefs2 = [
   { field: '자재코드', headerName: '자재코드', flex: 1 },
@@ -111,13 +126,14 @@ const openModal = async (title) => {
       자재코드: mat.MAT_CODE,
       자재명: mat.MAT_NAME,
       자재유형: mat.MAT_TYPE,
-      규격: `${mat.MAT_WIDTH ?? 0} X ${mat.MAT_HEIGHT ?? 0} X ${mat.MAT_DEPT ?? 0}`,
+      규격: mat.MAT_SIZE,
       단위: mat.MAT_UNIT
     }));
   } else if (title == '자재발주서 조회') {
     modalColDefs.value = materialColDefs;
 
     const res = await axios.get('http://localhost:3000/materials/order/select');
+    console.log(res.data);
     modalRowData.value = res.data.map((item) => ({
       발행번호: item.PO_NO,
       업체: item.SUPPLYER,
@@ -146,7 +162,7 @@ const colDefs = ref([
   { field: '발주일자', flex: 1 },
   { field: '납기일자', flex: 1 },
   { field: '담당자', flex: 1 },
-  { field: '수량', flex: 1 },
+  { field: '발주수량', flex: 1 },
   {
     field: '상태',
     flex: 1,
@@ -175,12 +191,12 @@ onMounted(async () => {
       자재코드: item.MAT_CODE,
       자재명: item.MAT_NAME,
       자재유형: item.MAT_TYPE,
-      규격: item.규격,
+      규격: item.MAT_SIZE,
       단위: item.MAT_UNIT,
       발주일자: item.ORDER_DATE.slice(0, 10),
       납기일자: item.PO_DDAY.slice(0, 10),
       담당자: item.MANAGER,
-      수량: item.RECEIPT_QTY,
+      발주수량: item.RECEIPT_QTY,
       상태: item.PO_STATUS
     }));
   } catch (err) {
@@ -223,43 +239,39 @@ function inputReset() {
 
 // 검색
 const fileSelect = async () => {
-  // 아 검색 좀 해결 해주세요
   try {
     const params = {
-      poNo: issueNumber.value,
-      matName: materialName.value,
-      matCode: materialCode.value,
-      manager: manager.value,
-      orderDate: orderDate.value,
-      dueDate: dueDate.value,
-      status: status.value
+      poNo: issueNumber.value || null,
+      matName: materialName.value || null,
+      matCode: materialCode.value || null,
+      manager: manager.value || null,
+      orderDate: orderDate.value || null,
+      dueDate: dueDate.value || null,
+      status: status.value || null
     };
 
-    const res = await axios.get('http://localhost:3000/materials/order/select', { params });
+    const res = await axios.post('http://localhost:3000/orderSearch', params);
+
     rowData.value = res.data.map((item) => ({
       발행번호: item.PO_NO,
       공급업체: item.SUPPLYER,
       자재코드: item.MAT_CODE,
       자재명: item.MAT_NAME,
       자재유형: item.MAT_TYPE,
-      규격: item.규격,
+      규격: item.MAT_SIZE,
       단위: item.MAT_UNIT,
-      발주일자: item.ORDER_DATE?.slice(0, 10),
+      발주일자: item.ORDER_DATE?.slice(0, 10) || '',
       납기일자: item.PO_DDAY?.slice(0, 10) || '',
       담당자: item.MANAGER,
-      수량: item.RECEIPT_QTY,
+      발주수량: item.RECEIPT_QTY,
       상태: item.PO_STATUS
     }));
   } catch (err) {
-    console.error('발주 조회 실패:', err);
+    console.error('발주서 검색 실패:', err);
     alert('검색 중 오류가 발생했습니다.');
   }
 };
 
-// 컴포넌트 마운트 시 초기 데이터 로드 (검색 함수 재사용)
-onMounted(() => {
-  fileSelect();
-});
 function onModalConfirm(selectedRow) {
   if (!selectedRow) return;
 

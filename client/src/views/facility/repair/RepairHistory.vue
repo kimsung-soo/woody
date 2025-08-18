@@ -6,11 +6,12 @@
       <v-col cols="12" md="6" class="d-flex justify-start">
         <v-text-field
           v-model.trim="productKeyword"
-          placeholder="설비선택 (설비코드 입력)"
+          placeholder="설비선택 (설비코드/설비명 입력)"
           hide-details
           density="compact"
           variant="outlined"
           style="max-width: 280px"
+          clearable
         />
       </v-col>
     </v-row>
@@ -29,7 +30,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, shallowRef, computed } from 'vue';
+import { ref, shallowRef, computed, onMounted } from 'vue';
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
 
@@ -38,7 +39,10 @@ import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-communi
 ModuleRegistry.registerModules([AllCommunityModule]);
 const quartz = themeQuartz;
 
-/* ====== 컬럼 정의 (필터 UI 전혀 사용 안 함) ====== */
+import axios from 'axios';
+
+const apiBase = 'http://localhost:3000';
+
 const columnDefs = ref([
   { field: '설비코드', flex: 1 },
   { field: '설비명', flex: 1 },
@@ -50,78 +54,55 @@ const columnDefs = ref([
   { field: '담당자', flex: 1 },
   { field: '비고', flex: 2 }
 ]);
-
 const defaultColDef = { editable: false, sortable: true, resizable: true };
 
-/* ====== 검색어 & 데이터 ====== */
+/* 검색어 & 데이터  */
 const productKeyword = ref('');
+const rawItems = ref([]);
 
-/* 원본 데이터 (그리드 필터 대신 여기서 필터링) */
-const form = reactive({
-  items: [
-    {
-      설비코드: 'EQ-001',
-      설비명: '띠톱 기계',
-      설비유형: '재단설비',
-      고장유형: '전기오류',
-      비가동시작일: '2025-07-01 17:00:40',
-      수리완료일: '2025-07-02 17:00:25',
-      수리내역: '부품교체',
-      담당자: '최은수',
-      비고: '-'
-    },
-    {
-      설비코드: 'EQ-001',
-      설비명: '띠톱 기계',
-      설비유형: '재단설비',
-      고장유형: '모터 고장',
-      비가동시작일: '2025-07-05 09:15:20',
-      수리완료일: '2025-07-06 15:40:10',
-      수리내역: '모터 교체',
-      담당자: '최은수',
-      비고: '정기 점검 시 교체'
-    },
-    {
-      설비코드: 'EQ-001',
-      설비명: '띠톱 기계',
-      설비유형: '재단설비',
-      고장유형: '소프트웨어 오류',
-      비가동시작일: '2025-07-08 14:22:55',
-      수리완료일: '2025-07-08 18:30:00',
-      수리내역: '소프트웨어 재설치',
-      담당자: '최은수',
-      비고: '-'
-    },
-    {
-      설비코드: 'EQ-002',
-      설비명: '직각 왕복 판톱',
-      설비유형: '재단설비',
-      고장유형: '베어링 마모',
-      비가동시작일: '2025-07-10 08:05:00',
-      수리완료일: '2025-07-11 10:25:15',
-      수리내역: '베어링 교체',
-      담당자: '최은수',
-      비고: '다음 점검 시 부품 예비 확보'
-    },
-    {
-      설비코드: 'EQ-003',
-      설비명: 'CNC조각기',
-      설비유형: '재단설비',
-      고장유형: '전원 불량',
-      비가동시작일: '2025-07-12 16:45:35',
-      수리완료일: '2025-07-13 11:50:45',
-      수리내역: '전원 케이블 교체',
-      담당자: '최은수',
-      비고: '-'
-    }
-  ]
-});
+/* 날짜 포맷 */
+function fmt(dt) {
+  if (!dt) return '';
+  const d = new Date(dt);
+  if (Number.isNaN(d.getTime())) return String(dt);
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
 
-/* 입력값 기준으로 실시간 필터링 (대소문자 무시, 부분 일치) */
+/* 최초 한 번 전체 로드 */
+const loadRepairs = async () => {
+  try {
+    const { data } = await axios.get(`${apiBase}/facility/repairs`);
+    const arr = Array.isArray(data) ? data : [];
+    rawItems.value = arr.map((r) => ({
+      설비코드: r.FAC_ID ?? '',
+      설비명: r.FAC_NAME ?? '',
+      설비유형: r.FAC_TYPE ?? '',
+      고장유형: r.FS_TYPE_NM ?? '-',
+      비가동시작일: fmt(r.DOWN_STARTDAY),
+      수리완료일: fmt(r.DOWN_ENDDAY),
+      수리내역: r.FR_CONTENT ?? '',
+      담당자: r.MANAGER ?? '',
+      비고: r.FR_NOTE ?? ''
+    }));
+  } catch (e) {
+    console.error('loadRepairs error', e);
+    rawItems.value = [];
+  }
+};
+
+onMounted(loadRepairs);
+
+/* 코드/이름 부분일치 필터링  */
 const filteredItems = computed(() => {
-  const q = (productKeyword.value || '').trim().toUpperCase();
-  if (!q) return form.items;
-  return form.items.filter((item) => (item.설비코드 || '').toUpperCase().includes(q));
+  const kw = (productKeyword.value || '').trim().toLowerCase();
+  if (!kw) return rawItems.value;
+
+  return rawItems.value.filter((row) => {
+    const code = String(row.설비코드 || '').toLowerCase();
+    const name = String(row.설비명 || '').toLowerCase();
+    return code.includes(kw) || name.includes(kw);
+  });
 });
 
 const page = ref({ title: '설비 수리 관리' });

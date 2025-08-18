@@ -54,7 +54,9 @@
       :rowData="rowData"
       :columnDefs="colDefs"
       :theme="quartz"
-      style="height: 200px; width: 100%"
+      style="height: 19rem; width: 100%"
+      :pagination="true"
+      :pagination-page-size="5"
       @cell-value-changed="onCellValueChanged"
     >
     </ag-grid-vue>
@@ -63,100 +65,73 @@
 </template>
 
 <script setup>
-import { ref, shallowRef } from 'vue';
+import { ref, shallowRef, onMounted } from 'vue';
 
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
 import { AgGridVue } from 'ag-grid-vue3';
 import { themeQuartz } from 'ag-grid-community';
 import MoDal from '../common/NewModal.vue';
+import axios from 'axios';
 const quartz = themeQuartz;
 
-// 모달
+// ----------------- 모달 (기본 정의) -----------------
 const modalRef = ref(null);
 const modalTitle = ref('');
 const modalRowData = ref([]);
 const modalColDefs = ref([]);
 
 const materialColDefs = [
-  { field: '발행번호', headerName: '발행번호', flex: 1 },
-  { field: '업체', headerName: '공급업체', flex: 1 },
-  { field: '자재명', headerName: '자재명', flex: 1 },
   { field: '자재코드', headerName: '자재코드', flex: 1 },
-  { field: '발주일자', headerName: '발주일자', flex: 1 },
-  { field: '수량', headerName: '수량', flex: 1 },
-  { field: '상태', headerName: '상태', flex: 1 }
+  { field: '자재명', headerName: '자재명', flex: 1 },
+  { field: '자재유형', headerName: '자재유형', flex: 1 },
+  { field: '규격', headerName: '규격', flex: 1 },
+  { field: '단위', headerName: '단위', flex: 1 }
 ];
-const materialRowData = ref([
-  { 발행번호: '20250808-001', 업체: '원목세상', 자재명: '원목', 자재코드: 'ZCB-558', 발주일자: '2025-08-08', 수량: 10, 상태: '완료' },
-  { 발행번호: '20250808-001', 업체: '원목세상', 자재명: '원목', 자재코드: 'ZCB-558', 발주일자: '2025-08-08', 수량: 10, 상태: '완료' },
-  { 발행번호: '20250808-001', 업체: '원목세상', 자재명: '원목', 자재코드: 'ZCB-558', 발주일자: '2025-08-08', 수량: 10, 상태: '완료' }
-]);
+const materialRowData = ref([]);
 
-const openModal = (title, rowData, colDefs) => {
+const openModal = async (title) => {
   modalTitle.value = title;
-  modalRowData.value = rowData;
-  modalColDefs.value = colDefs;
-  if (modalRef.value) {
-    modalRef.value.open();
+  modalColDefs.value = materialColDefs;
+
+  try {
+    const res = await axios.get('http://localhost:3000/materials');
+    modalRowData.value = res.data.map((mat) => ({
+      자재코드: mat.MAT_CODE,
+      자재명: mat.MAT_NAME,
+      자재유형: mat.MAT_TYPE,
+      규격: mat.MAT_SIZE,
+      단위: mat.MAT_UNIT
+    }));
+
+    if (modalRef.value) {
+      modalRef.value.open();
+    }
+  } catch (error) {
+    console.error('자재 목록을 가져오는 중 오류가 발생했습니다:' + error);
+    alert('자재 목록을 불러오는 데 실패했습니다.');
   }
 };
-//
+
+function onModalConfirm(selectedRow) {
+  if (selectedRow) {
+    materialName.value = selectedRow.자재명;
+    materialCode.value = selectedRow.자재코드;
+  }
+}
 
 // ag grid
-const rowData = ref([
-  {
-    발행번호: 'ORD-20250808-001',
-    공급업체: '합판세상',
-    자재명: '합판',
-    자재코드: 'MLT-00123',
-    규격: 'SD400',
-    단위: 'EA',
-    발주일자: '2025-08-08',
-    납기일자: '2025-08-20',
-    담당자: '이동섭',
-    수량: '10',
-    상태: '입고'
-  },
-  {
-    발행번호: 'ORD-20250808-002',
-    공급업체: '원목세상',
-    자재명: '원목',
-    자재코드: 'MLT-00123',
-    규격: 'SD400',
-    단위: 'EA',
-    발주일자: '2025-08-08',
-    납기일자: '2025-08-20',
-    담당자: '이동섭',
-    수량: '10',
-    상태: '검수 대기'
-  },
-  {
-    발행번호: 'ORD-20250808-002',
-    공급업체: '원목세상',
-    자재명: '원목',
-    자재코드: 'MLT-00123',
-    규격: 'SD400',
-    단위: 'EA',
-    발주일자: '2025-08-08',
-    납기일자: '2025-08-20',
-    담당자: '이동섭',
-    수량: '10',
-    상태: '완료'
-  }
-]);
-
 const colDefs = ref([
-  { field: '발행번호', flex: 2 },
+  { field: '입고번호', flex: 1.5 },
   { field: '공급업체', flex: 1 },
   { field: '자재명', flex: 1 },
   { field: '자재코드', flex: 1 },
+  { field: '자재유형', flex: 1 },
   { field: '규격', flex: 1 },
   { field: '단위', flex: 1 },
-  { field: '발주일자', flex: 1.5 },
-  { field: '납기일자', flex: 1.5 },
+  { field: '입고일자', flex: 1.5 },
   { field: '담당자', flex: 1 },
-  { field: '수량', flex: 1 },
+  { field: '입고수량', flex: 1 },
   {
     field: '상태',
     flex: 1,
@@ -165,13 +140,36 @@ const colDefs = ref([
         return { color: 'black', fontWeight: 'bold' };
       } else if (params.value == '검수 대기') {
         return { color: 'blue', fontWeight: 'bold' };
-      } else if (params.value == '완료') {
+      } else if (params.value == '입고 완료') {
         return { color: 'red', fontWeight: 'bold' };
       }
       return null;
     }
   }
 ]);
+const rowData = ref([]);
+
+onMounted(async () => {
+  try {
+    const res = await axios.get('http://localhost:3000/materialSelect');
+    // 응답 데이터 바로 rowData에 할당
+    rowData.value = res.data.map((item) => ({
+      입고번호: item.RECEIPT_NO,
+      공급업체: item.SUPPLYER,
+      자재코드: item.MAT_CODE,
+      자재명: item.MAT_NAME,
+      자재유형: item.MAT_TYPE,
+      규격: item.MAT_SIZE,
+      단위: item.MAT_UNIT,
+      입고일자: item.RECEIPT_DATE.slice(0, 10),
+      담당자: item.MANAGER,
+      입고수량: item.RECEIVED_QTY,
+      상태: item.MAT_TYPE == '원자재' ? '검수 대기' : item.MAT_TYPE == '부자재' ? '입고' : '실패'
+    }));
+  } catch (err) {
+    console.error('발주 조회 실패:', err);
+  }
+});
 
 const page = ref({ title: '입고' });
 const breadcrumbs = shallowRef([
@@ -199,18 +197,38 @@ function inputReset() {
   insertDate.value = '';
   materialType.value = '';
   status.value = '';
-  alert('초기화 되었습니다.');
 }
 
-function fileSelect() {
-  alert('검색하는 버튼');
-}
+async function fileSelect() {
+  try {
+    // 검색 조건 객체 생성
+    const searchParams = {
+      MAT_NAME: materialName.value || null,
+      MAT_CODE: materialCode.value || null,
+      MAT_TYPE: materialType.value || null,
+      RECEIPT_DATE: insertDate.value || null,
+      PO_STATUS: status.value || null
+    };
 
-function onModalConfirm(selectedRow) {
-  if (!selectedRow) return;
-
-  materialName.value = selectedRow['자재명'] || '';
-  materialCode.value = selectedRow['자재코드'] || '';
+    const res = await axios.post('http://localhost:3000/tmpSearch', searchParams);
+    console.log(res.data);
+    // 응답 데이터 바로 rowData에 할당
+    rowData.value = res.data.map((item) => ({
+      입고번호: item.RECEIPT_NO,
+      공급업체: item.SUPPLYER,
+      자재코드: item.MAT_CODE,
+      자재명: item.MAT_NAME,
+      자재유형: item.MAT_TYPE,
+      규격: item.MAT_SIZE,
+      단위: item.MAT_UNIT,
+      입고일자: item.RECEIPT_DATE.slice(0, 10),
+      담당자: item.MANAGER,
+      입고수량: item.RECEIVED_QTY,
+      상태: item.MAT_TYPE == '원자재' ? '검수 대기' : item.MAT_TYPE == '부자재' ? '입고' : '실패'
+    }));
+  } catch (err) {
+    console.error('입고 검색 실패:', err);
+  }
 }
 </script>
 
