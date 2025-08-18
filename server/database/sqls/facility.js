@@ -1,114 +1,122 @@
+// server/database/sqls/facility.js
 module.exports = {
-  // 리스트
+  /* 다음 설비ID (프론트에서 표시용) */
+  nextFacilityId: `
+    SELECT GetNextFAC_ID() AS FAC_ID
+  `,
+
+  /* 설비 목록 (조회 화면 데이터) */
   facilitySelect: `
-    SELECT 
-      FAC_ID, FAC_NAME, FAC_TYPE, FAC_USE, FAC_COMPANY,
-      FAC_MDATE, FAC_IDATE, FAC_CHECKDAY, PR_ID, MANAGER
-    FROM FACILITY
-    ORDER BY FAC_ID
+    SELECT
+      f.FAC_ID,
+      f.FAC_NAME,
+      f.FAC_TYPE,
+      cm.code_name AS FAC_TYPE_NM,
+      f.FAC_USE,
+      f.FAC_COMPANY,
+      f.FAC_MDATE,
+      f.FAC_IDATE,
+      f.FAC_CHECKDAY,
+      f.PR_ID,
+      f.MANAGER
+    FROM FACILITY f
+    LEFT JOIN code_master cm
+      ON cm.group_code = 'FC' AND cm.code = f.FAC_TYPE
+    ORDER BY f.FAC_ID
   `,
 
-  // 단건
-  facilityById: `
-    SELECT 
-      FAC_ID, FAC_NAME, FAC_TYPE, FAC_USE, FAC_COMPANY,
-      FAC_MDATE, FAC_IDATE, FAC_CHECKDAY, PR_ID, MANAGER
-    FROM FACILITY
-    WHERE FAC_ID = ?
-  `,
-
-  // 등록
+  /* 설비 등록
+     - FAC_TYPE(코드/이름/이름-‘설비’제거)과 PROCESS.FAC_TYPE을 유연 매칭
+     - 매칭 실패해도 PR_ID는 PROCESS의 첫 코드로 폴백 → NOT NULL 충족
+  */
   facilityInsert: `
     INSERT INTO FACILITY
       (FAC_ID, FAC_NAME, FAC_TYPE, FAC_USE, FAC_COMPANY,
        FAC_MDATE, FAC_IDATE, FAC_CHECKDAY, PR_ID, MANAGER)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (
+      GetNextFAC_ID(),
+      ?, ?, ?, ?, ?, ?, ?,
+      COALESCE(
+        ( /* 1차: 그대로 비교 */
+          SELECT p.PRC_CODE
+            FROM PROCESS p
+           WHERE REPLACE(p.FAC_TYPE, ' ', '') = REPLACE(?, ' ', '')
+           ORDER BY p.PRC_CODE
+           LIMIT 1
+        ),
+        ( /* 2차: code → code_name 비교 */
+          SELECT p.PRC_CODE
+            FROM PROCESS p
+           WHERE REPLACE(p.FAC_TYPE, ' ', '') = REPLACE((
+                   SELECT cm.code_name
+                     FROM code_master cm
+                    WHERE cm.group_code = 'FC' AND cm.code = ?
+                 ), ' ', '')
+           ORDER BY p.PRC_CODE
+           LIMIT 1
+        ),
+        ( /* 3차: code_name에서 '설비' 꼬리표 제거 후 비교 */
+          SELECT p.PRC_CODE
+            FROM PROCESS p
+           WHERE REPLACE(p.FAC_TYPE, ' ', '') = REPLACE((
+                   SELECT TRIM(REPLACE(cm.code_name, '설비', ''))
+                     FROM code_master cm
+                    WHERE cm.group_code = 'FC' AND cm.code = ?
+                 ), ' ', '')
+           ORDER BY p.PRC_CODE
+           LIMIT 1
+        ),
+        ( /* 최종 폴백: PROCESS 첫 코드 */
+          SELECT p.PRC_CODE
+            FROM PROCESS p
+           ORDER BY p.PRC_CODE
+           LIMIT 1
+        )
+      ),
+      ?
+    )
   `,
 
-  // 수정
+  /* 설비 수정 (등록과 동일 로직으로 PR_ID 재계산) */
   facilityUpdate: `
     UPDATE FACILITY
-      SET FAC_NAME=?, FAC_TYPE=?, FAC_USE=?, FAC_COMPANY=?,
-          FAC_MDATE=?, FAC_IDATE=?, FAC_CHECKDAY=?, PR_ID=?, MANAGER=?
-    WHERE FAC_ID=?
+       SET FAC_NAME     = ?,
+           FAC_TYPE     = ?,
+           FAC_USE      = ?,
+           FAC_COMPANY  = ?,
+           FAC_MDATE    = ?,
+           FAC_IDATE    = ?,
+           FAC_CHECKDAY = ?,
+           PR_ID = COALESCE(
+             (SELECT p.PRC_CODE
+                FROM PROCESS p
+               WHERE REPLACE(p.FAC_TYPE, ' ', '') = REPLACE(?, ' ', '')
+               ORDER BY p.PRC_CODE
+               LIMIT 1),
+             (SELECT p.PRC_CODE
+                FROM PROCESS p
+               WHERE REPLACE(p.FAC_TYPE, ' ', '') = REPLACE((
+                       SELECT cm.code_name FROM code_master cm
+                        WHERE cm.group_code='FC' AND cm.code=?
+                     ), ' ', '')
+               ORDER BY p.PRC_CODE
+               LIMIT 1),
+             (SELECT p.PRC_CODE
+                FROM PROCESS p
+               WHERE REPLACE(p.FAC_TYPE, ' ', '') = REPLACE((
+                       SELECT TRIM(REPLACE(cm.code_name, '설비',''))
+                         FROM code_master cm
+                        WHERE cm.group_code='FC' AND cm.code=?
+                     ), ' ', '')
+               ORDER BY p.PRC_CODE
+               LIMIT 1),
+             (SELECT p.PRC_CODE FROM PROCESS p ORDER BY p.PRC_CODE LIMIT 1)
+           ),
+           MANAGER = ?
+     WHERE FAC_ID = ?
   `,
 
-  // 삭제
   facilityDelete: `
-    DELETE FROM FACILITY WHERE FAC_ID=?
-  `,
-
-  codeByGroup: `
-    SELECT code, code_name
-    FROM code_master
-    WHERE group_code = ?
-    ORDER BY sort_order, code
-  `,
-
-  /* 설비상태 목록: 고장유형명 조인 */
-  facilityStatusList: `
-    SELECT 
-      fs.FS_ID,
-      fs.FAC_ID,
-      f.FAC_NAME,
-      fs.FS_STATUS,
-      fs.FS_REASON,
-      fs.FS_TYPE,                    
-      cm.code_name AS FS_TYPE_NM,   
-      fs.DOWN_STARTDAY,
-      fs.DOWN_ENDDAY,
-      fs.FS_CHECKDAY,
-      fs.FS_NEXTDAY,
-      fs.MANAGER
-    FROM FACILITY_STATUS fs
-    JOIN FACILITY f ON fs.FAC_ID = f.FAC_ID
-    LEFT JOIN code_master cm
-      ON cm.group_code = 'RR' AND cm.code = fs.FS_TYPE
-    ORDER BY COALESCE(fs.FS_CHECKDAY, fs.DOWN_STARTDAY, NOW()) DESC
-  `,
-
-  /* 특정 설비  */
-  facilityStatusCurrentByFac: `
-    SELECT 
-      fs.*,
-      cm.code_name AS FS_TYPE_NM
-    FROM FACILITY_STATUS fs
-    LEFT JOIN code_master cm
-      ON cm.group_code = 'RR' AND cm.code = fs.FS_TYPE
-    WHERE fs.FAC_ID = ?
-    ORDER BY COALESCE(fs.FS_CHECKDAY, fs.DOWN_STARTDAY, NOW()) DESC
-    LIMIT 1
-  `,
-
-  /* 신규 등록/종료 처리  */
-  facilityStatusInsert: `
-    INSERT INTO FACILITY_STATUS
-      (FS_ID, FAC_ID, FS_STATUS, FS_REASON, FS_TYPE, DOWN_STARTDAY, FS_CHECKDAY, FS_NEXTDAY, MANAGER)
-    VALUES
-      (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `,
-  facilityStatusEndDowntime: `
-    UPDATE FACILITY_STATUS
-    SET 
-      DOWN_ENDDAY = ?,
-      FS_STATUS = ?,
-      FS_CHECKDAY = ?
-    WHERE FS_ID = ?
-  `,
-
-  /* 필터 조회: 고장유형명 포함 */
-  facilityStatusFilter: `
-    SELECT 
-      fs.FS_ID, fs.FAC_ID, f.FAC_NAME, fs.FS_STATUS, fs.FS_REASON,
-      fs.FS_TYPE, cm.code_name AS FS_TYPE_NM,
-      fs.DOWN_STARTDAY, fs.DOWN_ENDDAY, fs.FS_CHECKDAY, fs.FS_NEXTDAY, fs.MANAGER
-    FROM FACILITY_STATUS fs
-    JOIN FACILITY f ON fs.FAC_ID = f.FAC_ID
-    LEFT JOIN code_master cm
-      ON cm.group_code = 'RR' AND cm.code = fs.FS_TYPE
-    WHERE ( ? IS NULL OR fs.FAC_ID = ? )
-      AND ( ? IS NULL OR DATE(fs.DOWN_STARTDAY) >= DATE(?) )
-      AND ( ? IS NULL OR DATE(fs.DOWN_STARTDAY) <= DATE(?) )
-    ORDER BY fs.DOWN_STARTDAY DESC
+    DELETE FROM FACILITY WHERE FAC_ID = ?
   `,
 };
