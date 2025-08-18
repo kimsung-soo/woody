@@ -1,10 +1,8 @@
-<!-- 작업지시 수정/삭제 페이지 -->
 <!-- src/views/production/OrderModify.vue -->
 <template>
   <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs" />
 
   <UiParentCard>
-    <!-- 헤더: 제목 + 우측 삭제 -->
     <div class="card-headline">
       <h5 class="title">작업지시 수정/삭제</h5>
       <div class="head-actions">
@@ -12,23 +10,22 @@
       </div>
     </div>
 
-    <!-- 검색 조건 (지시번호 / 제품코드 / 제품명 / 작성자) -->
+    <!-- 검색 -->
     <v-row class="mb-4" dense>
-      <v-col cols="3">
-        <v-text-field label="지시번호" v-model.trim="searchForm.issueNumber" dense outlined hide-details @keyup.enter="applySearch" />
-      </v-col>
-      <v-col cols="3">
-        <v-text-field label="제품코드" v-model.trim="searchForm.productCode" dense outlined hide-details @keyup.enter="applySearch" />
-      </v-col>
-      <v-col cols="3">
-        <v-text-field label="제품명" v-model.trim="searchForm.productName" dense outlined hide-details @keyup.enter="applySearch" />
-      </v-col>
-      <v-col cols="3">
-        <v-text-field label="작성자" v-model.trim="searchForm.contact" dense outlined hide-details @keyup.enter="applySearch" />
-      </v-col>
+      <v-col cols="3"
+        ><v-text-field label="지시번호" v-model.trim="search.issueNumber" dense outlined hide-details @keyup.enter="applySearch"
+      /></v-col>
+      <v-col cols="3"
+        ><v-text-field label="지시명" v-model.trim="search.orderName" dense outlined hide-details @keyup.enter="applySearch"
+      /></v-col>
+      <v-col cols="3"
+        ><v-text-field label="제품코드" v-model.trim="search.productCode" dense outlined hide-details @keyup.enter="applySearch"
+      /></v-col>
+      <v-col cols="3"
+        ><v-text-field label="작성자" v-model.trim="search.contact" dense outlined hide-details @keyup.enter="applySearch"
+      /></v-col>
     </v-row>
 
-    <!-- 버튼 중앙 정렬 -->
     <v-row justify="center" class="mt-2 mb-4">
       <v-col cols="auto">
         <v-btn variant="flat" color="error" class="mx-2" @click="resetFilters">초기화</v-btn>
@@ -36,7 +33,6 @@
       </v-col>
     </v-row>
 
-    <!-- 목록: 고정 높이(virtualization 유지) -->
     <div class="grid-wrap">
       <ag-grid-vue
         class="ag-theme-quartz ag-no-wrap"
@@ -44,7 +40,6 @@
         :columnDefs="colDefs"
         :pagination="true"
         :paginationPageSize="PAGE_SIZE"
-        :suppressPaginationPanel="false"
         rowSelection="multiple"
         :rowMultiSelectWithClick="true"
         :suppressRowClickSelection="true"
@@ -69,6 +64,16 @@
             <v-col cols="6" md="4">
               <v-text-field label="지시번호" v-model="edit.form.issueNumber" readonly density="compact" variant="outlined" />
             </v-col>
+            <v-col cols="6" md="8">
+              <v-text-field
+                label="지시명"
+                v-model.lazy="edit.form.orderName"
+                density="compact"
+                variant="outlined"
+                @update:modelValue="markDirty"
+              />
+            </v-col>
+
             <v-col cols="6" md="4">
               <v-text-field
                 label="지시일자"
@@ -110,10 +115,20 @@
 
             <v-col cols="6" md="4">
               <v-text-field
+                label="납기일자"
+                v-model.lazy="edit.form.dueDate"
+                type="date"
+                density="compact"
+                variant="outlined"
+                @update:modelValue="markDirty"
+              />
+            </v-col>
+            <v-col cols="6" md="4">
+              <v-text-field
                 label="목표수량"
                 v-model.number.lazy="edit.form.targetQty"
                 type="number"
-                min="0"
+                min="1"
                 step="1"
                 density="compact"
                 variant="outlined"
@@ -121,19 +136,11 @@
               />
             </v-col>
 
-            <v-col cols="12" md="8">
-              <v-radio-group v-model="edit.form.productType" inline @update:modelValue="markDirty">
-                <label class="v-label mr-4">제품유형</label>
-                <v-radio label="완제품" value="완제품" />
-                <v-radio label="반제품" value="반제품" />
-              </v-radio-group>
-            </v-col>
-
             <v-col cols="12">
               <v-text-field
-                label="투입자재"
-                v-model.lazy="edit.form.inputMaterial"
-                placeholder="예) 합판, 철재"
+                label="비고"
+                v-model.lazy="edit.form.memo"
+                placeholder="메모"
                 density="compact"
                 variant="outlined"
                 @update:modelValue="markDirty"
@@ -148,104 +155,97 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <v-snackbar v-model="snack.open" :color="snack.color" :timeout="2000">
+      {{ snack.msg }}
+    </v-snackbar>
   </UiParentCard>
 </template>
 
 <script setup>
-import { ref, shallowRef, reactive, computed, markRaw, watch } from 'vue';
+import { ref, shallowRef, reactive, computed, markRaw, watch, onMounted } from 'vue';
+import axios from 'axios';
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
 import { AgGridVue } from 'ag-grid-vue3';
 
-/* 헤더 */
+const API = 'http://localhost:3000';
+
 const page = ref({ title: '작업지시 수정/삭제' });
 const breadcrumbs = shallowRef([
   { title: '생산', disabled: true, href: '#' },
   { title: '작업지시 수정/삭제', disabled: false, href: '#' }
 ]);
 
-/* 샘플 데이터 */
-function pad2(n) {
-  return String(n).padStart(2, '0');
-}
-function makeOrders() {
-  const products = [
-    { code: 'P001', name: '블랙 데스크' },
-    { code: 'P002', name: '화이트 데스크' },
-    { code: 'P003', name: '블랙 데스크(소형)' },
-    { code: 'P004', name: '라운드 테이블' },
-    { code: 'P005', name: '워런트 책상' },
-    { code: 'P006', name: '메이플 책상' }
-  ];
-  const contacts = ['이민호', '이민우', '김찬용', '이동현', '김근영', '박지현'];
-  const mats = ['합판, 철재', '목재, 나사', '재공품', '원목, 철재', '합판, 볼트'];
-
-  return Array.from({ length: 56 }, (_, i) => {
-    const p = products[i % products.length];
-    const contact = contacts[i % contacts.length];
-    const m = mats[i % mats.length];
-    const month = 6 + (i % 3),
-      day = 1 + (i % 27);
-    const row = {
-      id: 1000 + i,
-      issueNumber: `WO-2025${pad2(month)}${pad2(day)}-${3000 + i}`,
-      orderDate: `2025-${pad2(month)}-${pad2(day)}`,
-      contact,
-      productCode: p.code,
-      productName: p.name,
-      dueDate: `2025-${pad2(month)}-${pad2(((day + 15) % 28) + 1)}`,
-      targetQty: 40 + (i % 12) * 10,
-      inputMaterial: m,
-      productType: i % 5 === 0 ? '반제품' : '완제품'
-    };
-    row._hay = (row.issueNumber + row.productCode + row.productName + row.contact).toLowerCase();
-    return row;
-  });
-}
-const orders = shallowRef(makeOrders());
+const snack = ref({ open: false, msg: '', color: 'primary' });
+const toast = (msg, color = 'primary') => (snack.value = { open: true, msg, color });
 
 /* 검색 폼 */
-const searchForm = ref({
-  issueNumber: '',
-  productCode: '',
-  productName: '',
-  contact: ''
-});
+const search = ref({ issueNumber: '', orderName: '', productCode: '', contact: '' });
+const orders = shallowRef([]);
 const PAGE_SIZE = 10;
 
-/* 필터링 */
+async function fetchOrders() {
+  const kw = (search.value.issueNumber || search.value.orderName || search.value.productCode || search.value.contact || '').trim();
+  try {
+    const { data } = await axios.get(`${API}/workorders`, { params: { kw, page: 1, size: 500 } });
+    if (data?.ok) {
+      orders.value = (data.rows || []).map((r) => ({
+        id: r.id,
+        issueNumber: r.issueNumber,
+        orderName: r.orderName || '',
+        orderDate: r.orderDate,
+        contact: r.contact,
+        productCode: r.productCode,
+        productName: r.productName,
+        dueDate: r.dueDate,
+        targetQty: r.targetQty,
+        memo: r.memo || '',
+        status: r.status || 'OPEN',
+        _hay: (r.issueNumber + (r.orderName || '') + r.productCode + r.productName + r.contact).toLowerCase()
+      }));
+      toast('조회 완료');
+    } else toast('조회 실패', 'error');
+  } catch (e) {
+    console.error(e);
+    toast('조회 오류', 'error');
+  }
+}
+onMounted(fetchOrders);
+
 const filteredOrders = computed(() => {
-  const f = searchForm.value;
+  const f = search.value;
   return orders.value.filter(
     (o) =>
       (!f.issueNumber || o.issueNumber.includes(f.issueNumber)) &&
+      (!f.orderName || o.orderName.includes(f.orderName)) &&
       (!f.productCode || o.productCode.includes(f.productCode)) &&
-      (!f.productName || o.productName.includes(f.productName)) &&
       (!f.contact || o.contact.includes(f.contact))
   );
 });
 const pagedOrders = computed(() => filteredOrders.value);
 
 function applySearch() {
-  // computed 기반이라 별도 로직 없음. UX용으로 첫 페이지 보이게만.
-  gridApi?.ensureIndexVisible(0);
+  fetchOrders().then(() => gridApi?.ensureIndexVisible(0));
 }
 function resetFilters() {
-  searchForm.value = { issueNumber: '', productCode: '', productName: '', contact: '' };
-  gridApi?.ensureIndexVisible(0);
+  search.value = { issueNumber: '', orderName: '', productCode: '', contact: '' };
+  fetchOrders().then(() => gridApi?.ensureIndexVisible(0));
 }
 
-/* 컬럼 (markRaw로 고정) */
+/* 컬럼 */
 const colDefs = markRaw([
   { headerName: '', checkboxSelection: true, headerCheckboxSelection: true, width: 70 },
-  { headerName: '지시번호', field: 'issueNumber', flex: 1.4, minWidth: 160, cellClass: 'cell-ellipsis' },
+  { headerName: '지시번호', field: 'issueNumber', flex: 1.1, minWidth: 140, cellClass: 'cell-ellipsis' },
+  { headerName: '지시명', field: 'orderName', flex: 1.3, minWidth: 160, cellClass: 'cell-ellipsis' },
   { headerName: '지시일자', field: 'orderDate', flex: 0.9, minWidth: 120, cellClass: 'cell-ellipsis' },
   { headerName: '작성자', field: 'contact', flex: 0.8, minWidth: 90, cellClass: 'cell-ellipsis' },
   { headerName: '제품코드', field: 'productCode', flex: 0.9, minWidth: 110, cellClass: 'cell-ellipsis' },
   { headerName: '제품명칭', field: 'productName', flex: 1.2, minWidth: 150, cellClass: 'cell-ellipsis' },
+  { headerName: '납기일자', field: 'dueDate', flex: 0.9, minWidth: 120, cellClass: 'cell-ellipsis' },
   { headerName: '목표수량', field: 'targetQty', flex: 0.7, minWidth: 90, cellClass: 'ag-right-aligned-cell cell-ellipsis' },
-  { headerName: '투입자재', field: 'inputMaterial', flex: 1.2, minWidth: 140, cellClass: 'cell-ellipsis' },
-  { headerName: '제품유형', field: 'productType', flex: 0.8, minWidth: 90, cellClass: 'cell-ellipsis' }
+  { headerName: '상태', field: 'status', flex: 0.6, minWidth: 80, cellClass: 'cell-ellipsis' },
+  { headerName: '비고', field: 'memo', flex: 1.2, minWidth: 140, cellClass: 'cell-ellipsis' }
 ]);
 
 /* ag-Grid */
@@ -258,42 +258,43 @@ function getRowId(params) {
   return String(params.data.id);
 }
 
-/* 편집 모달 상태 */
+/* 편집 모달 */
 const edit = reactive({
   open: false,
   dirty: false,
   form: {
     id: null,
     issueNumber: '',
+    orderName: '',
     orderDate: '',
     contact: '',
     productCode: '',
     productName: '',
     dueDate: '',
     targetQty: 0,
-    inputMaterial: '',
-    productType: '완제품'
+    memo: ''
   },
   original: null
 });
 function markDirty() {
   edit.dirty = true;
 }
-
 function openEdit(ev) {
   const r = ev?.data;
   if (!r) return;
-  edit.form.id = r.id;
-  edit.form.issueNumber = r.issueNumber;
-  edit.form.orderDate = r.orderDate;
-  edit.form.contact = r.contact;
-  edit.form.productCode = r.productCode;
-  edit.form.productName = r.productName;
-  edit.form.dueDate = r.dueDate;
-  edit.form.targetQty = r.targetQty;
-  edit.form.inputMaterial = r.inputMaterial;
-  edit.form.productType = r.productType;
-  edit.original = r;
+  edit.form = {
+    id: r.id,
+    issueNumber: r.issueNumber,
+    orderName: r.orderName,
+    orderDate: r.orderDate,
+    contact: r.contact,
+    productCode: r.productCode,
+    productName: r.productName,
+    dueDate: r.dueDate,
+    targetQty: r.targetQty,
+    memo: r.memo
+  };
+  edit.original = { ...r };
   edit.dirty = false;
   edit.open = true;
 }
@@ -302,64 +303,74 @@ function closeEdit() {
   edit.open = false;
 }
 function validateForm() {
-  if (!edit.form.orderDate || !edit.form.contact?.trim() || !edit.form.productCode?.trim() || !edit.form.productName?.trim()) {
-    alert('지시일자, 작성자, 제품코드, 제품명은 필수입니다.');
+  const f = edit.form;
+  if (!f.orderDate || !f.contact?.trim() || !f.productCode?.trim() || !f.productName?.trim() || !f.dueDate) {
+    alert('지시일자, 작성자, 제품코드, 제품명칭, 납기일자는 필수입니다.');
     return false;
   }
-  if (!edit.form.targetQty || edit.form.targetQty <= 0) {
+  if (!f.targetQty || f.targetQty <= 0) {
     alert('목표수량은 1 이상이어야 합니다.');
     return false;
   }
   return true;
 }
-function saveEdit() {
+async function saveEdit() {
   if (!validateForm()) return;
-  const updated = {
-    ...edit.original,
-    issueNumber: edit.form.issueNumber,
-    orderDate: edit.form.orderDate,
-    contact: edit.form.contact,
-    productCode: edit.form.productCode,
-    productName: edit.form.productName,
-    dueDate: edit.form.dueDate,
-    targetQty: edit.form.targetQty,
-    inputMaterial: edit.form.inputMaterial,
-    productType: edit.form.productType
-  };
-  updated._hay = (updated.issueNumber + updated.productCode + updated.productName + updated.contact).toLowerCase();
-
-  gridApi?.applyTransactionAsync({ update: [updated] });
-
-  const arr = orders.value;
-  const idx = arr.findIndex((r) => r.id === updated.id);
-  if (idx > -1) {
-    arr[idx] = updated;
-    orders.value = arr;
+  try {
+    const payload = {
+      orderName: edit.form.orderName || null, // ✅ 지시명 포함
+      orderDate: edit.form.orderDate,
+      contact: edit.form.contact,
+      productCode: edit.form.productCode,
+      productName: edit.form.productName,
+      dueDate: edit.form.dueDate,
+      targetQty: Number(edit.form.targetQty || 0),
+      memo: edit.form.memo || ''
+    };
+    const { data } = await axios.put(`${API}/workorders/${edit.form.id}`, payload);
+    if (data?.ok) {
+      const updated = { ...edit.original, ...edit.form };
+      gridApi?.applyTransactionAsync({ update: [updated] });
+      const arr = orders.value.slice();
+      const i = arr.findIndex((r) => r.id === updated.id);
+      if (i > -1) arr[i] = updated;
+      orders.value = arr;
+      edit.open = false;
+      edit.dirty = false;
+      toast('수정되었습니다.', 'success');
+    } else toast('수정 실패', 'error');
+  } catch (e) {
+    console.error(e);
+    toast('수정 오류', 'error');
   }
-  edit.open = false;
-  edit.dirty = false;
-  alert('수정되었습니다.');
 }
 
-function bulkDelete() {
+/* 삭제 */
+async function bulkDelete() {
   if (!gridApi) return;
   const selected = gridApi.getSelectedRows();
-  if (!selected.length) {
-    alert('삭제할 행을 선택하세요.');
-    return;
-  }
+  if (!selected.length) return alert('삭제할 행을 선택하세요.');
   if (!confirm(`${selected.length}건을 삭제하시겠습니까?`)) return;
 
-  const ids = new Set(selected.map((r) => r.id));
-  gridApi.applyTransactionAsync({ remove: selected });
-  orders.value = orders.value.filter((r) => !ids.has(r.id));
-  if (edit.open && edit.form.id && ids.has(edit.form.id)) edit.open = false;
-  alert('삭제되었습니다.');
+  try {
+    const ids = selected.map((r) => r.id);
+    const { data } = await axios.delete(`${API}/workorders`, { data: { ids } });
+    if (data?.ok) {
+      gridApi.applyTransactionAsync({ remove: selected });
+      const set = new Set(ids);
+      orders.value = orders.value.filter((r) => !set.has(r.id));
+      if (edit.open && edit.form.id && set.has(edit.form.id)) edit.open = false;
+      toast('삭제되었습니다.', 'success');
+    } else toast('삭제 실패', 'error');
+  } catch (e) {
+    console.error(e);
+    toast('삭제 오류', 'error');
+  }
 }
 
-/* 검색 변경 시 첫 페이지로 스크롤 */
+/* 검색 변경 시 첫 행 보이기 */
 watch(
-  searchForm,
+  search,
   () => {
     gridApi?.ensureIndexVisible(0);
   },
@@ -383,25 +394,17 @@ watch(
   display: flex;
   align-items: center;
 }
-
-/* 고정 높이로 virtualization 유지 */
 .grid-wrap {
   height: 520px;
 }
 .ag-theme-quartz {
   height: 100%;
+  --ag-font-size: 12px;
+  --ag-grid-size: 4px;
 }
-
-/* 말줄임 (cellStyle 대신 클래스로) */
 .cell-ellipsis {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-/* ag-grid 기본 밀도 */
-.ag-theme-quartz {
-  --ag-font-size: 12px;
-  --ag-grid-size: 4px;
 }
 </style>
