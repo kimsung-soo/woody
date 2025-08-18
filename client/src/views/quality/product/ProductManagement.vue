@@ -40,7 +40,7 @@ const breadcrumbs = shallowRef([
     href: '#'
   },
   {
-    title: '성적서조회',
+    title: '제품성적서관리',
     disabled: false,
     href: '#'
   }

@@ -1,18 +1,16 @@
 <template>
   <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs" />
 
-  <UiParentCard title="설비 수리관리 페이지">
-    <v-row align="center" class="mb-4">
-      <v-col cols="12" md="6" class="d-flex justify-start">
-        <v-text-field
-          v-model.trim="productKeyword"
-          placeholder="공정선택"
-          hide-details
-          density="compact"
-          variant="outlined"
-          style="max-width: 280px"
-        />
-        <v-btn class="ml-2" color="darkText" @click="openModal('공정 조회', RowData, ColDefs)"> 검색 </v-btn>
+  <UiParentCard title="설비 수리관리">
+    <v-row class="mb-2 py-0">
+      <v-col cols="12" class="d-flex align-center">
+        <v-btn color="warning" variant="flat" @click="openModal('공정 조회', RowData, ColDefs)"> 공정 조회 </v-btn>
+      </v-col>
+    </v-row>
+
+    <v-row class="mb-4 pt-0">
+      <v-col cols="12" md="6">
+        <v-text-field label="공정코드" v-model="processCode" readonly hide-details density="comfortable" variant="outlined" />
       </v-col>
     </v-row>
 
@@ -29,7 +27,6 @@
       @row-clicked="onPick"
     />
 
-    <!-- 조회 모달 -->
     <MoDal ref="modalRef" :title="modalTitle" :rowData="modalRowData" :colDefs="modalColDefs" @confirm="modalConfirm" />
 
     <v-card v-if="form.code" class="mt-6 pa-4">
@@ -70,15 +67,21 @@ const breadcrumbs = shallowRef([
   { title: '수리관리', disabled: false, href: '#' }
 ]);
 
-/* 검색어 */
+/* 공정코드 */
 const processCode = ref('');
 const gridApi = ref(null);
 const onGridReady = (e) => (gridApi.value = e.api);
-const applyQuickFilter = () => {
-  gridApi.value?.setGridOption('quickFilterText', processCode.value || '');
+const applyProcessFilter = (procCode) => {
+  if (!gridApi.value) return;
+  gridApi.value.setFilterModel({
+    공정코드: { filterType: 'text', type: 'equals', filter: procCode || '' }
+  });
+  gridApi.value.onFilterChanged();
 };
 
+/* 컬럼 정의 */
 const columnDefs = ref([
+  { field: '공정코드', hide: true, filter: 'agTextColumnFilter' },
   { field: '설비코드', flex: 1 },
   { field: '설비명', flex: 1 },
   { field: '설비유형', flex: 1 },
@@ -90,8 +93,10 @@ const columnDefs = ref([
 ]);
 const defaultColDef = { editable: false, sortable: true, resizable: true };
 
+/* 더미 데이터 */
 const rows = ref([
   {
+    공정코드: 'PRC-003',
     설비코드: 'EQ003',
     설비명: 'CNC조각기',
     설비유형: '재단설비',
@@ -102,6 +107,7 @@ const rows = ref([
     담당자: '이동섭'
   },
   {
+    공정코드: 'PRC-003',
     설비코드: 'EQ003',
     설비명: 'CNC조각기',
     설비유형: '재단설비',
@@ -112,6 +118,7 @@ const rows = ref([
     담당자: '이동섭'
   },
   {
+    공정코드: 'PRC-003',
     설비코드: 'EQ003',
     설비명: 'CNC조각기',
     설비유형: '재단설비',
@@ -167,7 +174,7 @@ function now() {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
 
-/* 공정 조회 모달 세팅 */
+/* 공정 조회 모달  */
 import MoDal from '@/views/common/NewModal.vue';
 
 const modalRef = ref(null);
@@ -197,7 +204,7 @@ const openModal = (title, rowData, colDefs) => {
 
 const modalConfirm = (selectedRow) => {
   if (!selectedRow) return;
-  processCode.value = selectedRow.공정코드 || selectedRow.공정명 || '';
-  applyQuickFilter();
+  processCode.value = selectedRow.공정코드 || '';
+  applyProcessFilter(processCode.value);
 };
 </script>

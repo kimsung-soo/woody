@@ -156,22 +156,23 @@ const authOptions = ref([]);
 
 // 공통코드 데이터를 가져오는 함수
 const fetchCommonCodes = async () => {
-  // try {
-  //   // 부서 공통코드 API 호출 (예시)
-  //   const deptRes = await axios.get('http://localhost:3000/master/commonDept');
-  //   deptOptions.value = deptRes.data.map((item) => item.code_name); // `code_name`을 배열에 담기
-  //   // 직급 공통코드 API 호출 (예시)
-  //   const authRes = await axios.get('http://localhost:3000/master/commonAuth');
-  //   authOptions.value = authRes.data.map((item) => item.code_name); // `code_name`을 배열에 담기
-  // } catch (error) {
-  //   console.error('공통코드 데이터를 불러오는 데 실패했습니다:', error);
-  // }
+  try {
+    // 부서 공통코드 API 호출 (예시)
+    const deptRes = await axios.get('http://localhost:3000/commonDept');
+
+    deptOptions.value = deptRes.data.map((item) => item.code_name); // `code_name`을 배열에 담기
+    // 직급 공통코드 API 호출 (예시)
+    const authRes = await axios.get('http://localhost:3000/commonAuth');
+    authOptions.value = authRes.data.map((item) => item.code_name); // `code_name`을 배열에 담기
+  } catch (error) {
+    console.error('공통코드 데이터를 불러오는 데 실패했습니다:', error);
+  }
 };
 //사원 검색
 const searchData = async (searchKeyword) => {
   if (!searchKeyword) return;
   const params = { EMP_NAME: `%${searchKeyword}%` };
-  const res = await axios.get('http://localhost:3000/masterEmpName', params);
+  const res = await axios.post('http://localhost:3000/masterEmpName', params);
   empData.value = res.data.map((emp) => ({
     사원번호: emp.EMP_NO,
     사원명: emp.EMP_NAME,
@@ -249,6 +250,7 @@ const del = async () => {
   console.log(deleteRow);
   const result = await axios.delete('http://localhost:3000/masterEmpDelete', { data: deleteRow });
   console.log(result);
+  empList();
 };
 // 폼 데이터를 초기화하는 함수
 const resetForm = () => {
