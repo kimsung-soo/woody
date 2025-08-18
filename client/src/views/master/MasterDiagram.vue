@@ -213,6 +213,7 @@ const del = async () => {
     alert('삭제할 공정을 선택하세요.');
     return;
   }
+  confirm('공정을 삭제하시겠습니까?');
   const prcCode = selectedRows.map((r) => r.공정코드);
   await axios.post('http://localhost:3000/prcDelete', {
     diaCode: form.value.diagram,

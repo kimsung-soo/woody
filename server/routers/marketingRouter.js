@@ -17,4 +17,21 @@ router.post("/marketing/insertacc", async (req, res) => {
   }
 });
 
+// 태완 - 입고
+router.get("/inboundList", async (req, res) => {
+  let list = await marketingService.inboundList();
+  res.send(list);
+});
+
+// 입고 등록
+router.post("/inboundInsert", async (req, res) => {
+  try {
+    const data = req.body;
+    console.log(req.body);
+    let result = await marketingService.inboundInsert(data);
+    res.json(result);
+  } catch (e) {
+    console.log(e);
+  }
+});
 module.exports = router;
