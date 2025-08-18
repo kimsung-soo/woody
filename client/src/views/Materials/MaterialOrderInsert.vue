@@ -93,7 +93,6 @@ const openModal = async (title) => {
 
   try {
     const res = await axios.get('http://localhost:3000/materials');
-    console.log('호출성공 = ', res.data);
     modalRowData.value = res.data.map((mat) => ({
       자재코드: mat.MAT_CODE,
       자재명: mat.MAT_NAME,
@@ -148,13 +147,13 @@ async function submitForm() {
       return;
     }
 
-    // 1. 발주서 데이터
+    // 1. 발주서 데이터 (PO_NO는 Node에서 생성)
     const orderData = {
-      PO_NO: '20250815-001',
       SUPPLYER: form.supplier,
       ORDER_DATE: form.orderDate,
       PO_DDAY: form.dueDate,
-      MANAGER: form.manager
+      MANAGER: form.manager,
+      PO_STATUS: '진행중'
     };
 
     // 2. 상세 데이터
@@ -164,13 +163,13 @@ async function submitForm() {
     }));
 
     // 3. POST 요청
-    await axios.post('http://localhost:3000/materialOrder', {
+    await axios.post('http://localhost:3000/material/order/insert', {
       orderData,
       detailList
     });
 
     alert('등록 되었습니다.');
-    resetForm(); // 등록 후 초기화
+    resetForm();
   } catch (error) {
     console.error(error);
     alert('등록 중 오류가 발생했습니다.');

@@ -3,20 +3,20 @@
   <UiParentCard>
     <v-row class="mb-4">
       <v-col cols="3">
-        <v-text-field label="원자재명" v-model="form.supplier" dense outlined />
+        <v-text-field label="입고일자" v-model="form.dueDate" type="date" dense outlined />
       </v-col>
       <v-col cols="3">
-        <v-text-field label="처리상태" v-model="form.contact" dense outlined />
+        <v-text-field label="자재코드" v-model="form.contact" dense outlined />
       </v-col>
       <v-col cols="3">
-        <v-text-field label="발주일자" v-model="form.orderDate" type="date" dense outlined />
+        <!-- 처리상태를 드롭다운으로 변경 -->
+        <v-select label="상태" v-model="form.status" :items="statusOptions" item-title="label" item-value="value" dense outlined />
       </v-col>
-      <v-col cols="3">
-        <v-text-field label="납기일자" v-model="form.dueDate" type="date" dense outlined />
-      </v-col>
+      <!-- 모달-->
+
       <!-- 버튼 -->
       <v-row justify="end">
-        <v-btn color="primary" class="mr-2" @click="resetForm" style="z-index: 2">조회</v-btn>
+        <v-btn color="error" variant="elevated" @click="resetForm">초기화</v-btn>
       </v-row>
     </v-row>
     <br />
@@ -32,10 +32,11 @@
 </template>
 
 <script setup lang="ts">
+import axios from 'axios';
 import { useRouter } from 'vue-router';
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
-import { ref, shallowRef, reactive, computed, type Ref } from 'vue';
+import { ref, shallowRef, reactive, computed, type Ref, onMounted } from 'vue';
 import { AgGridVue } from 'ag-grid-vue3';
 import { AllCommunityModule, ModuleRegistry, themeQuartz, type ColDef, PaginationModule, type GridOptions } from 'ag-grid-community';
 
@@ -44,10 +45,10 @@ const quartz = themeQuartz;
 const router = useRouter();
 
 // ----- 기존 breadcrumb -----
-const page = ref({ title: '원자재검수조회' });
+const page = ref({ title: '원자재검수관리' });
 const breadcrumbs = shallowRef([
   { title: '품질', disabled: true, href: '#' },
-  { title: '원자재검수조회', disabled: false, href: '#' }
+  { title: '원자재검수관리', disabled: false, href: '#' }
 ]);
 
 // ----- 폼 상태(필터) -----
@@ -82,135 +83,37 @@ const form = reactive<FormType>({
 
 // ----- ag-Grid용 행 타입/데이터/컬럼 -----
 interface Row {
-  inspectionNo: string; // 검사번호
-  receiptNo: string; // 입고번호
+  receiptNo: number; // 입고번호
+  receiptDate: string; // 입고일자
+  supplyer: string; // 공급처
   materialCode: string; // 자재코드
-  materialName: string; // 자재명
-  qty: number; // 수량
-  unitPrice: number; // 단가
-  amount: number; // 금액
-  orderDate: string; // 발주일자 YYYY-MM-DD
-  dueDate: string; // 납기일자 YYYY-MM-DD
-  status: string; // 처리상태 (합격/불합격 등)
-  inspector: string; // 검수확인인
+  receivedQty: number; // 입고수량
+  matStatus: string; // 상태  // 입고, 검수대기, 검수완료 값이 존재=> 품질은 전부 조회하면서 검수대기가 주력 포인트가 될듯?
 }
 const rowData: Ref<Row[]> = ref([
   {
-    inspectionNo: 'MITEST-A01',
-    receiptNo: 'RCPT-0001',
+    receiptNo: 1001,
+    receiptDate: '2025-07-30',
+    supplyer: '원목세상',
     materialCode: 'MT1001',
-    materialName: '합판',
-    qty: 100,
-    unitPrice: 500,
-    amount: 50000,
-    orderDate: '2025-07-28',
-    dueDate: '2025-07-30',
-    status: '합격',
-    inspector: '한지수'
+    receivedQty: 100,
+    matStatus: '입고'
   },
   {
-    inspectionNo: 'MITEST-A02',
-    receiptNo: 'RCPT-0002',
-    materialCode: 'WD00003',
-    materialName: '원목',
-    qty: 50,
-    unitPrice: 700,
-    amount: 35000,
-    orderDate: '2025-07-29',
-    dueDate: '2025-08-01',
-    status: '불합격',
-    inspector: '박민수'
+    receiptNo: 1002,
+    receiptDate: '2025-07-31',
+    supplyer: '합판세상',
+    materialCode: 'MT1002',
+    receivedQty: 200,
+    matStatus: '입고'
   },
   {
-    inspectionNo: 'MITEST-A03',
-    receiptNo: 'RCPT-0003',
-    materialCode: 'WD00005',
-    materialName: '합판',
-    qty: 150,
-    unitPrice: 500,
-    amount: 75000,
-    orderDate: '2025-07-30',
-    dueDate: '2025-08-02',
-    status: '합격',
-    inspector: '김하늘'
-  },
-  {
-    inspectionNo: 'MITEST-A03',
-    receiptNo: 'RCPT-0003',
-    materialCode: 'WD00005',
-    materialName: '합판',
-    qty: 150,
-    unitPrice: 500,
-    amount: 75000,
-    orderDate: '2025-07-30',
-    dueDate: '2025-08-02',
-    status: '합격',
-    inspector: '김하늘'
-  },
-  {
-    inspectionNo: 'MITEST-A03',
-    receiptNo: 'RCPT-0003',
-    materialCode: 'WD00005',
-    materialName: '합판',
-    qty: 150,
-    unitPrice: 500,
-    amount: 75000,
-    orderDate: '2025-07-30',
-    dueDate: '2025-08-02',
-    status: '합격',
-    inspector: '김하늘'
-  },
-  {
-    inspectionNo: 'MITEST-A03',
-    receiptNo: 'RCPT-0003',
-    materialCode: 'WD00005',
-    materialName: '합판',
-    qty: 150,
-    unitPrice: 500,
-    amount: 75000,
-    orderDate: '2025-07-30',
-    dueDate: '2025-08-02',
-    status: '합격',
-    inspector: '김하늘'
-  },
-  {
-    inspectionNo: 'MITEST-A03',
-    receiptNo: 'RCPT-0003',
-    materialCode: 'WD00005',
-    materialName: '합판',
-    qty: 150,
-    unitPrice: 500,
-    amount: 75000,
-    orderDate: '2025-07-30',
-    dueDate: '2025-08-02',
-    status: '합격',
-    inspector: '김하늘'
-  },
-  {
-    inspectionNo: 'MITEST-A03',
-    receiptNo: 'RCPT-0003',
-    materialCode: 'WD00005',
-    materialName: '합판',
-    qty: 150,
-    unitPrice: 500,
-    amount: 75000,
-    orderDate: '2025-07-30',
-    dueDate: '2025-08-02',
-    status: '합격',
-    inspector: '김하늘'
-  },
-  {
-    inspectionNo: 'MITEST-A03',
-    receiptNo: 'RCPT-0003',
-    materialCode: 'WD00005',
-    materialName: '합판',
-    qty: 150,
-    unitPrice: 500,
-    amount: 75000,
-    orderDate: '2025-07-30',
-    dueDate: '2025-08-02',
-    status: '합격',
-    inspector: '김하늘'
+    receiptNo: 1003,
+    receiptDate: '2025-08-01',
+    supplyer: '원목세상',
+    materialCode: 'MT1001',
+    receivedQty: 50,
+    matStatus: '검수대기'
   }
 ]);
 
@@ -232,23 +135,12 @@ const onRowClicked = (event: any) => {
 };
 
 const colDefs: Ref<ColDef<Row>[]> = ref([
-  { headerName: '검사번호', field: 'inspectionNo', minWidth: 130, resizable: true },
-  { headerName: '입고번호', field: 'receiptNo', minWidth: 120, resizable: true },
-  { headerName: '자재코드', field: 'materialCode', minWidth: 120, resizable: true },
-  { headerName: '자재명', field: 'materialName', minWidth: 120, resizable: true },
-  { headerName: '수량', field: 'qty', type: 'rightAligned', resizable: true },
-  {
-    headerName: '단가',
-    field: 'unitPrice',
-    type: 'rightAligned',
-    valueFormatter: (p) => (p.value ?? 0).toLocaleString(),
-    resizable: false
-  },
-  { headerName: '금액', field: 'amount', type: 'rightAligned', valueFormatter: (p) => (p.value ?? 0).toLocaleString(), resizable: true },
-  { headerName: '발주일자', field: 'orderDate', minWidth: 120, resizable: true },
-  { headerName: '납기일자', field: 'dueDate', minWidth: 120, resizable: true },
-  { headerName: '처리상태', field: 'status', minWidth: 100, resizable: true },
-  { headerName: '검수확인인', field: 'inspector', minWidth: 110, resizable: true }
+  { headerName: '입고번호', field: 'receiptNo', flex: 1, resizable: true },
+  { headerName: '입고일자', field: 'receiptDate', flex: 1, resizable: true },
+  { headerName: '공급처', field: 'supplyer', flex: 1, resizable: true },
+  { headerName: '자재코드', field: 'materialCode', flex: 1, resizable: true },
+  { headerName: '입고수량', field: 'receivedQty', resizable: true },
+  { headerName: '상태', field: 'matStatus', flex: 1, resizable: true }
 ]);
 
 // ----- 상단 필터를 적용한 그리드 데이터 -----
@@ -256,14 +148,12 @@ const gridData = computed(() => {
   const name = form.supplier.trim().toLowerCase();
   const status = form.contact.trim().toLowerCase();
   const from = form.orderDate || '';
-  const to = form.dueDate || '';
 
   return rowData.value.filter((r) => {
-    const byName = !name || r.materialName.toLowerCase().includes(name);
-    const byStatus = !status || r.status.toLowerCase().includes(status);
-    const byFrom = !from || r.orderDate >= from;
-    const byTo = !to || r.dueDate <= to;
-    return byName && byStatus && byFrom && byTo;
+    const byName = !name || r.materialCode.toLowerCase().includes(name);
+    const byStatus = !status || r.matStatus.toLowerCase().includes(status);
+    const byFrom = !from || r.receiptDate >= from;
+    return byName && byStatus && byFrom;
   });
 });
 
@@ -281,8 +171,59 @@ function resetForm(): void {
   form.supplier = '';
   form.contact = '';
   form.orderDate = '';
-  form.dueDate = '';
 }
+
+// const getMtrList = async () => {
+//   const result = await axios.get('http://localhost:3000/prdcertlist');
+// };
+
+// // db 연결
+// const getPrdList = async () => {
+//   try {
+//     const result = await axios.get('http://localhost:3000/prdcertlist');
+
+//     // DB 응답 데이터를 rowData에 매핑
+//     if (result.data.length > 0) {
+//       // DB 필드명을 Vue 컴포넌트에서 사용하는 필드명으로 매핑
+//       rowData.value = result.data.map((item) => ({
+//         certId: item.PRD_CERT_ID || item.certId,
+//         prdCode: item.PRD_ID || item.prdCode,
+//         prdName: item.PRD_NAME || item.prdName,
+//         chkedDate: item.Q_CHECKED_DATE || item.chkedDate,
+//         prdType: item.PRD_STATUS || item.prdType
+//       }));
+//     }
+//   } catch (err) {
+//     console.error(err);
+//   }
+// };
+
+// 공통코드 처리상태(자재에서 )
+interface StatusOption {
+  label: string;
+  value: string;
+}
+const statusOptions = ref<StatusOption[]>([]);
+
+// 처리상태 옵션 불러오기
+const getStatusOptions = async () => {
+  try {
+    const result = await axios.get('http://localhost:3000/qccommon');
+    if (result.data.length > 0) {
+      statusOptions.value = result.data.map((item: any) => ({
+        label: item.code_name,
+        value: item.code
+      }));
+    }
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+// ----- 컴포넌트 마운트 시 데이터 로드 -----
+onMounted(() => {
+  getStatusOptions(); // 처리상태 옵션 로드
+});
 </script>
 
 <style scoped>

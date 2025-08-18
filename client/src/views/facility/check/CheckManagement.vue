@@ -1,18 +1,15 @@
 <template>
   <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs" />
+  <UiParentCard title="설비 점검관리">
+    <v-row class="mb-2 py-0">
+      <v-col cols="12" class="d-flex align-center">
+        <v-btn color="warning" variant="flat" @click="openModal('공정 조회', RowData, ColDefs)"> 공정 조회 </v-btn>
+      </v-col>
+    </v-row>
 
-  <UiParentCard title="설비 점검관리 페이지">
-    <v-row align="center" class="mb-4">
-      <v-col cols="12" md="6" class="d-flex justify-start">
-        <v-text-field
-          v-model.trim="productKeyword"
-          placeholder="공정선택"
-          hide-details
-          density="compact"
-          variant="outlined"
-          style="max-width: 280px"
-        />
-        <v-btn class="ml-2" color="darkText" @click="openModal('공정 조회', RowData, ColDefs)"> 검색 </v-btn>
+    <v-row class="mb-4 pt-0">
+      <v-col cols="12" md="6">
+        <v-text-field label="공정코드" v-model="processCode" readonly hide-details density="comfortable" variant="outlined" />
       </v-col>
     </v-row>
 
@@ -41,7 +38,6 @@
           <v-text-field label="설비명" v-model="form.name" dense outlined readonly />
           <v-text-field label="점검내역" v-model="form.inspectNote" dense outlined />
           <v-text-field label="담당자" v-model="form.manager" dense outlined readonly />
-
           <v-text-field label="부적합 사유" v-model="form.ngReason" dense outlined :disabled="form.fit !== '부적합'" />
         </v-col>
 
@@ -82,43 +78,63 @@ const breadcrumbs = shallowRef([
   { title: '점검관리', disabled: false, href: '#' }
 ]);
 
-const productKeyword = ref('');
 const processCode = ref('');
 const gridApi = ref(null);
 const onGridReady = (e) => (gridApi.value = e.api);
 
+/** 공정코드  */
+const applyProcessFilter = (procCode) => {
+  if (!gridApi.value) return;
+  gridApi.value.setFilterModel({
+    공정코드: { filterType: 'text', type: 'equals', filter: procCode || '' }
+  });
+  gridApi.value.onFilterChanged();
+};
+
+/* 컬럼 정의  */
 const columnDefs = ref([
+  { field: '공정코드', hide: true, filter: 'agTextColumnFilter' },
   { field: '설비코드', flex: 1 },
   { field: '설비명', flex: 1 },
   { field: '설비유형', flex: 1 },
   { field: '설비상태', flex: 1 },
   { field: '비가동사유', flex: 1 },
   { field: '비가동시작시간', flex: 1 },
+  { field: '적합여부', flex: 1 },
+  { field: '다음점검일', flex: 1 },
   { field: '담당자', flex: 1 }
 ]);
 const defaultColDef = { editable: false, sortable: true, resizable: true };
 
+/* 더미 데이터  */
 const rows = ref([
   {
+    공정코드: 'PRC-002',
     설비코드: 'EQ007',
     설비명: '융착기',
     설비유형: '가공설비',
     설비상태: '비가동',
     비가동사유: '점검',
     비가동시작시간: '2025-07-30 10:00:55',
+    적합여부: '-',
+    다음점검일: '-',
     담당자: '김성수'
   },
   {
+    공정코드: 'PRC-003',
     설비코드: 'EQ003',
     설비명: 'CNC조각기',
     설비유형: '재단설비',
     설비상태: '비가동',
     비가동사유: '점검',
     비가동시작시간: '2025-07-28 14:12:30',
+    적합여부: '-',
+    다음점검일: '-',
     담당자: '이동섭'
   }
 ]);
 
+/* 상세 폼 */
 const form = reactive({
   code: '',
   name: '',
@@ -169,7 +185,7 @@ function now() {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
 
-/* ===== 공정 조회 모달 ===== */
+/*  공정 조회 모달  */
 import MoDal from '@/views/common/NewModal.vue';
 const modalRef = ref(null);
 const modalTitle = ref('');
@@ -196,6 +212,7 @@ const openModal = (title, rowData, colDefs) => {
 };
 const modalConfirm = (selectedRow) => {
   if (!selectedRow) return;
-  processCode.value = selectedRow.공정코드 || selectedRow.공정명 || '';
+  processCode.value = selectedRow.공정코드 || '';
+  applyProcessFilter(processCode.value);
 };
 </script>

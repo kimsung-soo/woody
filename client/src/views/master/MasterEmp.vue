@@ -103,7 +103,8 @@ const form = ref({
   auth: '',
   dept: '',
   addr: '',
-  status: ''
+  status: '',
+  endDate: ''
 });
 
 onMounted(() => {
@@ -135,15 +136,34 @@ const colDefs1 = ref([
 const empList = async () => {
   const res = await axios.get('http://localhost:3000/masterEmp');
   empData.value = res.data.map((emp) => ({
-    사원번호: emp.EMP_NO ? 'EMP' + String(emp.EMP_NO).padStart(3, '0') : '',
+    사원번호: emp.EMP_NO,
     사원명: emp.EMP_NAME,
-    입사일자: emp.EMP_HDATE ? emp.EMP_HDATE.substring(0, 10) : '',
+    입사일자: emp.EMP_HDATE ? emp.EMP_HDATE.substring(0, 10) : null,
     주소: emp.ADDR,
     연락처: emp.PHONE,
     이메일: emp.EMAIL,
     부서: emp.DEPT_NAME,
     직급: emp.AUTH,
-    퇴사일자: emp.EMP_EDATE ? emp.EMP_EDATE.substring(0, 10) : ' ',
+    퇴사일자: emp.EMP_EDATE ? emp.EMP_EDATE.substring(0, 10) : null,
+    재직상태: emp.EMP_STATUS
+  }));
+};
+
+//사원 검색
+const searchData = async (searchKeyword) => {
+  if (!searchKeyword) return;
+  const params = { EMP_NAME: `%${searchKeyword}%` };
+  const res = await axios.post('http://localhost:3000/masterEmpName', params);
+  empData.value = res.data.map((emp) => ({
+    사원번호: emp.EMP_NO,
+    사원명: emp.EMP_NAME,
+    입사일자: emp.EMP_HDATE ? emp.EMP_HDATE.substring(0, 10) : null,
+    주소: emp.ADDR,
+    연락처: emp.PHONE,
+    이메일: emp.EMAIL,
+    부서: emp.DEPT_NAME,
+    직급: emp.AUTH,
+    퇴사일자: emp.EMP_EDATE ? emp.EMP_EDATE.substring(0, 10) : null,
     재직상태: emp.EMP_STATUS
   }));
 };
@@ -161,7 +181,9 @@ const submitForm = async () => {
       AUTH: form.value.auth,
       ADDR: form.value.addr,
       EMP_STATUS: form.value.status,
-      EMP_NO: form.value.empNo.substring(5)
+      EMP_HDATE: form.value.hireDate?.trim() || null,
+      EMP_EDATE: form.value.endDate?.trim() || null,
+      EMP_NO: form.value.empNo
     };
     const result = await axios.put('http://localhost:3000/masterEmpUpdate', updateRow);
     console.log(result.config.data);
@@ -180,7 +202,8 @@ const submitForm = async () => {
       AUTH: form.value.auth,
       ADDR: form.value.addr,
       EMP_STATUS: form.value.status,
-      EMP_EDATE: form.value.endDate || null
+      EMP_HDATE: form.value.hireDate?.trim() || null,
+      EMP_EDATE: form.value.endDate?.trim() || null
     };
     const result = await axios.post('http://localhost:3000/masterEmpInsert', newRow);
     console.log(result.config.data);
@@ -204,9 +227,11 @@ const del = async () => {
     alert('삭제할 항목을 선택하세요');
     return;
   }
-  const param = { empNo: selectedRows[0].사원번호.substring(5) };
-  console.log(param);
-  // const result = await axios.delete('/http://localhost:3000/masterEmpDelete', param);
+  const deleteRow = { empNo: selectedRows[0].사원번호 };
+  console.log(deleteRow);
+  const result = await axios.delete('http://localhost:3000/masterEmpDelete', { data: deleteRow });
+  console.log(result);
+  empList();
 };
 // 폼 데이터를 초기화하는 함수
 const resetForm = () => {

@@ -15,6 +15,9 @@ app.listen(PORT, () => {
 
 const boardRouter = require("./routers/board_router.js");
 app.use(boardRouter);
+
+
+// 생산
 const productionRouter = require("./routers/production_router.js");
 app.use(productionRouter);
 
@@ -25,3 +28,11 @@ const MasterRouter = require("./routers/master_router.js");
 app.use(MasterRouter);
 const MaterialsRouter = require("./routers/materials_router.js");
 app.use(MaterialsRouter);
+
+//설비
+const FacilityRouter = require("./routers/facility_router.js");
+app.use(FacilityRouter);
+
+//영업
+const marketingRouter = require("./routers/marketingRouter.js");
+app.use(marketingRouter);

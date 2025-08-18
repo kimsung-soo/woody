@@ -6,12 +6,12 @@
       <v-col cols="auto">
         <v-btn color="warning" class="mr-2 button" @click="openModal('제품유형', materialRowData, materialColDefs)">제품조회 </v-btn>
       </v-col>
+      <v-col>
+        <v-btn color="error" class="top_btn_ser" variant="elevated" @click="resetForm">초기화</v-btn>
+      </v-col>
       <MoDal ref="modalRef" :title="modalTitle" :rowData="modalRowData" :colDefs="modalColDefs" @confirm="onModalConfirm" />
     </v-row>
     <v-row class="mb-4">
-      <v-col cols="3">
-        <v-text-field label="제품유형" v-model="form.prdType" dense outlined />
-      </v-col>
       <v-col cols="3">
         <v-text-field label="제품유형" v-model="form.prdType" dense outlined />
       </v-col>
@@ -115,7 +115,7 @@ const breadcrumbs = shallowRef([
     href: '#'
   },
   {
-    title: '성적서조회',
+    title: '제품성적서조회',
     disabled: false,
     href: '#'
   }
@@ -129,18 +129,12 @@ const form = ref({
 });
 
 // db연결
-// const getPrdList = async () => {
-//   let result = await axios.get('/prdcertlist').catch((err) => console.log(err));
-//   rowData.value.certId = result.data.CERT_ID;
-//   console.log(rowData.value);
-// };
-
 const getPrdList = async () => {
   try {
     const result = await axios.get('http://localhost:3000/prdcertlist');
 
     // DB 응답 데이터를 rowData에 매핑
-    if (result.data && result.data.length > 0) {
+    if (result.data.length > 0) {
       // DB 필드명을 Vue 컴포넌트에서 사용하는 필드명으로 매핑
       rowData.value = result.data.map((item) => ({
         certId: item.PRD_CERT_ID || item.certId,
@@ -219,4 +213,13 @@ const onRowClicked = (event) => {
   // 또는 단순히 경로만 이동하고 싶다면:
   // router.push('/qm/qrdpass');
 };
+
+// 초기화 버튼
+function resetForm() {
+  const r = form.value;
+  r.chkedDate = '';
+  r.certId = '';
+  r.prdName = '';
+  r.prdType = '';
+}
 </script>

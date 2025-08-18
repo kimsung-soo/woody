@@ -68,4 +68,47 @@ router.delete("/plans", async (req, res, next) => {
   }
 });
 
+/* ---------- 작업지시 생성 ---------- */
+router.post("/workorders", async (req, res, next) => {
+  try {
+    const result = await svc.createWorkOrder(req.body || {});
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* ---------- 작업지시 목록 ---------- */
+router.get("/workorders", async (req, res, next) => {
+  try {
+    const { kw = "", page = 1, size = 10 } = req.query;
+    const data = await svc.getWorkOrders({ kw, page, size });
+    res.json({ ok: true, ...data });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* ---------- 작업지시 수정 ---------- */
+router.put("/workorders/:id", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const result = await svc.updateWorkOrder(id, req.body || {});
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* ---------- 작업지시 삭제 ---------- */
+router.delete("/workorders", async (req, res, next) => {
+  try {
+    const ids = req.body?.ids || [];
+    const result = await svc.deleteWorkOrders(ids);
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
