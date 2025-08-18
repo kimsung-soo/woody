@@ -94,4 +94,17 @@ module.exports = {
   "production.sp.countPlans": "CALL dev.sp_count_plans(?)",
   "production.sp.updatePlan": "CALL dev.sp_update_plan(?, ?, ?, ?, ?, ?, ?, ?)",
   "production.sp.deletePlans": "CALL dev.sp_delete_plans(?)",
+
+  // Work Orders (SP)
+  "workorder.sp.create":
+    "CALL dev.sp_create_work_order(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  "workorder.sp.select": "CALL dev.sp_select_work_orders(?, ?, ?)",
+  "workorder.sp.count": "CALL dev.sp_count_work_orders(?)",
+  "workorder.sp.update":
+    "CALL dev.sp_update_work_order(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  "workorder.sp.delete": "CALL dev.sp_delete_work_orders(?)",
+
+  // 선택된 계획 CSV → 계획명 join (지시명 자동 채움 보조)
+  "workorder.selectPlanNamesInCsv":
+    "SELECT GROUP_CONCAT(plan_name ORDER BY id SEPARATOR ', ') AS names FROM production_plans WHERE FIND_IN_SET(id, ?)",
 };
