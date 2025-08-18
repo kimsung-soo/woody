@@ -11,6 +11,14 @@ const masterEmpSelect = ` SELECT EMP_NO,
                                 EMP_STATUS
                          FROM EMPLOYEES `;
 
+// 공통코드 조회
+const commonDept = `SELECT code_name 
+from code_master
+where group_code = 'AA'`;
+const commonAuth = `SELECT code_name 
+from code_master
+where group_code = 'BB'`;
+
 // 사원 등록
 const masterEmpInsert = `
                          INSERT INTO EMPLOYEES (
