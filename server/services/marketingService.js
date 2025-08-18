@@ -66,10 +66,32 @@ const inboundList = async () => {
   return list;
 };
 
+//등록전 lot번호 생성
+const getNextLotNo = async () => {
+  let result = await mariadb.query("getNextLotNo");
+  return result;
+};
+
 // 입고 - 등록
-const inboundInsert = async (data) => {
-  const params = [data.RECEIVED_QTY, data.RECEIVED_DATE, data.PRD_CERT_ID];
-  let result = await mariadb.query("inboundInsert", params);
+const inboundInsert = async (rows) => {
+  for (const row of rows) {
+    console.log(row);
+    const params = [
+      row.RECEIVED_QTY,
+      row.RECEIVED_DATE,
+      row.PRD_CERT_ID,
+      row.PRD_LOT,
+    ];
+    await mariadb.query("inboundInsert", params);
+  }
+  return { success: true };
+};
+
+// 검색
+const inboundSearch = async (data) => {
+  console.log(data);
+  const params = [data.startDate, data.endDate];
+  let result = await mariadb.query("inboundSearch", params);
   return result;
 };
 
@@ -77,7 +99,12 @@ module.exports = {
   addAccount,
   inboundList,
   inboundInsert,
+
+  getNextLotNo,
+  inboundSearch,
+
   getAccountList,
   getItemList,
   addOrder,
+
 };

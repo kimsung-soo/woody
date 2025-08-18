@@ -276,4 +276,20 @@ router.post("/prcDelete", async (req, res) => {
   }
 });
 
+// 창고 - 모달조회
+router.get("/wrModalSelect", async (req, res) => {
+  let list = await masterService.wrModalSelect();
+  res.send(list);
+});
+
+// 창고 - 조회
+router.post("/wrSelect", async (req, res) => {
+  const data = req.body;
+  try {
+    let list = await masterService.wrSelect(data);
+    res.send(list);
+  } catch (e) {
+    console.log(e);
+  }
+});
 module.exports = router;
