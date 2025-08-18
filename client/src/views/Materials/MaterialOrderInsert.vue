@@ -97,7 +97,7 @@ const openModal = async (title) => {
       자재코드: mat.MAT_CODE,
       자재명: mat.MAT_NAME,
       자재유형: mat.MAT_TYPE,
-      규격: `${mat.MAT_WIDTH ?? 0} X ${mat.MAT_HEIGHT ?? 0} X ${mat.MAT_DEPT ?? 0}`,
+      규격: mat.MAT_SIZE,
       단위: mat.MAT_UNIT
     }));
 
@@ -153,7 +153,7 @@ async function submitForm() {
       ORDER_DATE: form.orderDate,
       PO_DDAY: form.dueDate,
       MANAGER: form.manager,
-      PO_STATUS: '진행중'
+      PO_STATUS: '대기'
     };
 
     // 2. 상세 데이터

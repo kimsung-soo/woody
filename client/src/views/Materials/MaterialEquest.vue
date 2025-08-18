@@ -31,14 +31,7 @@
     >
     </ag-grid-vue>
 
-    <v-container>
-      <v-textarea v-model="form.returnReason" label="사유 및 요청 사항을 입력하세요" outlined rows="4" auto-grow />
-    </v-container>
-
-    <v-row class="mb-4">
-      <v-col cols="6">
-        <v-text-field label="총금액" v-model="form.totalPrice" outlined readonly />
-      </v-col>
+    <v-row class="mb-4 ggg">
       <v-col cols="6">
         <v-text-field label="담당자" v-model="form.manager" outlined />
       </v-col>
@@ -59,6 +52,7 @@ import UiParentCard from '@/components/shared/UiParentCard.vue';
 import { AgGridVue } from 'ag-grid-vue3';
 import { themeQuartz } from 'ag-grid-community';
 import MoDal from '../common/NewModal.vue';
+import axios from 'axios';
 
 const quartz = themeQuartz;
 
@@ -66,106 +60,77 @@ const quartz = themeQuartz;
 const rowData = ref([]);
 
 const colDefs = ref([
-  { field: '입고번호', flex: 1 },
+  { field: '입고번호', flex: 1.5 },
   { field: '자재명', flex: 1 },
   { field: '자재코드', flex: 1 },
   { field: '규격', flex: 1 },
   { field: '단위', flex: 1 },
-  { field: '단가', flex: 1 },
-  { field: '금액', flex: 1, valueFormatter: (params) => formatNumber(params.value) },
   { field: '수량', flex: 1 },
-  { field: '불량유형', flex: 1 }
+  { field: '사유', flex: 1.5 }
 ]);
 
 // ----------------- 폼 입력 필드 -----------------
 const form = reactive({
-  insertDate: '',
+  insertDate: new Date().toISOString().slice(0, 10),
   reDate: '',
-  manager: '',
-  totalPrice: '', // 총금액
-  returnReason: ''
+  manager: ''
 });
 
-// ----------------- 모달 -----------------
+// ----------------- 모달 (기본 정의) -----------------
 const modalRef = ref(null);
 const modalTitle = ref('');
 const modalRowData = ref([]);
 const modalColDefs = ref([]);
 
 const materialColDefs = [
-  { field: '발행번호', headerName: '발행번호', flex: 1.2 },
-  { field: '업체', headerName: '공급업체', flex: 1 },
-  { field: '자재명', headerName: '자재명', flex: 0.8 },
-  { field: '자재코드', headerName: '자재코드', flex: 0.8 },
-  { field: '규격', headerName: '규격', flex: 0.6 },
-  { field: '발주일자', headerName: '발주일자', flex: 1 },
-  { field: '수량', headerName: '수량', flex: 0.6 },
-  { field: '상태', headerName: '상태', flex: 0.6 }
+  { field: '입고번호', headerName: '입고번호', flex: 1.5 },
+  { field: '자재명', headerName: '자재명', flex: 1 },
+  { field: '자재코드', headerName: '자재코드', flex: 1 },
+  { field: '규격', headerName: '규격', flex: 1.5 },
+  { field: '단위', headerName: '단위', flex: 0.8 },
+  { field: '수량', headerName: '수량', flex: 1 },
+  {
+    field: '상태',
+    flex: 0.8,
+    cellStyle: (params) => {
+      if (params.value === '등록') {
+        return { color: 'black', fontWeight: 'bold' };
+      } else if (params.value === '완료') {
+        return { color: 'red', fontWeight: 'bold' };
+      }
+      return null;
+    }
+  }
 ];
+const materialRowData = ref([]);
 
-const materialRowData = ref([
-  {
-    발행번호: '20250808-001',
-    업체: '원목세상',
-    자재명: '원목',
-    규격: 'mm',
-    자재코드: 'ZCB-558',
-    발주일자: '2025-08-08',
-    수량: 10,
-    상태: '완료'
-  },
-  {
-    발행번호: '20250808-002',
-    업체: '합판월드',
-    자재명: '합판',
-    규격: 'mm',
-    자재코드: 'ABC-123',
-    발주일자: '2025-08-08',
-    수량: 5,
-    상태: '완료'
-  }
-]);
-
-const openModal = (title, rowData, colDefs) => {
+const openModal = async (title) => {
   modalTitle.value = title;
-  modalRowData.value = rowData;
-  modalColDefs.value = colDefs;
-  if (modalRef.value) {
-    modalRef.value.open();
+  modalColDefs.value = materialColDefs;
+
+  try {
+    const res = await axios.get('http://localhost:3000/failMaterials');
+    modalRowData.value = res.data.map((mat) => ({
+      입고번호: mat.RRECEIPT_NO,
+      자재명: mat.MAT_NAME,
+      자재코드: mat.MAT_CODE,
+      규격: mat.MAT_SIZE,
+      단위: mat.MAT_UNIT,
+      // 수량추가
+      상태: mat.MAT_STATUS
+    }));
+
+    if (modalRef.value) {
+      modalRef.value.open();
+    }
+  } catch (error) {
+    console.error('자재 목록을 가져오는 중 오류가 발생했습니다:' + error);
+    alert('자재 목록을 불러오는 데 실패했습니다.');
   }
 };
 
-// ----------------- 총금액 계산 -----------------
-function calculateTotalPrice() {
-  const total = rowData.value.reduce((sum, item) => {
-    const price = Number(item.단가) || 0;
-    const qty = Number(item.수량) || 0;
-    return sum + price * qty;
-  }, 0);
-  form.totalPrice = total.toLocaleString();
-}
-
-const formatNumber = (num) => {
-  if (num == null) return '';
-  return new Intl.NumberFormat('ko-KR').format(Number(num));
-};
-
-// ----------------- 모달 선택 확인 -----------------
 function onModalConfirm(selectedRows) {
   if (!Array.isArray(selectedRows)) selectedRows = [selectedRows];
-
-  if (selectedRows.length > 0) {
-    form.issueNumber = selectedRows[0].발행번호 || '';
-    form.name = selectedRows[0].업체 || '';
-    form.insertDate = new Date().toISOString().slice(0, 10); // 오늘 날짜
-  }
-
-  // 첫 번째 선택 항목으로 발행번호/업체/날짜 설정
-  if (selectedRows.length > 0) {
-    form.insertDate = selectedRows[0].작성일자 || '';
-    form.name = selectedRows[0].업체 || '';
-    form.insertDate = new Date().toISOString().slice(0, 10);
-  }
 
   // 선택된 항목들 그리드에 추가
   selectedRows.forEach((row) => {
@@ -174,36 +139,54 @@ function onModalConfirm(selectedRows) {
       자재명: row.자재명 || '',
       자재코드: row.자재코드 || '',
       규격: row.규격 || '',
-      단위: row.단위 || 'EA',
-      단가: row.단가 || 0,
-      금액: row.금액 || 0,
+      단위: row.단위 || '',
       수량: row.수량 || 0,
-      불량유형: row.불량유형 || ''
+      사유: row.사유 || ''
     });
   });
-
-  // 총금액 계산
-  calculateTotalPrice();
-}
-
-// ----------------- 셀 값 변경 시 -----------------
-function onCellValueChanged() {
-  calculateTotalPrice();
 }
 
 // ----------------- 리셋 / 제출 -----------------
 function resetForm() {
-  form.issueNumber = '';
-  form.insertDate = '';
   form.manager = '';
-  form.totalPrice = '';
+  form.insertDate = '';
+  form.reDate = '';
   rowData.value = [];
-  alert('초기화 되었습니다.');
 }
 
-function submitForm() {
-  console.log('제출된 폼:', { form: { ...form }, items: rowData.value });
-  alert('폼 제출 성공');
+async function submitForm() {
+  try {
+    if (!form.manager || !form.insertDate || !form.reDate) {
+      alert('모든 필드를 입력해주세요.');
+      return;
+    }
+
+    // 1. 반품요청서 기본 데이터
+    const requestData = {
+      CREATED_DATE: new Date().toISOString().slice(0, 10), // 오늘 날짜
+      RR_DATE: form.rrDate,
+      MANAGER: form.manager,
+      RE_STATUS: '대기'
+    };
+
+    // 2. 상세 데이터
+    const detailList = rowData.value.map((row) => ({
+      MAT_CODE: row.자재코드,
+      RE_QTY: row.수량 || 0
+    }));
+
+    // 3. POST 요청
+    await axios.post('http://localhost:3000/return/request/insert', {
+      requestData,
+      detailList
+    });
+
+    alert('등록 되었습니다.');
+    resetForm();
+  } catch (error) {
+    console.error(error);
+    alert('등록 중 오류가 발생했습니다.');
+  }
 }
 
 // 페이지/브레드크럼
@@ -215,6 +198,9 @@ const breadcrumbs = shallowRef([
 </script>
 
 <style scoped>
+.ggg {
+  margin-top: 1.5rem;
+}
 .button {
   margin-top: 1rem;
   margin-left: 1rem;
