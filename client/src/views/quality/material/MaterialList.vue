@@ -89,15 +89,17 @@ interface Row {
 const rowData: Ref<Row[]> = ref([]);
 
 // 행 클릭 이벤트 핸들러
-const onRowClicked = (event: any) => {
-  const clickedRowData = event.data;
-  console.log('클릭된 행:', clickedRowData);
-
-  // /qm/matmng 경로로 이동하면서 데이터 전달
+const onRowClicked = (e) => {
+  const r = e.data;
   router.push({
-    path: '/qm/matmng',
+    path: '/qm/matmng', // 폼 페이지
     query: {
-      receiptNo: clickedRowData.receiptNo.toString()
+      receiptNo: r.receiptNo, // 'MCERT001' 식
+      matCode: r.materialCode, // 자재코드
+      totalQty: String(r.receivedQty), // 총수량
+      inDate: r.receiptDate, // 입고일자 YYYY-MM-DD
+      materialName: r.materialName || '', // 있다면
+      createdBy: r.currentUserName
     }
   });
 };
@@ -150,15 +152,6 @@ const getMaterialList = async () => {
   }
 };
 
-interface Row {
-  receiptNo: string;
-  receiptDate: string;
-  supplyer: string;
-  materialCode: string;
-  receivedQty: number;
-  matStatus: string;
-}
-
 const colDefs: Ref<ColDef<Row>[]> = ref([
   { headerName: '입고번호', field: 'receiptNo', flex: 1, resizable: true },
   { headerName: '입고일자', field: 'receiptDate', flex: 1, resizable: true },
@@ -174,13 +167,28 @@ const gridData = computed(() => {
   const status = form.materialStatus?.trim().toLowerCase() || ''; // 상태
   const dateFilter = form.receiptNo || ''; // 입고일자
 
-  return rowData.value.filter((r) => {
+  const filtered = rowData.value.filter((r) => {
     const byMaterialCode = !materialCode || r.materialCode.toLowerCase().includes(materialCode);
     const byStatus = !status || r.matStatus.toLowerCase().includes(status);
-    const byDate = !dateFilter || r.receiptDate >= dateFilter;
+
+    // 입고일자 필터링 수정 - 정확한 날짜 매칭
+    let byDate = true;
+    if (dateFilter) {
+      // receiptDate가 'YYYY-MM-DD' 형식이라고 가정
+      // 선택한 날짜와 정확히 일치하는 경우
+      byDate = r.receiptDate === dateFilter;
+    }
 
     return byMaterialCode && byStatus && byDate;
   });
+
+  console.log('필터링 결과:', {
+    전체데이터: rowData.value.length,
+    필터링후: filtered.length,
+    검색조건: { materialCode, status, dateFilter }
+  });
+
+  return filtered;
 });
 
 // 페이지네이션, 컬럼 사이즈조절
@@ -199,7 +207,6 @@ function resetForm(): void {
 }
 
 function searchData(): void {
-  // 검색 버튼 클릭 시 필터링은 computed에서 자동으로 처리됨
   console.log('검색 조건:', {
     입고일자: form.receiptNo,
     자재코드: form.materialCode,
@@ -213,18 +220,18 @@ interface StatusOption {
   value: string;
 }
 
-const statusOptions = ref<StatusOption[]>([{ label: '검수대기', value: '' }]);
+const statusOptions = ref<StatusOption[]>();
 
 // 처리상태 옵션 불러오기 (기존 함수는 제거하고 getMatStatus 사용)
 const getStatusOptions = async () => {
   try {
-    const result = await axios.get('http://localhost:3000/qccommon');
+    const result = await axios.get('http://localhost:3000/matcommon');
     if (result.data && result.data.length > 0) {
       statusOptions.value = [
-        { label: '검수대기', value: '' },
+        { label: '입고', value: '' }, // 필터 초기값
         ...result.data.map((item: any) => ({
           label: item.code_name,
-          value: item.code
+          value: item.code_name
         }))
       ];
     }

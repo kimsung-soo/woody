@@ -12,9 +12,6 @@
       <v-col cols="3">
         <v-text-field label="검사완료일자" v-model="form.inspector" type="date" dense outlined />
       </v-col>
-      <!-- <v-col cols="3">
-        <v-text-field label="입고일자" v-model="form.orderDate" type="date" dense outlined />
-      </v-col> -->
       <!-- 버튼 -->
       <v-row justify="end">
         <v-btn color="primary" variant="elevated" @click="searchData" class="mr-2">조회</v-btn>
@@ -65,34 +62,72 @@ interface Row {
   inspectionNo: string; // 검사번호
   receiptNo: string; // 입고번호
   materialCode: string; // 원자재코드
-  materialName: string; // 원자재이름
   qty: number; // 총수량
   status: string; // 합불 여부
   createdBy: string; // 검사완료일자
+  rjtReason: string; // 불량사유
 }
 
 // DB에서 불러온 원본 데이터
 const rowData: Ref<Row[]> = ref([]);
 const loading = ref(false);
 
-// 공통코드의 상태 코드 라벨 매핑
-const STATUS_MAP = {
-  '01': '합격',
-  '02': '불합격'
-} as const;
+// 공통코드 처리상태
+interface StatusOption {
+  label: string;
+  value: string;
+}
+// 처리상태 옵션 - 하드코딩으로 설정 (불량사유 기반)
+const statusOptions = ref<StatusOption[]>([
+  { label: '합격', value: '합격' },
+  { label: '불량', value: '불량' }
+]);
 
+// ----- 상단 필터를 적용한 그리드 데이터 ----
+const gridData = computed(() => {
+  const name = form.materialName.trim().toLowerCase();
+  const selectedStatusCode = form.status;
+  const inspectorDate = form.inspector;
+
+  return rowData.value
+    .filter((r) => {
+      // 원자재명 필터링 (materialCode로 수정)
+      const byName = !name || r.materialCode.toLowerCase().includes(name);
+
+      // 동적으로 처리상태 결정
+      const dynamicStatus = r.rjtReason && r.rjtReason.trim() !== '' ? '불량' : '합격';
+
+      // 처리상태 필터링
+      const byStatus = !selectedStatusCode || dynamicStatus === selectedStatusCode;
+
+      // 검사완료일자 필터링 (날짜 형식이 YYYY-MM-DD라고 가정)
+      const byInspectorDate = !inspectorDate || (r.createdBy && r.createdBy >= inspectorDate);
+
+      return byName && byStatus && byInspectorDate;
+    })
+    .map((r) => ({
+      ...r,
+      // 처리상태를 불량사유 유무에 따라 동적으로 설정
+      status: r.rjtReason && r.rjtReason.trim() !== '' ? '불량' : '합격'
+    }));
+});
+
+// 컬럼 정의에서 처리상태 cellRenderer 수정
 const colDefs: Ref<ColDef<Row>[]> = ref([
-  { headerName: '검사번호', field: 'inspectionNo', flex: 1, resizable: true },
-  { headerName: '입고번호', field: 'receiptNo', flex: 1, resizable: true },
-  { headerName: '원자재코드', field: 'materialCode', flex: 1, resizable: true },
-  { headerName: '원자재명', field: 'materialName', flex: 1, resizable: true },
-  { headerName: '총수량', field: 'qty', flex: 1, resizable: true },
+  { headerName: '검사번호', field: 'inspectionNo', flex: 1, resizable: true, suppressSizeToFit: true },
+  { headerName: '입고번호', field: 'receiptNo', flex: 1, resizable: true, suppressSizeToFit: true },
+  { headerName: '원자재코드', field: 'materialCode', flex: 1, resizable: true, suppressSizeToFit: true },
+  { headerName: '총수량', field: 'qty', flex: 1, resizable: true, suppressSizeToFit: true },
   {
     headerName: '처리상태',
     field: 'status',
     flex: 1,
     resizable: true,
-    cellRenderer: (params: any) => STATUS_MAP[params.value as keyof typeof STATUS_MAP] || params.value
+    suppressSizeToFit: true,
+    cellRenderer: (params: any) => {
+      // 이미 gridData에서 '합격'/'불량'으로 변환되므로 그대로 표시
+      return params.value || '-';
+    }
   },
   {
     headerName: '검사완료일자',
@@ -105,59 +140,9 @@ const colDefs: Ref<ColDef<Row>[]> = ref([
       const date = new Date(params.value);
       return date.toISOString().split('T')[0];
     }
-  }
+  },
+  { headerName: '불량사유', field: 'rjtReason', flex: 1, resizable: true, suppressSizeToFit: true }
 ]);
-
-// ----- DB에서 원자재검수이력 데이터 불러오기 -----
-const getMatHisAll = async () => {
-  try {
-    loading.value = true;
-    const result = await axios.get('http://localhost:3000/mathisall');
-
-    console.log('result data는 => ' + result);
-
-    if (result.data && Array.isArray(result.data)) {
-      // DB 데이터를 Row 인터페이스에 맞게 매핑
-      rowData.value = result.data.map((item: any) => ({
-        inspectionNo: item.MAT_CERT_ID || item.MAT_CERT_ID || '',
-        receiptNo: item.RECEIPT_NO || item.RECEIPT_NO || '',
-        materialCode: item.MAT_CODE || item.MAT_CODE || '',
-        materialName: item.MAT_NAME || item.MAT_NAME || '',
-        qty: Number(item.TOTAL_QTY) || 0,
-        status: item.MAT_STATUS || '',
-        createdBy: item.Q_CHECKED_DATE || ''
-      }));
-    } else {
-      rowData.value = [];
-    }
-  } catch (err) {
-    console.error('데이터 조회 중 오류 발생:', err);
-    rowData.value = [];
-    // 에러 처리 - 사용자에게 알림 표시 등
-  } finally {
-    loading.value = false;
-  }
-};
-
-// ----- 상단 필터를 적용한 그리드 데이터 ----
-const gridData = computed(() => {
-  const name = form.materialName.trim().toLowerCase();
-  const selectedStatusCode = form.status;
-  const inspectorDate = form.inspector;
-
-  return rowData.value.filter((r) => {
-    // 원자재명 필터링
-    const byName = !name || r.materialName.toLowerCase().includes(name);
-
-    // 처리상태 필터링
-    const byStatus = !selectedStatusCode || r.status === selectedStatusCode;
-
-    // 검사완료일자 필터링 (날짜 형식이 YYYY-MM-DD라고 가정)
-    const byInspectorDate = !inspectorDate || r.createdBy >= inspectorDate;
-
-    return byName && byStatus && byInspectorDate;
-  });
-});
 
 // 페이지네이션, 컬럼 사이즈조절
 const gridOptions = ref<GridOptions<Row>>({
@@ -166,6 +151,36 @@ const gridOptions = ref<GridOptions<Row>>({
   paginationAutoPageSize: true,
   paginationPageSizeSelector: true
 });
+
+// ----- DB에서 원자재검수이력 데이터 불러오기 -----
+const getMatHisAll = async () => {
+  try {
+    loading.value = true;
+    const result = await axios.get('http://localhost:3000/mathisall');
+
+    console.log('result data는 => ', result.data);
+
+    if (result.data && Array.isArray(result.data)) {
+      // DB 데이터를 Row 인터페이스에 맞게 매핑
+      rowData.value = result.data.map((item: any) => ({
+        inspectionNo: item.MAT_CERT_ID || '',
+        receiptNo: item.RECEIPT_NO || '',
+        materialCode: item.MAT_CODE || '',
+        qty: Number(item.TOTAL_QTY) || 0,
+        status: item.MAT_STATUS || '',
+        createdBy: item.Q_CHECKED_DATE || '',
+        rjtReason: item.RJT_REASON || ''
+      }));
+    } else {
+      rowData.value = [];
+    }
+  } catch (err) {
+    console.error('데이터 조회 중 오류 발생:', err);
+    rowData.value = [];
+  } finally {
+    loading.value = false;
+  }
+};
 
 // ----- 버튼 핸들러 -----
 function resetForm(): void {
@@ -179,34 +194,9 @@ function searchData(): void {
   getMatHisAll();
 }
 
-// 공통코드 처리상태
-interface StatusOption {
-  label: string;
-  value: string;
-}
-const statusOptions = ref<StatusOption[]>([]);
-
-// 처리상태 옵션 불러오기
-const getStatusOptions = async () => {
-  try {
-    const result = await axios.get('http://localhost:3000/qccommon');
-    if (result.data && Array.isArray(result.data) && result.data.length > 0) {
-      statusOptions.value = result.data.map((item: any) => ({
-        label: item.code_name || item.codeName || '',
-        value: item.code_name || item.codeName || '' // SQL에서 '합격'/'불합격'로 변환되므로 라벨값으로 비교
-      }));
-    }
-  } catch (err) {
-    console.error('공통코드 조회 중 오류 발생:', err);
-  }
-};
-
 // ----- 컴포넌트 마운트 시 데이터 로드 -----
 onMounted(async () => {
-  await Promise.all([
-    getStatusOptions(), // 처리상태 옵션 로드
-    getMatHisAll() // 원자재검수이력 데이터 로드
-  ]);
+  await getMatHisAll(); // 원자재검수이력 데이터 로드
 });
 </script>
 

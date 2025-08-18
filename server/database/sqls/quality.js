@@ -6,18 +6,13 @@
 const materialSelect = `
 SELECT M.MAT_CERT_ID,
        M.RECEIPT_NO,
-	     M.MAT_CODE,
-       M.MAT_NAME,
+	   M.MAT_CODE,
        M.TOTAL_QTY,
        M.Q_CHECKED_DATE,
-       CASE M.MAT_STATUS
-            WHEN '01' THEN '합격'
-            WHEN '02' THEN '불합격'
-       END AS MAT_STATUS,
        R.RJT_REASON
        FROM MATERIAL_CERTIFICATE M
        LEFT JOIN REJECTED_MATERIAL R
-       ON M.MAT_CERT_ID = R.MAT_CERT_ID
+       ON M.RECEIPT_NO = R.RECEIPT_NO
 `;
 
 // 원자재검수관리 조회
@@ -29,8 +24,14 @@ FROM MAT_IN_TMP
 // 합격원자재 등록
 const passMat = `
 INSERT INTO MATERIAL_CERTIFICATE
-  (MAT_CERT_ID, Q_STD_ID, MAT_CODE, MAT_NAME, TOTAL_QTY, Q_CHECKED_DATE, MAT_STATUS, CREATED_BY, RECEIPT_NO)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  (MAT_CERT_ID, RECEIPT_NO, Q_STD_ID, MAT_CODE, TOTAL_QTY, Q_CHECKED_DATE, CREATED_BY)
+VALUES (GetNextMAT_CERT_ID(), ?, NULL, ?, ?, ?, ?)`;
+
+// 불합격원자재 등록
+const rejectMat = `
+INSERT INTO REJECTED_MATERIAL
+  (RJT_MAT_ID, RECEIPT_NO, MAT_CODE, RJT_REASON, Q_CHECKED_DATE, TOTAL_QTY, MAT_STAUTS, CREATED_BY)
+VALUES ()
 `;
 
 // 제품성적서조회
