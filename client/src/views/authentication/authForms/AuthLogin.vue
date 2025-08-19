@@ -8,29 +8,24 @@ const valid = ref(false);
 const show1 = ref(false);
 // const logform = ref();
 const password = ref('');
-const username = ref('');
+const email = ref('');
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function validate(values: any, { setErrors }: any) {
   const authStore = useAuthStore();
-  return authStore.login(username.value, password.value).catch((error) => setErrors({ apiError: error }));
+  return authStore.login(email.value, password.value).catch((error) => setErrors({ apiError: error }));
 }
 </script>
 
 <template>
-  <!-- <v-btn block color="primary" variant="outlined" class="text-lightText googleBtn">
-    <img :src="Google" alt="google" />
-    <span class="ml-2">Sign in with Google</span></v-btn -->
-
   <v-row>
     <v-divider class="custom-devider" />
   </v-row>
   <img src="../../../assets/images/logos/gg.svg" alt="" style="width: 20rem; margin: 0.5rem 0 0.5rem 2.4rem" />
   <Form @submit="validate" class="mt-7 loginForm" v-slot="{ errors, isSubmitting }">
     <v-text-field
-      v-model="username"
-      label="사원번호를 입력하세요."
-      :rules="[(v) => !!v || '필수 입력 항목입니다.', (v) => /^\d+$/.test(v) || '숫자만 입력하세요.']"
+      v-model="email"
+      label="이메일을 입력하세요."
       class="mt-4 mb-8"
       required
       density="comfortable"
@@ -54,18 +49,7 @@ function validate(values: any, { setErrors }: any) {
     ></v-text-field>
 
     <div class="d-sm-flex align-center mt-2 mb-7 mb-sm-0">
-      <!-- <v-checkbox
-        v-model="checkbox"
-        :rules="[(v: any) => !!v || 'You must agree to continue!']"
-        label="Remember me?"
-        required
-        color="primary"
-        class="ms-n2"
-        hide-details
-      ></v-checkbox> -->
-      <div class="ml-auto">
-        <!-- <a href="javascript:void(0)" class="text-primary text-decoration-none">Forgot password?</a> -->
-      </div>
+      <div class="ml-auto"></div>
     </div>
     <v-btn color="secondary" :loading="isSubmitting" block class="mt-2" variant="flat" size="large" :disabled="valid" type="submit">
       로그인</v-btn
