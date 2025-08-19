@@ -64,7 +64,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { useProcessSimStore } from '@/stores/useProcessSimStore';
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
@@ -157,6 +157,13 @@ function stateKorean(s) {
 function stateColor(s) {
   return s === 'RUN' ? 'primary' : s === 'DONE' ? 'success' : s === 'PAUSE' ? 'warning' : 'grey';
 }
+
+onMounted(() => {
+  // 서버에서 지시/공정상태 로드 → 현황 반영
+  store.loadOrders({ page: 1, size: 100 });
+  // (선택) 시뮬 구동이 있다면
+  store.startTicker?.();
+});
 </script>
 
 <style scoped>

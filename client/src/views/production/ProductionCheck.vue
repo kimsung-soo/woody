@@ -20,6 +20,13 @@
       <v-col cols="3">
         <v-text-field label="납기일자" v-model="search.dueDate" type="date" dense outlined hide-details />
       </v-col>
+
+      <v-col cols="3">
+        <v-text-field label="제품코드" v-model.trim="search.productCode" dense outlined hide-details placeholder="예) PRD-001" />
+      </v-col>
+      <v-col cols="3">
+        <v-text-field label="제품명" v-model.trim="search.productName" dense outlined hide-details placeholder="예) 학생클래식 책상" />
+      </v-col>
     </v-row>
 
     <!-- 버튼 중앙 정렬 -->
@@ -76,7 +83,9 @@ const search = ref({
   planNo: '',
   planName: '',
   writer: '',
-  dueDate: '' // yyyy-MM-dd
+  dueDate: '', // yyyy-MM-dd
+  productCode: '',
+  productName: ''
 });
 
 /* 서버 데이터 */
@@ -87,22 +96,30 @@ const PAGE_SIZE = 10;
 /* 검색 호출 */
 async function fetchPlans() {
   try {
-    // 서버는 kw만 받음
-    const kw = (search.value.planNo || search.value.planName || '').trim();
+    // 서버는 kw만 받음(계획번호/계획명 위주)
+    const kwBase = (search.value.planNo || search.value.planName || '').trim();
     const { data } = await axios.get(`${API}/plans`, {
-      params: { kw, page: 1, size: 200 }
+      params: { kw: kwBase, page: 1, size: 200 }
     });
+
     if (data?.ok) {
-      // 1차: 서버 결과
       const rows = data.rows ?? [];
 
-      // 2차: 작성자/납기일자 프론트 필터
+      // 2차: 작성자/납기일자/제품코드/제품명 프론트 필터
       const writer = (search.value.writer || '').trim();
       const dueDate = (search.value.dueDate || '').trim(); // yyyy-MM-dd
+      const pCode = (search.value.productCode || '').trim().toLowerCase();
+      const pName = (search.value.productName || '').trim().toLowerCase();
 
-      plans.value = rows.filter((r) => (!writer || (r.writer || '').includes(writer)) && (!dueDate || r.dueDate === dueDate));
+      plans.value = rows.filter(
+        (r) =>
+          (!writer || (r.writer || '').includes(writer)) &&
+          (!dueDate || r.dueDate === dueDate) &&
+          (!pCode || (r.productCode || '').toLowerCase().includes(pCode)) &&
+          (!pName || (r.productName || '').toLowerCase().includes(pName))
+      );
+
       total.value = data.total ?? plans.value.length ?? 0;
-
       sizeFit();
     } else {
       toast('조회 실패', 'error');
@@ -117,11 +134,11 @@ function applySearch() {
   fetchPlans();
 }
 function resetFilters() {
-  search.value = { planNo: '', planName: '', writer: '', dueDate: '' };
+  search.value = { planNo: '', planName: '', writer: '', dueDate: '', productCode: '', productName: '' };
   fetchPlans();
 }
 
-/* 최초 로드 시 목록 */
+/* 최초 로드 */
 onMounted(() => {
   fetchPlans();
 });
@@ -134,8 +151,10 @@ const textCell = {
 const numRight = { ...textCell, cellClass: 'ag-right-aligned-cell' };
 
 const colDefs = markRaw([
-  { headerName: '계획번호', field: 'planNo', flex: 1.3, minWidth: 160, ...textCell },
+  { headerName: '계획번호', field: 'planNo', flex: 1.2, minWidth: 150, ...textCell },
   { headerName: '계획명', field: 'planName', flex: 1.4, minWidth: 160, ...textCell },
+  { headerName: '제품코드', field: 'productCode', flex: 1.0, minWidth: 120, ...textCell },
+  { headerName: '제품명', field: 'productName', flex: 1.4, minWidth: 160, ...textCell },
   { headerName: '작성일자', field: 'createdDate', flex: 0.9, minWidth: 120, ...textCell },
   { headerName: '작성자', field: 'writer', flex: 0.8, minWidth: 90, ...textCell },
   { headerName: '총수량', field: 'totalQty', flex: 0.7, minWidth: 90, ...numRight },

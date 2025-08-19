@@ -244,7 +244,6 @@ const colDefs = markRaw([
   { headerName: '제품명칭', field: 'productName', flex: 1.2, minWidth: 150, cellClass: 'cell-ellipsis' },
   { headerName: '납기일자', field: 'dueDate', flex: 0.9, minWidth: 120, cellClass: 'cell-ellipsis' },
   { headerName: '목표수량', field: 'targetQty', flex: 0.7, minWidth: 90, cellClass: 'ag-right-aligned-cell cell-ellipsis' },
-  { headerName: '상태', field: 'status', flex: 0.6, minWidth: 80, cellClass: 'cell-ellipsis' },
   { headerName: '비고', field: 'memo', flex: 1.2, minWidth: 140, cellClass: 'cell-ellipsis' }
 ]);
 

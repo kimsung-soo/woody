@@ -8,9 +8,16 @@ function pageParam(q) {
   return { page, size, limit: size, offset: (page - 1) * size };
 }
 
+/* 제품 유형 조회 (PRODUCT.PRD_TYPE) */
+async function resolveProductType(productCode, fallback = "완제품") {
+  const row = (
+    await mapper.query("product.selectTypeByCode", [productCode])
+  )?.[0];
+  return row?.prdType || fallback;
+}
+
 /* =========================
  * 제품 목록
- * - sql key: production.selectProducts / production.countProducts
  * ========================= */
 async function getProducts({ kw = "", page = 1, size = 10 }) {
   const { limit, offset } = pageParam({ page, size });
@@ -28,7 +35,6 @@ async function getProducts({ kw = "", page = 1, size = 10 }) {
 
 /* =========================
  * 생산의뢰 목록
- * - sql key: production.selectRequests / production.countRequests
  * ========================= */
 async function getRequests({ kw = "", page = 1, size = 10 }) {
   const { limit, offset } = pageParam({ page, size });
@@ -51,19 +57,19 @@ async function getRequests({ kw = "", page = 1, size = 10 }) {
 }
 
 /* =========================
- * 생산계획 저장 (일반 쿼리)
- * - sql key:
- *   production.insertPlan
- *   production.selectPlanByNo
- *   production.insertPlanItem
+ * 생산계획 저장 (일반쿼리)
  * ========================= */
 async function savePlan(body) {
   const f = body?.form || {};
   const selected = body?.selectedReqs || [];
 
   if (!f.issueNumber || !f.orderDate || !f.productCode) {
-    throw new Error("필수 값 누락(계획번호/계획명/제품코드)");
+    throw new Error("필수 값 누락(계획번호/계획일자/제품코드)");
   }
+
+  // 제품 유형 자동 삽입
+  const prdType =
+    f.productType || (await resolveProductType(f.productCode, "완제품"));
 
   // 1) 헤더 저장
   await mapper.query("production.insertPlan", [
@@ -76,7 +82,7 @@ async function savePlan(body) {
     Number(f.targetQty || 0), // total_qty
     f.productCode,
     f.productName || "",
-    f.productType || "완제품",
+    prdType, // product_type
     f.memo || null,
   ]);
 
@@ -101,7 +107,6 @@ async function savePlan(body) {
 
 /* =========================
  * 생산계획 목록 (프로시저)
- * - sp key: production.sp.selectPlans / production.sp.countPlans
  * ========================= */
 async function getPlans({ kw = "", page = 1, size = 10 }) {
   const { limit, offset } = pageParam({ page, size });
@@ -125,8 +130,6 @@ async function getPlans({ kw = "", page = 1, size = 10 }) {
 
 /* =========================
  * 생산계획 수정 (프로시저)
- * - sp key: production.sp.updatePlan
- * - 프론트는 createdDate / dueDate로 보냄 (yyyy-MM-dd)
  * ========================= */
 async function updatePlan(id, body = {}) {
   const f = body || {};
@@ -137,9 +140,9 @@ async function updatePlan(id, body = {}) {
     Number(id),
     f.planName || "",
     f.productCode || "",
-    createdDate, // DATE
+    createdDate,
     f.writer || "",
-    dueDate, // DATE
+    dueDate,
     Number(f.totalQty || 0),
     f.memo || null,
   ]);
@@ -147,14 +150,11 @@ async function updatePlan(id, body = {}) {
   const affected = Array.isArray(res?.[0])
     ? res[0][0]?.affected
     : res?.[0]?.affected || 0;
-
   return { affected };
 }
 
 /* =========================
  * 생산계획 삭제 (프로시저)
- * - sp key: production.sp.deletePlans
- * - ids 배열 → CSV 문자열로 변환하여 전달
  * ========================= */
 async function deletePlans(ids = []) {
   const onlyNums = (Array.isArray(ids) ? ids : [])
@@ -162,10 +162,9 @@ async function deletePlans(ids = []) {
     .filter((v) => /^\d+$/.test(v));
 
   if (!onlyNums.length) return { affected: 0 };
+
   const csv = onlyNums.join(",");
-
   const res = await mapper.query("production.sp.deletePlans", [csv]);
-
   const affected = Array.isArray(res?.[0])
     ? res[0][0]?.affected
     : res?.[0]?.affected || 0;
@@ -173,16 +172,28 @@ async function deletePlans(ids = []) {
   return { affected };
 }
 
+/* --------- 제품별 BOM 조회 --------- */
+async function getBomForProduct(productCode = "") {
+  const code = String(productCode || "").trim();
+  if (!code) return { header: null, items: [] };
+
+  const header =
+    (await mapper.query("production.selectBomHeaderByProduct", [code]))?.[0] ||
+    null;
+  if (!header) return { header: null, items: [] };
+
+  const items = await mapper.query("production.selectBomItemsByHeader", [
+    header.bomCode,
+    header.bomVer,
+  ]);
+  return { header, items };
+}
+
 /* =========================================================
  *                 작업지시(Work Orders)
  * ========================================================= */
 
-/* 작업지시 생성
-   - orderName이 비어있고 planIds가 있으면 계획명들을 join해서 자동 채움
-   - sql key:
-     workorder.sp.create
-     workorder.selectPlanNamesInCsv (선택)
-*/
+/* 작업지시 생성 */
 async function createWorkOrder(body = {}) {
   const f = body?.form || {};
   const selectedPlanIds = body?.selectedPlanIds || []; // [1,2,3]
@@ -198,13 +209,17 @@ async function createWorkOrder(body = {}) {
     .filter((v) => /^\d+$/.test(v))
     .join(",");
 
-  // 지시명 자동 채움 (프런트에서 채워오지 않았다면)
+  // 지시명 자동 채움 (프론트에서 없는 경우)
   let orderName = (f.orderName || "").trim();
   if (!orderName && csv) {
     const r = await mapper.query("workorder.selectPlanNamesInCsv", [csv]);
     const row = Array.isArray(r) ? r[0] : r?.[0];
     orderName = row?.names || "";
   }
+
+  // 제품 유형 보장
+  const prdType =
+    f.productType || (await resolveProductType(f.productCode, "완제품"));
 
   const res = await mapper.query("workorder.sp.create", [
     f.issueNumber, // wo_no
@@ -219,27 +234,44 @@ async function createWorkOrder(body = {}) {
     f.memo || null, // memo
   ]);
 
-  // CALL 결과: [[{ id: X }], meta] or [{ id: X }]
+  // CALL 결과: [[{ id }], meta] 또는 [{ id }]
   const woId = Array.isArray(res?.[0]) ? res[0][0]?.id : res?.[0]?.id;
+
+  // SP가 product_type을 세팅하지 않는 경우 보정
+  if (woId) {
+    await mapper.query("workorder.updateProductType", [prdType, Number(woId)]);
+  }
+
   return { woId, woNo: f.issueNumber };
 }
 
-/* 작업지시 목록
-   - sql key: workorder.sp.select / workorder.sp.count
-*/
+/* 작업지시 목록 */
 async function getWorkOrders({ kw = "", page = 1, size = 10 }) {
   const { limit, offset } = pageParam({ page, size });
   const r1 = await mapper.query("workorder.sp.select", [kw, limit, offset]);
   const rows = Array.isArray(r1?.[0]) ? r1[0] : Array.isArray(r1) ? r1 : [];
+
+  // productType 누락분 보정
+  const missingCodes = rows
+    .filter((x) => !x.productType && x.productCode)
+    .map((x) => x.productCode);
+  if (missingCodes.length) {
+    const csv = [...new Set(missingCodes)].join(",");
+    const trows = await mapper.query("product.selectTypesByCodesCsv", [csv]);
+    const tmap = new Map();
+    (trows || []).forEach((t) => tmap.set(t.code, t.prdType));
+    rows.forEach((r) => {
+      if (!r.productType && r.productCode)
+        r.productType = tmap.get(r.productCode) || "완제품";
+    });
+  }
+
   const r2 = await mapper.query("workorder.sp.count", [kw]);
   const cntRow = Array.isArray(r2?.[0]) ? r2[0][0] : r2?.[0];
   return { rows, total: Number(cntRow?.cnt || 0) };
 }
 
-/* 작업지시 수정
-   - sql key: workorder.sp.update
-   - 파라미터: (id, orderName, orderDate, contact, productCode, productName, dueDate, targetQty, memo)
-*/
+/* 작업지시 수정 */
 async function updateWorkOrder(id, body = {}) {
   const f = body || {};
   const res = await mapper.query("workorder.sp.update", [
@@ -259,9 +291,7 @@ async function updateWorkOrder(id, body = {}) {
   return { affected };
 }
 
-/* 작업지시 삭제
-   - sql key: workorder.sp.delete
-*/
+/* 작업지시 삭제 */
 async function deleteWorkOrders(ids = []) {
   const onlyNums = (Array.isArray(ids) ? ids : [])
     .map((v) => String(v).trim())
@@ -274,6 +304,185 @@ async function deleteWorkOrders(ids = []) {
     ? res[0][0]?.affected
     : res?.[0]?.affected || 0;
   return { affected };
+}
+
+/* =========================
+ * 공정 상태 조회
+ * ========================= */
+async function getExecState(woId) {
+  const rows = await mapper.query("exec.getState", [Number(woId)]);
+  return rows || [];
+}
+
+/* =========================
+ * 작업 시작 (시작 시각 DB 기록)
+ * ========================= */
+async function startExec({ woId, process, workerId, equipIds = [], inputQty }) {
+  if (!woId || !process || !inputQty) throw new Error("필수값 누락");
+
+  // 상태 upsert + 실행 row 생성 (NOW()로 started_at/start_at 기록)
+  await mapper.query("exec.upsertState", [
+    Number(woId),
+    process,
+    "RUN",
+    workerId || null,
+    (equipIds || []).join(",") || null,
+  ]);
+
+  await mapper.query("exec.insertRun", [
+    Number(woId),
+    process,
+    Number(inputQty),
+    workerId || null,
+    (equipIds || []).join(",") || null,
+  ]);
+
+  // 최신 상태 반환(새로고침 복원 용)
+  const st =
+    (await mapper.query("exec.getStateOne", [Number(woId), process]))?.[0] ||
+    null;
+  return { ok: true, startedAt: st?.started_at || null, state: st };
+}
+
+/* =========================
+ * 작업 일시정지
+ * ========================= */
+async function pauseExec({ woId, process, partialDone = 0 }) {
+  await mapper.query("exec.pauseLatest", [
+    Number(partialDone || 0),
+    Number(woId),
+    process,
+  ]);
+  await mapper.query("exec.upsertState", [
+    Number(woId),
+    process,
+    "PAUSE",
+    null,
+    null,
+  ]);
+  return { ok: true };
+}
+
+/* =========================
+ * 작업 종료 (종료 시각 DB 기록 + 품질큐 적재)
+ * ========================= */
+async function finishExec({ woId, process, addDone = 0 }) {
+  // 1) 가장 최근 실행건 DONE 반영 (work_order_exec.end_at = NOW())
+  await mapper.query("exec.finishLatest", [
+    Number(addDone || 0),
+    Number(woId),
+    process,
+  ]);
+
+  // 2) 헤더 조회(목표/유형)
+  const h = (await mapper.query("exec.getWoHeader", [Number(woId)]))?.[0];
+  const target = Number(h?.target_qty || 0);
+  const ptype = h?.product_type || "완제품";
+
+  // 3) 공정 상태 누적/진행률 갱신 (100%되면 work_order_process_state.ended_at=NOW())
+  await mapper.query("exec.bumpStateOnFinish", [
+    Number(addDone || 0),
+    target,
+    Number(addDone || 0),
+    target,
+    target,
+    Number(addDone || 0),
+    target,
+    target,
+    Number(addDone || 0),
+    target,
+    target,
+    Number(woId),
+    process,
+  ]);
+
+  // 4) 모든 필요 공정 완료되면 품질 큐에 enqueue
+  const need =
+    (await mapper.query("exec.countRequiredProcs", [ptype]))?.[0]?.cnt || 0;
+  const done =
+    (await mapper.query("exec.countDoneProcs", [Number(woId), ptype]))?.[0]
+      ?.cnt || 0;
+  const allDone = need > 0 && done >= need;
+  if (allDone) {
+    await mapper.query("exec.enqueueQuality", [Number(woId), target]);
+  }
+
+  // 5) 최신 상태 반환
+  const st =
+    (await mapper.query("exec.getStateOne", [Number(woId), process]))?.[0] ||
+    null;
+  return {
+    ok: true,
+    allDone,
+    endedAt: st?.ended_at || null,
+    progress: Number(st?.progress || 0),
+    prodQty: Number(st?.prod_qty || 0),
+  };
+}
+
+/* =========================
+ * 설비 목록 + 상태 계산
+ *  - 입력: process (예: 'PRC-001'), 없으면 전체
+ *  - 상태 우선순위: IN_USE > MAINT(FS_STATUS=1) > AVAILABLE
+ * ========================= */
+async function getFacilitiesWithStatus({ process = "" } = {}) {
+  // 1) 설비 + 최신 FACILITY_STATUS (fs_status, fs_reason 등 함께)
+  const base = await mapper.query("facility.selectWithLatestStatus", [
+    process,
+    process,
+  ]);
+
+  // 2) 현재 실행 중 설비 id 세트
+  const runRows = await mapper.query("production.selectRunningEquipIds");
+  const runSet = new Set();
+  for (const r of runRows || []) {
+    String(r.equipIds || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .forEach((id) => runSet.add(id));
+  }
+
+  // 3) 최종 상태 매핑
+  const rows = (base || []).map((r) => {
+    let status = "AVAILABLE";
+    if (runSet.has(r.facId)) status = "IN_USE";
+    else if (Number(r.fsStatus) === 1) status = "MAINT";
+
+    return {
+      id: r.facId,
+      code: r.facId,
+      name: r.facName,
+      process: r.prId, // 예: PRC-001
+      status, // AVAILABLE / IN_USE / MAINT
+      manager: r.manager,
+      company: r.facCompany,
+      useYn: Number(r.facUse || 0),
+      type: r.facType,
+      fsStatus: r.fsStatus, // 0/1
+      fsReason: r.fsReason || null,
+      downStart: r.downStart || null,
+      downEnd: r.downEnd || null,
+    };
+  });
+
+  return { rows, count: rows.length };
+}
+
+/* =========================
+ * 생산 작업자 조회 (EMPLOYEES)
+ * ========================= */
+async function getProductionWorkers() {
+  const rows = (await mapper.query("production.selectWorkers")) || [];
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    dept: r.dept,
+    role: r.auth,
+    phone: r.phone,
+    email: r.email,
+    status: r.empStatus || "재직",
+  }));
 }
 
 module.exports = {
@@ -289,4 +498,14 @@ module.exports = {
   getWorkOrders,
   updateWorkOrder,
   deleteWorkOrders,
+  // BOM
+  getBomForProduct,
+  // 공정
+  getExecState,
+  startExec,
+  pauseExec,
+  finishExec,
+  // 설비/작업자
+  getFacilitiesWithStatus,
+  getProductionWorkers,
 };

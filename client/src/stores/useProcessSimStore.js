@@ -1,6 +1,6 @@
-// src/stores/useProcessSimStore.js
 import { defineStore } from 'pinia';
 import { reactive, computed } from 'vue';
+import axios from 'axios';
 
 export const PROCESS_LIST = [
   { code: 'CUT', name: '재단' },
@@ -10,369 +10,307 @@ export const PROCESS_LIST = [
   { code: 'ASM', name: '조립' }
 ];
 
-// 설비 상태 상수
-export const EQ = {
-  AVAILABLE: 'AVAILABLE',
-  IN_USE: 'IN_USE',
-  MAINT: 'MAINT'
-};
+export const EQ = { AVAILABLE: 'AVAILABLE', IN_USE: 'IN_USE', MAINT: 'MAINT' };
+const API = import.meta?.env?.VITE_API_URL || 'http://localhost:3000';
 
-function pad2(n) {
-  return String(n).padStart(2, '0');
-}
-
+/* ---------- helpers ---------- */
 function requiredCodes(productType) {
-  // 반제품은 ASM 제외
   return PROCESS_LIST.filter((p) => !(productType === '반제품' && p.code === 'ASM')).map((p) => p.code);
 }
-
-function makeOrders() {
-  const items = [];
-  const products = [
-    { code: 'P001', name: '블랙 데스크', type: '완제품' },
-    { code: 'P002', name: '화이트 데스크', type: '반제품' },
-    { code: 'P003', name: '라운드 테이블', type: '완제품' },
-    { code: 'P004', name: '협탁', type: '반제품' }
-  ];
-
-  for (let i = 0; i < 8; i++) {
-    const p = products[i % products.length];
-    const d = new Date(2025, 6 + (i % 2), 5 + i);
-    const issue = `WO-2025${pad2(d.getMonth() + 1)}${pad2(d.getDate())}-${3000 + i}`;
-
-    const procInit = {};
-    PROCESS_LIST.forEach((pr) => {
-      if (p.type === '반제품' && pr.code === 'ASM') return;
-      procInit[pr.code] = {
-        status: 'WAIT', // WAIT/RUN/PAUSE/IDLE/DONE
-        progress: 0, // % (해당 공정의 진행률)
-        prodQty: 0, // 공정별 누적 생산량
-        inProgress: null, // { inputQty, doneQty, startAt, endAt, workerId, equipIds }
-        startedAt: null,
-        endedAt: null,
-        worker: null,
-        equipIds: []
-      };
-    });
-
-    items.push({
-      id: 1000 + i,
-      issueNumber: issue,
-      productCode: p.code,
-      productName: p.name,
-      productType: p.type,
-      targetQty: 100 + (i % 4) * 50,
-      producedQty: 0, // 전체 기생산량(필요 공정 최소)
-      get remainingQty() {
-        return Math.max(0, this.targetQty - this.producedQty);
-      },
-      processes: procInit
-    });
-  }
-  return items;
+function processName(code) {
+  return PROCESS_LIST.find((p) => p.code === code)?.name || code;
 }
-
-function makeWorkers() {
-  return [
-    { id: 'EMP-101', name: '이성민', dept: '생산' },
-    { id: 'EMP-102', name: '박지현', dept: '생산' },
-    { id: 'EMP-103', name: '김성수', dept: '생산' },
-    { id: 'EMP-104', name: '최은수', dept: '생산' }
-  ];
-}
-
-function makeEquipments() {
-  const arr = [];
-  const base = [
-    { code: 'CUT', prefix: 'CUT', name: '절단기' },
-    { code: 'FAB', prefix: 'FAB', name: '가공기' },
-    { code: 'POL', prefix: 'POL', name: '연마기' },
-    { code: 'PAI', prefix: 'PAI', name: '도장기' },
-    { code: 'ASM', prefix: 'ASM', name: '조립대' }
-  ];
-  let seq = 1;
-  base.forEach((b) => {
-    for (let i = 1; i <= 4; i++) {
-      arr.push({
-        id: `EQ-${seq++}`,
-        code: `${b.prefix}-${i}`,
-        name: `${b.name}-${i}`,
-        process: b.code,
-        status: EQ.AVAILABLE
-      });
-    }
-  });
-  return arr;
-}
-
-// 필요 공정들의 최소 prodQty가 해당 지시의 "전체 기생산량"
 function producedOverall(order) {
   const codes = requiredCodes(order.productType);
-  if (codes.length === 0) return 0;
+  if (!codes.length) return 0;
   const list = codes.map((c) => order.processes[c]?.prodQty ?? 0);
   return Math.max(0, Math.min(order.targetQty, Math.min(...list)));
 }
 
-export const useProcessSimStore = defineStore('process-sim', () => {
-  const orders = reactive(makeOrders());
-  const workers = reactive(makeWorkers());
-  const equipments = reactive(makeEquipments());
-  // 실행 중 잡(한 공정당 하나만 가정)
-  // { id, orderId, process, inputQty, startTime, durationMs, progress }
-  const jobs = reactive([]);
+async function safeGet(url, cfg) {
+  try {
+    return await axios.get(url, cfg);
+  } catch {
+    return { data: null };
+  }
+}
+async function safePost(url, body) {
+  try {
+    return await axios.post(url, body);
+  } catch {
+    return { data: null };
+  }
+}
 
-  // 설비 상태 변경 유틸
+/* ---------- seeds (orders only, fallback) ---------- */
+function procInitFor(productType) {
+  const obj = {};
+  PROCESS_LIST.forEach((pr) => {
+    if (productType === '반제품' && pr.code === 'ASM') return;
+    obj[pr.code] = {
+      status: 'WAIT',
+      progress: 0,
+      prodQty: 0,
+      defectQty: 0,
+      inProgress: null,
+      startedAt: null,
+      endedAt: null,
+      worker: null,
+      equipIds: []
+    };
+  });
+  return obj;
+}
+function seedDemoOrders() {
+  return [
+    {
+      id: 1,
+      issueNumber: 'WO-20250811-2856',
+      productCode: 'P001',
+      productName: '블랙 데스크',
+      productType: '완제품',
+      targetQty: 80,
+      producedQty: 0,
+      processes: procInitFor('완제품')
+    },
+    {
+      id: 2,
+      issueNumber: 'WO-20250705-4112',
+      productCode: 'P001',
+      productName: '블랙 데스크',
+      productType: '완제품',
+      targetQty: 120,
+      producedQty: 0,
+      processes: procInitFor('완제품')
+    },
+    {
+      id: 3,
+      issueNumber: 'WO-20250621-1023',
+      productCode: 'P002',
+      productName: '화이트 데스크',
+      productType: '반제품',
+      targetQty: 200,
+      producedQty: 0,
+      processes: procInitFor('반제품')
+    }
+  ];
+}
+
+/* ---------- store ---------- */
+export const useProcessSimStore = defineStore('process-sim', () => {
+  const orders = reactive([]);
+  const workers = reactive([]);
+  const equipments = reactive([]);
+
+  /* -------- 작업자 로드 (EMPLOYEES 생산부/재직) -------- */
+  async function loadWorkers() {
+    workers.splice(0, workers.length);
+    const res = await safeGet(`${API}/api/workers/production`);
+    const rows = res?.data?.rows || [];
+    rows.forEach((r) =>
+      workers.push({
+        id: r.id,
+        name: r.name,
+        dept: r.dept,
+        role: r.role,
+        phone: r.phone,
+        email: r.email
+      })
+    );
+  }
+
+  /* -------- 지시/상태 로드 -------- */
+  async function loadOrders({ page = 1, size = 100 } = {}) {
+    orders.splice(0, orders.length);
+    const res = await safeGet(`${API}/workorders`, { params: { kw: '', page, size } });
+    const rows = res?.data?.rows;
+
+    if (Array.isArray(rows) && rows.length) {
+      for (const r of rows) {
+        const item = {
+          id: r.id,
+          issueNumber: r.issueNumber,
+          productCode: r.productCode,
+          productName: r.productName,
+          productType: r.productType || '완제품',
+          targetQty: Number(r.targetQty || 0),
+          producedQty: 0,
+          processes: procInitFor(r.productType || '완제품')
+        };
+
+        const st = await safeGet(`${API}/workexec/state/${r.id}`).then((x) => x.data?.rows || []);
+        st.forEach((row) => {
+          const p = item.processes[row.process_code];
+          if (!p) return;
+          p.status = row.status || p.status;
+          p.progress = Number(row.progress || p.progress);
+          p.prodQty = Number(row.prod_qty || p.prodQty);
+          p.defectQty = Number(row.defect_qty || p.defectQty || 0);
+          p.startedAt = row.started_at || null;
+          p.endedAt = row.ended_at || null;
+          p.worker = row.worker_id || null;
+          p.equipIds = (row.equip_ids || '').split(',').filter(Boolean);
+        });
+
+        item.producedQty = producedOverall(item);
+        orders.push(item);
+      }
+    } else {
+      seedDemoOrders().forEach((o) => orders.push(o));
+    }
+  }
+
+  /* -------- 설비 상태 변경 도우미 -------- */
   function setEquipStatus(ids = [], status) {
     const set = new Set(ids);
     equipments.forEach((e) => {
       if (set.has(e.id)) e.status = status;
     });
   }
-
-  const flatRowsForStatus = computed(() => {
-    const rows = [];
-    orders.forEach((o) => {
-      Object.entries(o.processes).forEach(([proc, st]) => {
-        rows.push({
-          orderId: o.id,
-          issueNumber: o.issueNumber,
-          productName: o.productName,
-          productType: o.productType,
-          process: proc,
-          processName: PROCESS_LIST.find((p) => p.code === proc)?.name || proc,
-          state: st.status,
-          progress: st.progress,
-          targetQty: o.targetQty,
-          producedQty: o.producedQty,
-          remainingQty: o.remainingQty,
-          start: st.startedAt,
-          end: st.endedAt
-        });
-      });
-    });
-    return rows;
-  });
-
   function _recalcProcProgress(order, process) {
     const rt = order.processes[process];
     const pct = Math.floor((rt.prodQty / Math.max(order.targetQty, 1)) * 100);
     rt.progress = Math.max(0, Math.min(100, pct));
     if (rt.progress >= 100) rt.status = 'DONE';
   }
-
   function _recalcOrderProduced(order) {
     order.producedQty = producedOverall(order);
   }
 
-  function _overallRemaining(order) {
-    return Math.max(order.targetQty - producedOverall(order), 0);
-  }
-
-  function startJob({ orderId, process, workerId, equipIds, inputQty, durationSec = 30 }) {
+  /* -------- 진행 제어 -------- */
+  async function startJob({ orderId, process, workerId, equipIds, inputQty }) {
     const ord = orders.find((o) => o.id === orderId);
     if (!ord) return { ok: false, msg: '지시 없음' };
     const ps = ord.processes[process];
     if (!ps) return { ok: false, msg: '해당 공정이 지시에 없음' };
 
-    // ✅ 1) PAUSE → 재개를 최우선 처리 (설비 가용성 검사 안함)
-    if (ps.status === 'PAUSE' && ps.inProgress) {
-      const remain = Math.max(ps.inProgress.inputQty - (ps.inProgress.doneQty || 0), 0);
-      if (remain <= 0) return { ok: false, msg: '남은 투입량 없음(종료로 확정하세요)' };
-
-      const useEquipIds = (equipIds && equipIds.length ? equipIds : ps.equipIds).slice();
-
-      ps.status = 'RUN';
-      ps.startedAt = new Date().toISOString();
-      ps.worker = workerId;
-      ps.equipIds = useEquipIds;
-
-      // 재개 시 설비는 계속 점유
-      setEquipStatus(ps.equipIds, EQ.IN_USE);
-
-      jobs.push({
-        id: `${orderId}-${process}-${Date.now()}`,
-        orderId,
-        process,
-        inputQty: remain,
-        startTime: performance.now(),
-        durationMs: durationSec * 1000,
-        progress: 0
-      });
-
-      return { ok: true };
-    }
-
-    // ✅ 2) 신규 시작일 때만 설비 가용성 검사
-    const blocked = (equipIds || []).some((eid) => {
-      const eq = equipments.find((e) => e.id === eid);
-      return !eq || eq.status !== EQ.AVAILABLE;
-    });
-    if (blocked) return { ok: false, msg: '선택한 설비 중 사용중/점검중이 있습니다.' };
-
-    // 신규 시작 처리
-    const overallRemain = _overallRemaining(ord);
-    if (overallRemain <= 0) return { ok: false, msg: '남은수량 없음' };
-    const want = Math.min(Math.max(inputQty || 0, 0), overallRemain);
-    if (want <= 0) return { ok: false, msg: '투입량이 올바르지 않음' };
+    const resp = await safePost(`${API}/workexec/start`, { woId: orderId, process, workerId, equipIds, inputQty });
+    const server = resp?.data || {};
 
     ps.status = 'RUN';
     ps.worker = workerId;
     ps.equipIds = (equipIds || []).slice();
-    ps.startedAt = new Date().toISOString();
+    ps.startedAt = server.startedAt || new Date().toISOString();
     ps.endedAt = null;
-
-    // 시작 → 설비 점유
-    setEquipStatus(ps.equipIds, EQ.IN_USE);
-
     ps.inProgress = {
-      inputQty: want,
+      inputQty: Number(inputQty || 0),
       doneQty: 0,
       startAt: ps.startedAt,
       endAt: null,
       workerId,
       equipIds: ps.equipIds.slice()
     };
-
-    jobs.push({
-      id: `${orderId}-${process}-${Date.now()}`,
-      orderId,
-      process,
-      inputQty: want,
-      startTime: performance.now(),
-      durationMs: durationSec * 1000,
-      progress: 0
-    });
-    return { ok: true };
+    setEquipStatus(ps.equipIds, EQ.IN_USE);
+    return { ok: true, startedAt: server.startedAt || null };
   }
 
-  function pauseJob(orderId, process) {
+  async function finishJob(orderId, process) {
     const ord = orders.find((o) => o.id === orderId);
-    if (!ord) return;
+    if (!ord) return { ok: false, msg: '지시 없음' };
     const ps = ord.processes[process];
-    if (!ps || ps.status !== 'RUN') return;
+    if (!ps) return { ok: false, msg: '해당 공정이 지시에 없음' };
 
-    // 실행 중 job 찾기
-    const idx = jobs.findIndex((j) => j.orderId === orderId && j.process === process);
-    if (idx >= 0) {
-      const j = jobs[idx];
-      const partialDone = Math.max(0, Math.round((j.progress / 100) * j.inputQty));
-      if (ps.inProgress) {
-        ps.inProgress.doneQty = Math.min(ps.inProgress.inputQty, (ps.inProgress.doneQty || 0) + partialDone);
-        ps.inProgress.endAt = new Date().toISOString();
-      }
-      jobs.splice(idx, 1);
-    }
-
-    // 설비는 점유 유지
-    ps.status = 'PAUSE';
-    ps.endedAt = new Date().toISOString();
-  }
-
-  function finishJob(orderId, process) {
-    const ord = orders.find((o) => o.id === orderId);
-    if (!ord) return;
-    const ps = ord.processes[process];
-    if (!ps) return;
-
-    // 실행 중 job 정리
-    const idx = jobs.findIndex((j) => j.orderId === orderId && j.process === process);
-    let addQty = 0;
-    if (idx >= 0) {
-      const j = jobs[idx];
-      const partialDone = Math.max(0, Math.round((j.progress / 100) * j.inputQty));
-      addQty += partialDone;
-      jobs.splice(idx, 1);
-    }
-
-    // inProgress 남은 양(확정) 더하기
+    let batchInput = 0;
     if (ps.inProgress) {
-      const remain = Math.max(ps.inProgress.inputQty - (ps.inProgress.doneQty || 0), 0);
-      addQty += remain;
+      const input = Number(ps.inProgress.inputQty || 0);
+      const done = Number(ps.inProgress.doneQty || 0);
+      batchInput = Math.max(input - done, 0);
       ps.inProgress.endAt = new Date().toISOString();
       ps.inProgress = null;
     }
 
-    if (addQty > 0) {
+    // 0~3% 불량 시뮬레이션 (알림은 화면에서만)
+    let goodToAdd = 0;
+    let defects = 0;
+    if (batchInput > 0) {
+      const rate = Math.floor(Math.random() * 4) / 100; // 0,1,2,3%
+      defects = Math.min(batchInput, Math.round(batchInput * rate)); // ← 재선언 금지(가려짐 버그 수정)
+      ps.defectQty = Math.max(0, (ps.defectQty || 0) + defects);
+      goodToAdd = Math.max(0, batchInput - defects);
+    }
+
+    const resp = await safePost(`${API}/workexec/finish`, { woId: orderId, process, addDone: goodToAdd });
+    const server = resp?.data || {};
+
+    if (goodToAdd > 0) {
       const canAdd = Math.max(ord.targetQty - ps.prodQty, 0);
-      const realAdd = Math.min(addQty, canAdd);
-      ps.prodQty += realAdd;
+      ps.prodQty += Math.min(goodToAdd, canAdd);
     }
 
     _recalcProcProgress(ord, process);
     _recalcOrderProduced(ord);
-
     ps.status = ps.progress >= 100 ? 'DONE' : 'IDLE';
-    ps.endedAt = new Date().toISOString();
-
-    // ✅ 종료 시 설비 해제
+    ps.endedAt = server.endedAt || new Date().toISOString();
     setEquipStatus(ps.equipIds, EQ.AVAILABLE);
+
+    return {
+      ok: true,
+      defects,
+      endedAt: server.endedAt || null,
+      allDone: !!server.allDone
+    };
   }
 
-  function tick(now) {
-    // 애니메이션/시뮬레이션용 타이머 틱
-    for (let i = jobs.length - 1; i >= 0; i--) {
-      const j = jobs[i];
-      const ord = orders.find((o) => o.id === j.orderId);
-      if (!ord) {
-        jobs.splice(i, 1);
-        continue;
-      }
-      const ps = ord.processes[j.process];
-      if (!ps) {
-        jobs.splice(i, 1);
-        continue;
-      }
-
-      const p = Math.min(100, Math.round(((now - j.startTime) / j.durationMs) * 100));
-      j.progress = p;
-
-      // 진행 중 화면용 공정 퍼센트 (누적 + 현재 작업 진행분 반영)
-      const inProgDone = ps.inProgress?.doneQty || 0;
-      const curRunningDone = Math.round((p / 100) * j.inputQty);
-      const virtualProd = ps.prodQty + inProgDone + curRunningDone;
-      ps.progress = Math.max(0, Math.min(100, Math.floor((virtualProd / Math.max(ord.targetQty, 1)) * 100)));
-
-      if (p >= 100) {
-        // 작업 한 사이클 끝 → 공정 누적 반영
-        const canAdd = Math.max(ord.targetQty - ps.prodQty, 0);
-        const realAdd = Math.min(j.inputQty, canAdd);
-        ps.prodQty += realAdd;
-
-        if (ps.inProgress) {
-          ps.inProgress.doneQty = Math.min(ps.inProgress.inputQty, (ps.inProgress.doneQty || 0) + j.inputQty);
-          if (ps.inProgress.doneQty >= ps.inProgress.inputQty) {
-            // 이번 배치 완주 → 배치 정보 제거
-            ps.inProgress = null;
-          }
-        }
-
-        _recalcProcProgress(ord, j.process);
-
-        // 배치 완료 후 상태 정리
-        ps.status = ps.progress >= 100 ? 'DONE' : 'IDLE';
-        ps.endedAt = new Date().toISOString();
-
-        // ✅ 배치가 끝났고 더 이상 진행중/일시정지 배치가 없으면 설비 해제
-        //  - IDLE(다음 배치 대기)에서도 풀어주어 다시 선택 가능
-        //  - DONE(해당 공정 목표 달성)도 당연히 해제
-        if (!ps.inProgress && ps.status !== 'RUN') {
-          setEquipStatus(ps.equipIds, EQ.AVAILABLE);
-        }
-
-        jobs.splice(i, 1);
-
-        // 전체 기생산량 갱신 (필요 공정 최소)
-        _recalcOrderProduced(ord);
+  /* -------- 파생 -------- */
+  const flatRowsForStatus = computed(() => {
+    const out = [];
+    for (const o of orders) {
+      const reqCodes = requiredCodes(o.productType);
+      for (const code of reqCodes) {
+        const ps = o.processes[code];
+        out.push({
+          orderId: o.id,
+          process: code,
+          processName: processName(code),
+          issueNumber: o.issueNumber,
+          productName: o.productName,
+          state: ps?.status || 'WAIT',
+          progress: ps?.progress ?? 0,
+          targetQty: o.targetQty,
+          producedQty: ps?.prodQty ?? 0,
+          remainingQty: Math.max(o.targetQty - (ps?.prodQty ?? 0), 0),
+          defectQty: ps?.defectQty ?? 0
+        });
       }
     }
-  }
+    return out;
+  });
 
-  function resetAll() {
-    const fresh = makeOrders();
-    orders.splice(0, orders.length, ...fresh);
-    jobs.splice(0, jobs.length);
-    // 모든 설비 가용화
-    equipments.forEach((e) => (e.status = EQ.AVAILABLE));
+  function findPerformance(q = {}) {
+    const kwNo = (q.issueNumber || '').trim();
+    const kwName = (q.productName || '').trim();
+    const type = q.productType || '';
+    let hit = null;
+    if (kwNo) hit = orders.find((x) => (x.issueNumber || '').includes(kwNo));
+    if (!hit && (kwName || type)) {
+      hit = orders.find((x) => (!kwName || (x.productName || '').includes(kwName)) && (!type || x.productType === type));
+    }
+    if (!hit) return null;
+
+    const reqCodes = requiredCodes(hit.productType);
+    const items = [];
+    for (const code of reqCodes) {
+      const ps = hit.processes[code] || {};
+      const st = ps.startedAt ? ps.startedAt.replace(' ', 'T').slice(0, 16) : '';
+      const en = ps.endedAt ? ps.endedAt.replace(' ', 'T').slice(0, 16) : '';
+      items.push({
+        process: processName(code),
+        worker: ps.worker || '',
+        startAt: st || '',
+        endAt: en || st || '',
+        orderQty: hit.targetQty,
+        inputQty: Math.min(hit.targetQty, (ps.prodQty || 0) + (ps.defectQty || 0)),
+        defectQty: ps.defectQty || 0,
+        outputQty: Math.min(hit.targetQty, ps.prodQty || 0)
+      });
+    }
+    return {
+      issueNumber: hit.issueNumber,
+      productCode: hit.productCode,
+      productName: hit.productName,
+      productType: hit.productType,
+      items
+    };
   }
 
   return {
@@ -381,13 +319,12 @@ export const useProcessSimStore = defineStore('process-sim', () => {
     orders,
     workers,
     equipments,
-    jobs,
-    flatRowsForStatus,
+    loadWorkers,
+    loadOrders,
     startJob,
-    pauseJob,
     finishJob,
-    tick,
-    resetAll,
-    setEquipStatus
+    flatRowsForStatus,
+    findPerformance,
+    producedOverall
   };
 });

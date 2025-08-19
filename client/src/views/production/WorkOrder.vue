@@ -27,7 +27,7 @@
         <v-text-field label="납기일자" v-model="form.dueDate" type="date" dense outlined />
       </v-col>
       <v-col cols="4">
-        <v-text-field label="목표수량" v-model.number="form.targetQty" type="number" min="1" step="1" dense outlined @input="recalcNeed" />
+        <v-text-field label="목표수량" v-model.number="form.targetQty" type="number" min="1" step="1" dense outlined />
       </v-col>
 
       <v-col cols="4">
@@ -171,7 +171,7 @@ import { AgGridVue } from 'ag-grid-vue3';
 
 const API = 'http://localhost:3000';
 
-/* 페이지 타이틀 */
+/* 페이지 타이틀/브레드크럼 */
 const page = ref({ title: '작업지시 관리' });
 const breadcrumbs = shallowRef([
   { title: '생산', disabled: true, href: '#' },
@@ -208,10 +208,11 @@ onMounted(() => {
   fetchProducts();
 });
 
-/* 제품 */
+/* ───────── 제품 목록 (PRODUCT) ───────── */
 const products = ref([]);
 const productKeyword = ref('');
 const PROD_PAGE_SIZE = 10;
+
 async function fetchProducts() {
   try {
     const { data } = await axios.get(`${API}/products`, { params: { kw: productKeyword.value, page: 1, size: 100 } });
@@ -231,11 +232,44 @@ function doProductSearch() {
   fetchProducts();
 }
 
-/* 계획서(모달) */
+/* ───────── BOM / WIP ───────── */
+const wipRows = ref([]); // 재공(WIP) 향후 연동용
+const SUB_PAGE_SIZE = 3;
+const pagedWip = computed(() => wipRows.value);
+
+const bomHeader = ref(null);
+const bomRows = ref([]);
+const pagedBom = computed(() => bomRows.value);
+
+async function fetchBom(productCode) {
+  bomHeader.value = null;
+  bomRows.value = [];
+  if (!productCode) return;
+  try {
+    const { data } = await axios.get(`${API}/boms`, { params: { productCode } });
+    if (data?.ok) {
+      bomHeader.value = data.header || null;
+      bomRows.value = (data.items || []).map((r) => ({
+        seq: r.seq,
+        matCode: r.matCode,
+        matName: r.matName,
+        matType: r.matType,
+        qty: r.qty,
+        unit: r.unit
+      }));
+    }
+  } catch (e) {
+    console.error(e);
+    toast('BOM 조회 오류', 'error');
+  }
+}
+
+/* ───────── 계획서 모달 ───────── */
 const planDialog = ref(false);
 const planKeyword = ref('');
 const PLAN_PAGE_SIZE = 10;
 const plans = ref([]);
+
 async function fetchPlans() {
   try {
     const kw = planKeyword.value.trim();
@@ -265,14 +299,6 @@ const filteredPlans = computed(() => {
 const pagedPlans = computed(() => filteredPlans.value);
 const checkedPlanIds = ref([]);
 
-/* WIP/BOM (조회 전용 목업) */
-const wipRows = ref([]);
-const bomRows = ref([]);
-const SUB_PAGE_SIZE = 3;
-const pagedWip = computed(() => wipRows.value);
-const pagedBom = computed(() => bomRows.value);
-
-/* 선택/바인딩 */
 function onPlanSelectionChanged(e) {
   const selected = e.api.getSelectedRows();
   if (selected.length === 0) {
@@ -302,27 +328,24 @@ function applyPlans() {
   form.productName = p.productName;
   form.dueDate = rows.map((r) => r.dueDate).sort()[0];
   form.targetQty = rows.reduce((s, r) => s + Number(r.totalQty || 0), 0);
-  // ✅ 지시명 자동 채움(원하면 수정 가능)
   const names = rows.map((r) => r.planName).filter(Boolean);
   form.orderName = names.join(', ').slice(0, 200);
   planDialog.value = false;
+
+  // 제품 확정 시 BOM 즉시 로드
+  fetchBom(form.productCode);
 }
 
-/* 제품 선택 */
+/* ───────── 제품 선택 바인딩 ───────── */
 function onProductSelected(e) {
   const row = (e.api.getSelectedRows?.() ?? [])[0];
   if (!row?.code) return;
   form.productCode = row.code;
   form.productName = row.name;
+  fetchBom(form.productCode); // BOM 로딩
 }
 
-/* 필요수량 계산 (목업) */
-function recalcNeed() {
-  const target = Number(form.targetQty || 0);
-  bomRows.value = bomRows.value.map((b) => ({ ...b, needQty: Math.max(0, target * Number(b.perUnit || 0) - Number(b.wipQty || 0)) }));
-}
-
-/* 저장 */
+/* ───────── 저장 ───────── */
 async function submitForm() {
   if (!form.issueNumber) form.issueNumber = genIssueNo();
   if (!form.orderDate || !form.productCode || !form.productName || !form.dueDate || !form.contact?.trim()) {
@@ -345,7 +368,7 @@ async function submitForm() {
         productName: form.productName,
         dueDate: form.dueDate,
         targetQty: Number(form.targetQty || 0),
-        orderName: form.orderName || null, // ✅ 지시명
+        orderName: form.orderName || null,
         memo: form.memo || ''
       },
       selectedPlanIds: checkedPlanIds.value
@@ -373,9 +396,11 @@ function resetForm() {
   form.orderName = '';
   form.memo = '';
   checkedPlanIds.value = [];
+  bomHeader.value = null;
+  bomRows.value = [];
 }
 
-/* 공통 그리드 */
+/* ───────── 공통 그리드 설정 ───────── */
 const textCell = {
   cellStyle: { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   tooltipValueGetter: (p) => p.value
@@ -396,15 +421,13 @@ const wipColDefs = [
   { headerName: '규격', field: 'spec', flex: 1.2, minWidth: 120, ...textCell }
 ];
 
+/* ✅ BOM 컬럼: 자재코드/자재명/자재유형/소요수량/단위 */
 const bomColDefs = [
-  { headerName: '순번', field: 'seq', flex: 0.5, minWidth: 60, ...numRight },
   { headerName: '자재코드', field: 'matCode', flex: 1.1, minWidth: 110, ...textCell },
   { headerName: '자재명', field: 'matName', flex: 1.2, minWidth: 110, ...textCell },
   { headerName: '자재유형', field: 'matType', flex: 0.9, minWidth: 90, ...textCell },
-  { headerName: '단위별수량', field: 'perUnit', flex: 0.8, minWidth: 90, ...numRight },
-  { headerName: '규격', field: 'spec', flex: 1.0, minWidth: 110, ...textCell },
-  { headerName: '재공수량', field: 'wipQty', flex: 0.8, minWidth: 90, ...numRight },
-  { headerName: '필요수량', field: 'needQty', flex: 0.8, minWidth: 90, ...numRight }
+  { headerName: '소요수량', field: 'qty', flex: 0.8, minWidth: 90, ...numRight },
+  { headerName: '단위', field: 'unit', flex: 0.7, minWidth: 80, ...textCell }
 ];
 
 const planColDefs = [

@@ -108,8 +108,7 @@ const colDefs = [
   { headerName: '제품코드', field: 'productCode', flex: 0.9, minWidth: 110, ...textCell },
   { headerName: '제품명칭', field: 'productName', flex: 1.2, minWidth: 150, ...textCell },
   { headerName: '납기일자', field: 'dueDate', flex: 0.9, minWidth: 120, ...textCell },
-  { headerName: '목표수량', field: 'targetQty', flex: 0.7, minWidth: 90, ...numRight },
-  { headerName: '상태', field: 'status', flex: 0.6, minWidth: 80, ...textCell }
+  { headerName: '목표수량', field: 'targetQty', flex: 0.7, minWidth: 90, ...numRight }
 ];
 
 let gridApi;
