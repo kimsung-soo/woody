@@ -87,10 +87,10 @@ const openModal = (title, rowData, colDefs) => {
 };
 
 function onModalConfirm(selectedRow) {
-  form.value.prdType = selectedRow.제품유형; // 제품유형
-  form.value.chkedDate = selectedRow.검사완료일자; // 검사완료일자
-  form.value.certId = selectedRow.검사번호; // 검사번호
-  form.value.prdName = selectedRow.제품명; // 제품명
+  form.value.prdType = selectedRow.제품유형;
+  form.value.chkedDate = selectedRow.검사완료일자;
+  form.value.certId = selectedRow.검사번호;
+  form.value.prdName = selectedRow.제품명;
 
   // 그리드 데이터에 추가
   rowData.value.push({
@@ -210,16 +210,13 @@ const onRowClicked = (event) => {
     }
   });
 
-  // 또는 단순히 경로만 이동하고 싶다면:
-  // router.push('/qm/qrdpass');
+  // 초기화 버튼
+  function resetForm() {
+    const r = form.value;
+    r.chkedDate = '';
+    r.certId = '';
+    r.prdName = '';
+    r.prdType = '';
+  }
 };
-
-// 초기화 버튼
-function resetForm() {
-  const r = form.value;
-  r.chkedDate = '';
-  r.certId = '';
-  r.prdName = '';
-  r.prdType = '';
-}
 </script>

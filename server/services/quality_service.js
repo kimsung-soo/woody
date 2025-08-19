@@ -24,6 +24,25 @@ const addPassMat = async (data) => {
   return mariadb.query("passMat", params);
 };
 
+// 불합격원자재 등록
+const addRejectMat = async (b) => {
+  const params = [
+    String(b.RECEIPT_NO), // 1: RECEIPT_NO
+    String(b.MAT_CODE), // 2: MAT_CODE
+    String(b.RJT_REASON).slice(0, 100), // 3: RJT_REASON (100자 컷)
+    String(b.Q_CHECKED_DATE), // 4: Q_CHECKED_DATE  'YYYY-MM-DD'
+    Number(b.TOTAL_QTY) || 0, // 5: TOTAL_QTY
+    b.CREATED_BY || null, // 6: CREATED_BY
+  ];
+  return mariadb.query("rejactMat", params);
+};
+
+// 제품공정조회
+const selectTaskPrd = async () => {
+  let list = await mariadb.query("taskPrd");
+  return list;
+};
+
 // 제품성적서조회
 const selectPrdCert = async () => {
   let list = await mariadb.query("selectProductCertificate");
@@ -52,6 +71,8 @@ module.exports = {
   matHisAll,
   matMng,
   addPassMat,
+  addRejectMat,
+  selectTaskPrd,
   selectPrdCert,
   selectQstd,
   qcCommonCode,

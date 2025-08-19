@@ -33,6 +33,21 @@
         </div>
       </v-col>
     </v-row>
+    <!-- 불합격 사유 입력 섹션 -->
+    <v-card v-show="finalStatus === '불합격'" class="mb-4" elevation="2">
+      <v-card-title class="bg-red-lighten-5 text-red-darken-2"> </v-card-title>
+      <v-card-text>
+        <v-textarea
+          v-model="defectReason.description"
+          label="불합격 사유"
+          variant="outlined"
+          rows="3"
+          counter="500"
+          maxlength="500"
+          :rules="[(v) => finalStatus === '합격' || (v && v.length > 0) || '불합격 시 사유는 필수입니다.']"
+        />
+      </v-card-text>
+    </v-card>
 
     <!-- 2) 하단 입력 그리드(1행) -->
     <ag-grid-vue
@@ -42,24 +57,15 @@
       :theme="quartz"
       style="height: 160px; width: 100%"
     />
-    <!-- 처리상태가 불합격으로 판정나면 불량 사유를 기입하는 란을 생성 (미완성)-->
-    <p v-if="finalStatus='합격'" >
-      <table>
-        <th>불합격사유</th>
-        <td>
-          <tr>기록란</tr>
-        </td>
-      </table> </p>
-    <p v-else-if="finalStatus='불합격'">
-    합격</p>
   </UiParentCard>
 </template>
 
 <script setup>
-import { ref, shallowRef, computed } from 'vue';
+import { ref, shallowRef, computed, onMounted } from 'vue';
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
 
+import { useRoute } from 'vue-router';
 import { AgGridVue } from 'ag-grid-vue3';
 import { ModuleRegistry, themeQuartz, ClientSideRowModelModule, RowSelectionModule, ValidationModule } from 'ag-grid-community';
 
@@ -67,7 +73,7 @@ import { ModuleRegistry, themeQuartz, ClientSideRowModelModule, RowSelectionModu
 ModuleRegistry.registerModules([ClientSideRowModelModule, RowSelectionModule, ...(import.meta.env.PROD ? [] : [ValidationModule])]);
 
 const quartz = themeQuartz;
-
+const route = useRoute();
 /* breadcrumb */
 const page = ref({ title: '제품 검수관리 등록' });
 const breadcrumbs = ref([
@@ -150,25 +156,23 @@ function recalcCriteria() {
 /* ------------ 2) 하단 입력 그리드(1행) ------------ */
 const detailRows = ref([
   {
-    certid: '(자동입력)',
-    proCode: '(자동입력)',
+    certid: '(함수실행)',
+    prdCode: '(자동입력)',
     prdName: '(자동입력)',
-    totalQty: 40,
-    passQty: 30,
-    writer: '사람1',
-    writeDate: '2025-07-30',
-    doneDate: '2025-07-30'
+    totalQty: '(자동입력)',
+    writer: '(세션id)',
+    writeDate: '(자동입력)',
+    doneDate: '(오늘날짜)'
   }
 ]);
 
 const detailCols = ref([
-  { headerName: '제품검사번호', field: 'id', width: 170, editable: false },
-  { headerName: '제품코드', field: 'inNo', width: 140, editable: false },
-  { headerName: '제품명', field: 'materialCode', width: 150, editable: false },
-  { headerName: '합격품수량', field: 'materialName', width: 160, editable: false },
-  { headerName: '총수량', field: 'totalQty', width: 110, editable: true, valueParser: numParser },
-  { headerName: '작성자', field: 'writer', width: 120, editable: true },
-  { headerName: '입고일자', field: 'inDate', width: 140, editable: true },
+  { headerName: '제품검사번호', field: 'certid', width: 170, editable: false },
+  { headerName: '제품코드', field: 'prdCode', width: 140, editable: false },
+  { headerName: '제품명', field: 'prdName', width: 150, editable: false },
+  { headerName: '총수량', field: 'totalQty', width: 110, editable: false, valueParser: numParser },
+  { headerName: '작성자', field: 'writer', width: 120, editable: false },
+  { headerName: '입고일자', field: 'writeDate', width: 140, editable: false },
   { headerName: '검사완료일자', field: 'doneDate', width: 140, editable: true }
 ]);
 
@@ -182,7 +186,7 @@ const detailGridOptions = ref({
   autoSizeStrategy: { type: 'fitGridWidth' }
 });
 
-/* ------------ 버튼 로직 ------------ */
+// 각종버튼
 function resetForm() {
   // 검사기준: 전부 불합격(선택 해제)
   const api = criteriaApi.value;
@@ -220,6 +224,37 @@ function saveForm() {
   alert('등록되었습니다! (콘솔 payload 확인)');
 }
 
+// 불합격 사유 관련 데이터
+const defectReason = ref({
+  description: ''
+});
+
+// 클릭한 행의 내용가져오기
+onMounted(() => {
+  const r = detailRows.value[0];
+
+  /*
+  {
+    certid: '(함수실행)',
+    prdCode: '(자동입력)',
+    prdName: '(자동입력)',
+    totalQty: '(자동입력)',
+    writer: '(세션id)',
+    writeDate: '(자동입력)',
+    doneDate: '(오늘날짜)'
+  }
+  */
+  // 쿼리에서 값 채우기
+  r.certid = String(route.query.wo_no || ''); // 제품검사번호
+  r.prdCode = String(route.query.product_code || ''); // 제품코드
+  r.prdName = String(route.query.product_name || ''); // 제품이름
+  r.totalQty = Number(route.query.qty || 0); // 총수량
+  r.writer = String(route.query.writer || ''); // 작업자
+  r.writeDate = String(route.query.finished_at || ''); // 세션값 받아오면 반영(스토어)
+  const today = new Date();
+  // r.doneDate = String(route.query.finished_at || '');
+  r.doneDate = today.toISOString().slice(0, 10);
+});
 </script>
 
 <style scoped>
