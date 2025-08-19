@@ -1,7 +1,3 @@
-// 원자재 검수 조회
-// const selectProductCertificate = `SELECT *
-// FROM PRODUCT_CERTIFICATE`;
-
 // 합격/불합격 원자재 조회
 const materialSelect = `
 SELECT M.MAT_CERT_ID,
@@ -24,15 +20,34 @@ FROM MAT_IN_TMP
 // 합격원자재 등록
 const passMat = `
 INSERT INTO MATERIAL_CERTIFICATE
-  (MAT_CERT_ID, RECEIPT_NO, Q_STD_ID, MAT_CODE, TOTAL_QTY, Q_CHECKED_DATE, CREATED_BY)
-VALUES (GetNextMAT_CERT_ID(), ?, NULL, ?, ?, ?, ?)`;
+  (MAT_CERT_ID, Q_STD_ID, MAT_CODE, MAT_NAME, TOTAL_QTY, Q_CHECKED_DATE, MAT_STATUS, CREATED_BY, RECEIPT_NO)
+VALUES (GetNextMAT_CERT_ID(), ?, ?, ?, ?, ?, ?, ?, ?)
+`;
 
 // 불합격원자재 등록
-const rejectMat = `
+const rejactMat = `
 INSERT INTO REJECTED_MATERIAL
-  (RJT_MAT_ID, RECEIPT_NO, MAT_CODE, RJT_REASON, Q_CHECKED_DATE, TOTAL_QTY, MAT_STAUTS, CREATED_BY)
-VALUES ()
+  (RJT_MAT_ID, RECEIPT_NO, MAT_CODE, RJT_REASON, Q_CHECKED_DATE, TOTAL_QTY, MAT_STATUS, CREATED_BY)
+VALUES
+  (GetNextMAT_CERT_ID(), ?, ?, ?, ?, ?, '등록', ?)
 `;
+
+// 제품공정조회
+const taskPrd = `
+SELECT w.wo_no, q.finished_at, q.qty,
+       w.product_code, w.product_name, w.status, w.writer
+  FROM production_done_queue q
+  JOIN work_orders w ON w.id = q.wo_id
+ WHERE q.picked = 0
+ ORDER BY q.finished_at DESC
+`;
+
+// 합격제품등록
+// const passPrd = `
+// INSERT INTO
+// `;
+
+// 불량제품등록
 
 // 제품성적서조회
 const selectProductCertificate = `SELECT PRD_CERT_ID, PRD_ID, PRD_NAME, Q_CHECKED_DATE, PRD_STATUS
@@ -61,6 +76,8 @@ module.exports = {
   materialSelect,
   matManagement,
   passMat,
+  rejactMat,
+  taskPrd,
   selectProductCertificate,
   selectQStandard,
   qcStatus,

@@ -93,22 +93,28 @@ const defectReason = ref({
   description: ''
 });
 
-// 불합격 항목 목록 계산
-const failedItems = computed(() => {
-  const api = criteriaApi.value;
-  if (!api) return [];
-
-  const failed = [];
-  criteriaRows.value.forEach((row) => {
-    const node = api.getRowNode(row._id);
-    if (!node?.isSelected()) {
-      failed.push(row.label);
-    }
-  });
-  return failed;
-});
-
 // 원자재 품질기준 조회
+// DB에서 데이터 가져오기
+const getQStandardList = async () => {
+  try {
+    const url = 'http://localhost:3000/qstdlist';
+
+    const result = await axios.get(url);
+
+    if (result.data && result.data.length > 0) {
+      qcStdRowData.value = result.data.map((item) => ({
+        stdName: item.STD_NAME,
+        stdContent: item.STD_CONTENT,
+        allowedValue: item.ALLOWED_VALUE
+      }));
+    } else {
+      qcStdRowData.value = [];
+    }
+  } catch (err) {
+    console.error('데이터 조회 중 오류:', err);
+    qcStdRowData.value = [];
+  }
+};
 
 /* ------------ 1) 검사기준 그리드 (선택=합격) ------------ */
 // 행 데이터 (rowId로 쓸 고유 키 _id 포함)
@@ -272,31 +278,23 @@ async function saveForm() {
     return;
   }
 
-  try {
-    if (isPass) {
-      // /passmat 은 "평평한 바디"를 기대
-      await axios.post('http://localhost:3000/passmat', {
-        RECEIPT_NO: d.inNo, // 문자열
-        MAT_CODE: d.materialCode,
-        TOTAL_QTY: d.totalQty,
-        Q_CHECKED_DATE: d.doneDate, // 'YYYY-MM-DD'
-        CREATED_BY: d.user
-      });
-    } else {
-      await axios.post('http://localhost:3000/rejectmat', {
-        RECEIPT_NO: d.inNo,
-        MAT_CODE: d.materialCode,
-        RJT_REASON: defectReason.value.description.trim().slice(0, 100),
-        Q_CHECKED_DATE: d.doneDate,
-        TOTAL_QTY: d.totalQty,
-        CREATED_BY: d.user
-      });
-    }
-
-    alert('등록되었습니다!');
-  } catch (e) {
-    console.error(e);
-    alert('등록 중 오류가 발생했습니다.');
+  if (isPass) {
+    await axios.post('http://localhost:3000/passmat', {
+      RECEIPT_NO: d.inNo,
+      MAT_CODE: d.materialCode,
+      TOTAL_QTY: Number(d.totalQty),
+      Q_CHECKED_DATE: d.doneDate,
+      CREATED_BY: d.user
+    });
+  } else {
+    await axios.post('http://localhost:3000/rjtmat', {
+      RECEIPT_NO: d.inNo,
+      MAT_CODE: d.materialCode,
+      RJT_REASON: defectReason.value.description.trim().slice(0, 100),
+      Q_CHECKED_DATE: d.doneDate,
+      TOTAL_QTY: Number(d.totalQty),
+      CREATED_BY: d.user
+    });
   }
 }
 </script>

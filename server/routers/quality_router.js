@@ -47,6 +47,36 @@ router.post("/passmat", async (req, res) => {
   }
 });
 
+// 불합격원자재 등록
+router.post("/rjtmat", async (req, res) => {
+  try {
+    const b = req.body || {};
+    const result = await qualityService.addRejectMat({
+      RECEIPT_NO: String(b.RECEIPT_NO),
+      MAT_CODE: String(b.MAT_CODE),
+      RJT_REASON: String(b.RJT_REASON),
+      Q_CHECKED_DATE: String(b.Q_CHECKED_DATE), // 'YYYY-MM-DD'
+      TOTAL_QTY: Number(b.TOTAL_QTY) || 0,
+      CREATED_BY: b.CREATED_BY || null,
+    });
+
+    res.json({ ok: true, affected: result.affectedRows || 1 });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      ok: false,
+      message: err.sqlMessage || err.message,
+      code: err.code,
+    });
+  }
+});
+
+// 제품공정조회
+router.get("/taskprd", async (req, res) => {
+  let list = await qualityService.selectTaskPrd();
+  res.send(list);
+});
+
 // 품질기준 조회
 router.get("/qstdlist", async (req, res) => {
   let list = await qualityService.selectQstd();
