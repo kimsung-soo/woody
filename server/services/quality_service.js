@@ -34,7 +34,7 @@ const addRejectMat = async (b) => {
     Number(b.TOTAL_QTY) || 0, // 5: TOTAL_QTY
     b.CREATED_BY || null, // 6: CREATED_BY
   ];
-  return mariadb.query("rejactMat", params);
+  return await mariadb.query("rejactMat", params);
 };
 
 // 제품공정조회
@@ -47,6 +47,22 @@ const selectTaskPrd = async () => {
 const selectPrdCert = async () => {
   let list = await mariadb.query("selectProductCertificate");
   return list;
+};
+
+// 합격제품등록
+const addPassPrd = async (b) => {
+  const params = [
+    String(b.TP_ID),
+    String(b.Q_STD_ID),
+    String(b.PRD_CODE),
+    String(b.PRD_NAME),
+    Number(b.TOTAL_QTY) || 0,
+    String(b.PRD_TYPE),
+    String(b.Q_CHECKED_DATE),
+    String(b.PRD_STATUS),
+    b.CREATED_BY || null,
+  ];
+  return await mariadb.query("passPrd", params);
 };
 
 // 품질기준조회
@@ -74,6 +90,7 @@ module.exports = {
   addRejectMat,
   selectTaskPrd,
   selectPrdCert,
+  addPassPrd,
   selectQstd,
   qcCommonCode,
   matCommonCode,
