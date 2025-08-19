@@ -175,7 +175,7 @@ async function submitForm() {
     }
 
     for (const row of rowData.value) {
-      const status = row.자재유형 == '원자재' ? '검수 대기' : '입고';
+      const status = row.자재유형 == '원자재' ? '검수 대기' : '완료';
 
       // 1) MAT_IN_TMP에 등록 (모든 자재)
       await axios.post('http://localhost:3000/materialInsert', {

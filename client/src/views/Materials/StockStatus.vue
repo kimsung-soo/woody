@@ -54,7 +54,9 @@
       :rowData="rowData"
       :columnDefs="colDefs"
       :theme="quartz"
-      style="height: 200px; width: 100%"
+      style="height: 17rem; width: 100%"
+      :pagination="true"
+      :pagination-page-size="4"
       @cell-value-changed="onCellValueChanged"
     >
     </ag-grid-vue>
@@ -191,34 +193,7 @@ function inputReset() {
   status.value = '';
 }
 
-const fileSelect = async () => {
-  // try {
-  //   const params = {
-  //     matName: materialName.value || null,
-  //     matCode: materialCode.value || null,
-  //     orderDate: insertDate.value || null,
-  //     status: status.value || null
-  //   };
-  //   const res = await axios.post('http://localhost:3000/orderSearch', params);
-  //   rowData.value = res.data.map((item) => ({
-  //     발행번호: item.PO_NO,
-  //     공급업체: item.SUPPLYER,
-  //     자재코드: item.MAT_CODE,
-  //     자재명: item.MAT_NAME,
-  //     자재유형: item.MAT_TYPE,
-  //     규격: item.MAT_SIZE,
-  //     단위: item.MAT_UNIT,
-  //     발주일자: item.ORDER_DATE?.slice(0, 10) || '',
-  //     납기일자: item.PO_DDAY?.slice(0, 10) || '',
-  //     담당자: item.MANAGER,
-  //     발주수량: item.RECEIPT_QTY,
-  //     상태: item.PO_STATUS
-  //   }));
-  // } catch (err) {
-  //   console.error('발주서 검색 실패:', err);
-  //   alert('검색 중 오류가 발생했습니다.');
-  // }
-};
+const fileSelect = async () => {};
 </script>
 
 <style scoped>

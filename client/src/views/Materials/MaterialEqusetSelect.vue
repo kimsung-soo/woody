@@ -57,7 +57,7 @@
 </template>
 
 <script setup>
-import { ref, shallowRef } from 'vue';
+import { ref, shallowRef, onMounted } from 'vue';
 
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
@@ -120,11 +120,10 @@ const colDefs = ref([
   { field: '자재코드', flex: 1 },
   { field: '규격', flex: 1 },
   { field: '단위', flex: 1 },
-  { field: '총 수량', flex: 1 },
   { field: '작성일자', flex: 1.5 },
   { field: '회수요청일자', flex: 1.5 },
   { field: '담당자', flex: 1 },
-  { field: '불량유형', flex: 1 },
+  { field: '총수량', headerName: '총 수량', flex: 1 },
   {
     field: '상태',
     flex: 1,
@@ -138,6 +137,30 @@ const colDefs = ref([
     }
   }
 ]);
+
+onMounted(async () => {
+  try {
+    // 회수요청일자 지나면 상태값 완료로 변경
+    await axios.post('http://localhost:3000/reMaterialSelectUpdate');
+
+    const res = await axios.get('http://localhost:3000/reMaterialSelect');
+    // 응답 데이터 바로 rowData에 할당
+    rowData.value = res.data.map((item) => ({
+      요청서번호: item.RR_NO,
+      자재명: item.MAT_NAME,
+      자재코드: item.MAT_CODE,
+      규격: item.MAT_SIZE,
+      단위: item.MAT_UNIT,
+      작성일자: item.CREATED_DATE.slice(0, 10),
+      회수요청일자: item.RR_DATE.slice(0, 10),
+      담당자: item.MANAGER,
+      총수량: item.RE_QTY,
+      상태: item.RE_STATUS
+    }));
+  } catch (err) {
+    console.error('발주 조회 실패:', err);
+  }
+});
 
 const page = ref({ title: '불량품' });
 const breadcrumbs = shallowRef([
@@ -169,9 +192,7 @@ function inputReset() {
   reDate.value = '';
 }
 
-function fileSelect() {
-  alert('검색하는 버튼');
-}
+function fileSelect() {}
 </script>
 
 <style scoped>

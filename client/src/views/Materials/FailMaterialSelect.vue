@@ -24,7 +24,7 @@
           <span class="mr-2">상태:</span>
           <v-radio-group v-model="status" inline hide-details>
             <v-radio label="등록" value="등록" />
-            <v-radio label="반품 완료" value="반품 완료" />
+            <v-radio label="완료" value="완료" />
           </v-radio-group>
         </div>
       </v-col>
@@ -121,7 +121,7 @@ const colDefs = ref([
     cellStyle: (params) => {
       if (params.value == '등록') {
         return { color: 'black', fontWeight: 'bold' };
-      } else if (params.value == '반품 완료') {
+      } else if (params.value == '완료') {
         return { color: 'red', fontWeight: 'bold' };
       }
       return null;
@@ -141,8 +141,8 @@ onMounted(async () => {
       자재유형: item.MAT_TYPE,
       규격: item.MAT_SIZE,
       단위: item.MAT_UNIT,
-      작성자: item.MANAGER,
-      불량품수량: item.RECEIVED_QTY,
+      작성자: item.CREATED_BY,
+      불량품수량: item.TOTAL_QTY,
       상태: item.MAT_STATUS
     }));
   } catch (err) {
@@ -176,9 +176,7 @@ function inputReset() {
   status.value = '';
 }
 
-function fileSelect() {
-  alert('검색하는 버튼');
-}
+function fileSelect() {}
 </script>
 
 <style scoped>

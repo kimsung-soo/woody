@@ -160,7 +160,7 @@ const reMaterialInsert = async (data) => {
 
 // 자재반품요청서 상세 등록
 const reMaterialInsertDetail = async (data) => {
-  const params = [data.MAT_CODE, data.RE_QTY, data.RR_NO];
+  const params = [data.RR_NO, data.RE_QTY, data.MAT_CODE];
   let result = await mariadb.query("reMaterialInsertDetail", params);
   return result;
 };
@@ -171,11 +171,23 @@ const GetNextRRNO = async () => {
   return rrResult[0].RR_NO;
 };
 
-// // 자재반품요청서 목록 조회
-// const getReturnRequests = async () => {
-//   const result = await mariadb.query("returnRequestSelect");
-//   return result;
-// };
+// 자재반품요청서 등록 후 불량품 테이블 상태 업데이트
+const reMaterialUpdate = async (receiptNo, status) => {
+  let result = await mariadb.query("reMaterialUpdate", [status, receiptNo]);
+  return result;
+};
+
+// 자재반품요청서 목록 조회
+const reMaterialSelect = async () => {
+  const result = await mariadb.query("reMaterialSelect");
+  return result;
+};
+
+// 자재반품요청서 기간 지난 후 상태 변경
+const reMaterialSelectUpdate = async () => {
+  let result = await mariadb.query("reMaterialSelectUpdate");
+  return result;
+};
 
 // 원자재 합격품 조회
 const materialsPass = async () => {
@@ -235,6 +247,9 @@ module.exports = {
   reMaterialInsert,
   reMaterialInsertDetail,
   GetNextRRNO,
+  reMaterialUpdate,
+  reMaterialSelect,
+  reMaterialSelectUpdate,
   materialsPass,
   LOTInsert,
   updateTMP,

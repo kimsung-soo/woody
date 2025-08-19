@@ -36,9 +36,8 @@
         <div class="radioDiv">
           <span class="mr-2">상태:</span>
           <v-radio-group v-model="status" inline hide-details>
-            <v-radio label="입고" value="입고" />
             <v-radio label="검수 대기" value="검수 대기" />
-            <v-radio label="입고 완료" value="입고 완료" />
+            <v-radio label="완료" value="완료" />
           </v-radio-group>
         </div>
       </v-col>
@@ -136,11 +135,9 @@ const colDefs = ref([
     field: '상태',
     flex: 1,
     cellStyle: (params) => {
-      if (params.value == '입고') {
-        return { color: 'black', fontWeight: 'bold' };
-      } else if (params.value == '검수 대기') {
+      if (params.value == '검수 대기') {
         return { color: 'blue', fontWeight: 'bold' };
-      } else if (params.value == '입고 완료') {
+      } else if (params.value == '완료') {
         return { color: 'red', fontWeight: 'bold' };
       }
       return null;
@@ -224,7 +221,7 @@ async function fileSelect() {
       입고일자: item.RECEIPT_DATE.slice(0, 10),
       담당자: item.MANAGER,
       입고수량: item.RECEIVED_QTY,
-      상태: item.MAT_TYPE == '원자재' ? '검수 대기' : item.MAT_TYPE == '부자재' ? '입고' : '실패'
+      상태: item.MAT_TYPE == '원자재' ? '검수 대기' : item.MAT_TYPE == '부자재' ? '완료' : '실패'
     }));
   } catch (err) {
     console.error('입고 검색 실패:', err);
