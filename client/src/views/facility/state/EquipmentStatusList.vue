@@ -1,20 +1,19 @@
 <template>
   <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs" />
 
-  <UiParentCard title="설비 정보수정">
+  <UiParentCard title="전체 조회">
     <v-row class="mb-2 py-0">
       <v-col cols="12" class="d-flex align-center">
-        <v-btn color="warning" variant="flat" @click="openModal('공정 조회', RowData, ColDefs)">공정 조회</v-btn>
+        <v-btn color="warning" variant="flat" @click="openModal('공정 조회')">공정 조회</v-btn>
       </v-col>
     </v-row>
 
     <v-row class="mb-4 pt-0">
-      <v-col cols="12" md="6">
+      <v-col cols="12" md="3">
         <v-text-field label="공정코드" v-model="processCode" readonly hide-details density="comfortable" variant="outlined" />
       </v-col>
     </v-row>
 
-    <!-- AG Grid -->
     <ag-grid-vue
       style="height: 420px"
       :theme="quartz"
@@ -23,6 +22,8 @@
       :defaultColDef="defaultColDef"
       :animateRows="true"
       :suppressClickEdit="true"
+      :pagination="true"
+      :pagination-page-size="10"
       @grid-ready="onGridReady"
     />
   </UiParentCard>
@@ -45,23 +46,14 @@ import MoDal from '@/views/common/NewModal.vue';
 ModuleRegistry.registerModules([AllCommunityModule]);
 const quartz = themeQuartz;
 
-const page = ref({ title: '설비 상태관리' });
-const breadcrumbs = shallowRef([
-  { title: '설비 상태', disabled: true, href: '#' },
-  { title: '전체 조회', disabled: false, href: '#' }
-]);
-
-/* 네 환경(프리픽스 없음) */
 const apiBase = 'http://localhost:3000';
+const PROCESS_API = `${apiBase}/process`;
 
-/* ---------- 설비유형 코드(FAC_TYPE) 맵 ---------- */
 let facTypeMap = new Map();
 const fetchFacTypeCodes = async () => {
   const { data } = await axios.get(`${apiBase}/common/codes/FAC_TYPE`);
   const map = new Map();
-  for (const r of data || []) {
-    map.set(r.code ?? r.CODE, r.code_name ?? r.CODE_NAME);
-  }
+  for (const r of data || []) map.set(r.code ?? r.CODE, r.code_name ?? r.CODE_NAME);
   facTypeMap = map;
 };
 
@@ -74,7 +66,6 @@ const onGridReady = async (e) => {
   await init();
 };
 
-/* 공정코드  */
 const applyProcessFilter = (procCode) => {
   if (!gridApi.value) return;
   gridApi.value.setFilterModel({
@@ -91,17 +82,12 @@ const statusStyle = (v) => {
 };
 const fmt = (v) => (v ? dayjs(v).format('YYYY-MM-DD HH:mm') : '');
 
-/* 컬럼 정의 */
 const columnDefs = ref([
   { field: '공정코드', hide: true, filter: 'agTextColumnFilter' },
   { field: '설비코드', flex: 1 },
   { field: '설비명', flex: 1 },
   { field: '설비유형', flex: 1 },
-  {
-    field: '설비상태',
-    flex: 1,
-    cellStyle: (p) => statusStyle(p.value)
-  },
+  { field: '설비상태', flex: 1, cellStyle: (p) => statusStyle(p.value) },
   { field: '비가동사유', flex: 1 },
   { field: '점검완료일', flex: 1 },
   { field: '다음점검일', flex: 1 },
@@ -110,15 +96,10 @@ const columnDefs = ref([
 
 const rows = ref([]);
 
-/* ===== DB 연동 ===== */
-
-/** 설비 전체  */
 const fetchFacilities = async () => {
   const { data } = await axios.get(`${apiBase}/facility`);
   return data || [];
 };
-
-/** 설비 상태 목록 */
 const fetchStatusList = async () => {
   try {
     const { data } = await axios.get(`${apiBase}/facility/status`);
@@ -127,7 +108,6 @@ const fetchStatusList = async () => {
     return [];
   }
 };
-
 const statusTime = (r) => new Date(r.FS_CHECKDAY || r.DOWN_ENDDAY || r.DOWN_STARTDAY || 0).getTime();
 
 const mergeFacilitiesWithStatus = (facilities, statusRows) => {
@@ -139,25 +119,30 @@ const mergeFacilitiesWithStatus = (facilities, statusRows) => {
 
   return (facilities || []).map((f) => {
     const s = sMap.get(f.FAC_ID);
-    const st = s ? statusText(s.FS_STATUS) : '가동';
-    const isUp = st === '가동';
+    const stNum = s ? Number(s.FS_STATUS) : 0;
+    const stTxt = statusText(stNum);
+
+    let doneAt = '-';
+    if (stNum === 2) {
+      doneAt = s?.FS_CHECKDAY ? fmt(s.FS_CHECKDAY) : '-';
+    }
 
     const facTypeName = f.FAC_TYPE_NM ?? (f.FAC_TYPE ? facTypeMap.get(String(f.FAC_TYPE)) || f.FAC_TYPE : '-');
+
     return {
       공정코드: f.PR_ID || '',
       설비코드: f.FAC_ID,
       설비명: f.FAC_NAME || '',
       설비유형: facTypeName,
-      설비상태: st,
-      비가동사유: isUp ? '-' : s?.FS_REASON || '-',
-      점검완료일: isUp ? '-' : fmt(s?.FS_CHECKDAY),
-      다음점검일: isUp ? '-' : fmt(s?.FS_NEXTDAY),
+      설비상태: stTxt,
+      비가동사유: stNum === 1 ? s?.FS_REASON || '-' : '-',
+      점검완료일: doneAt,
+      다음점검일: s?.FS_NEXTDAY ? fmt(s.FS_NEXTDAY) : '-',
       담당자: f.MANAGER && f.MANAGER !== '-' ? f.MANAGER : s?.MANAGER || '-'
     };
   });
 };
 
-/*설비유형 코드표  */
 const init = async () => {
   await fetchFacTypeCodes();
   const [facilities, statusRows] = await Promise.all([fetchFacilities(), fetchStatusList()]);
@@ -165,35 +150,51 @@ const init = async () => {
   if (processCode.value) applyProcessFilter(processCode.value);
 };
 
-/*  공정 조회 모달  */
+//공정 조회 모달
 const modalRef = ref(null);
 const modalTitle = ref('');
 const modalRowData = ref([]);
-const modalColDefs = ref([]);
-
-const ColDefs = [
+const modalColDefs = ref([
   { field: '공정코드', headerName: '공정코드', flex: 1 },
   { field: '공정명', headerName: '공정명', flex: 1 },
   { field: '설비유형', headerName: '설비유형', flex: 1 },
-  { field: '등록일자', headerName: '등록일자', flex: 1, type: 'date' }
-];
-
-const RowData = ref([
-  { 공정코드: 'PRC-001', 공정명: '재단 공정', 설비유형: '절단기', 등록일자: '2025-07-01' },
-  { 공정코드: 'PRC-002', 공정명: '연마 공정', 설비유형: '연마기', 등록일자: '2025-07-05' },
-  { 공정코드: 'PRC-003', 공정명: '조립 공정', 설비유형: '조립대', 등록일자: '2025-07-10' }
+  { field: '등록일자', headerName: '등록일자', flex: 1 },
+  { field: '작성자', headerName: '작성자', flex: 1 },
+  { field: '비고', headerName: '비고', flex: 1 }
 ]);
 
-const openModal = (title, rowData, colDefs) => {
-  modalTitle.value = title;
-  modalRowData.value = rowData;
-  modalColDefs.value = colDefs;
-  modalRef.value?.open();
-};
+const mapProcess = (r) => ({
+  공정코드: r.PR_ID ?? r.PRC_CODE ?? '',
+  공정명: r.PRC_NAME ?? '',
+  설비유형: r.FAC_TYPE ?? '',
+  등록일자: r.PRC_RDATE ? dayjs(r.PRC_RDATE).format('YYYY-MM-DD') : '',
+  작성자: r.PRC_WRITER ?? '',
+  비고: r.PRC_NOTE ?? ''
+});
 
+const fetchProcessList = async () => {
+  const { data } = await axios.get(PROCESS_API);
+  return (Array.isArray(data) ? data : []).map(mapProcess);
+};
+const openModal = async (title) => {
+  try {
+    modalTitle.value = title;
+    modalRowData.value = await fetchProcessList();
+    modalRef.value?.open();
+  } catch (e) {
+    console.error('[process list] error:', e);
+    alert('공정 목록 조회 실패');
+  }
+};
 const modalConfirm = (selectedRow) => {
   if (!selectedRow) return;
   processCode.value = selectedRow.공정코드 || '';
-  applyProcessFilter(processCode.value);
+  applyProcessFilter(selectedRow.공정코드);
 };
+
+const page = ref({ title: '설비 상태 관리' });
+const breadcrumbs = shallowRef([
+  { title: '설비', disabled: true, href: '#' },
+  { title: '전체 조회', disabled: false, href: '#' }
+]);
 </script>

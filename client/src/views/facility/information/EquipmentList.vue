@@ -1,16 +1,15 @@
 <template>
   <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs" />
 
-  <UiParentCard title="설비 정보조회">
+  <UiParentCard title="전체 조회">
     <v-row class="mb-2 py-0">
       <v-col cols="12" class="d-flex align-center">
-        <!-- 공정 조회 버튼 (모달 오픈) -->
         <v-btn color="warning" variant="flat" @click="openModal('공정 조회')"> 공정 조회 </v-btn>
       </v-col>
     </v-row>
 
     <v-row class="mb-4 pt-0">
-      <v-col cols="12" md="6">
+      <v-col cols="12" md="3">
         <v-text-field label="공정코드" v-model="processCode" readonly hide-details density="comfortable" variant="outlined" />
       </v-col>
     </v-row>
@@ -26,6 +25,8 @@
       :columnDefs="columnDefs"
       :animateRows="true"
       :suppressClickEdit="true"
+      :pagination="true"
+      :pagination-page-size="10"
       @grid-ready="onGridReady"
     />
   </UiParentCard>
@@ -43,13 +44,6 @@ import { AgGridVue } from 'ag-grid-vue3';
 import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
 ModuleRegistry.registerModules([AllCommunityModule]);
 const quartz = themeQuartz;
-
-/* ─ UI ─ */
-const page = ref({ title: '설비 정보조회' });
-const breadcrumbs = shallowRef([
-  { title: '설비', disabled: true, href: '#' },
-  { title: '전체 조회', disabled: false, href: '#' }
-]);
 
 /* ─ 컬럼 정의 ─ */
 const columnDefs = ref([
@@ -111,7 +105,7 @@ const mapRow = (r) => ({
   설비제조일: fmtDate(r.FAC_MDATE),
   설비설치일: fmtDate(r.FAC_IDATE),
   점검주기일: r.FAC_CHECKDAY ?? '',
-  고장유형: '-', // facilitySelect에는 FAIL_TYPE 없음 → 임시 표기
+  고장유형: '-',
   담당자: r.MANAGER ?? ''
 });
 
@@ -155,7 +149,7 @@ const fetchProcessList = async () => {
   return (Array.isArray(data) ? data : []).map(mapProcess);
 };
 
-/* 모달 오픈 */
+// 모달 오픈
 const openModal = async (title) => {
   try {
     modalTitle.value = title;
@@ -167,11 +161,16 @@ const openModal = async (title) => {
   }
 };
 
-/* 모달 확인: 선택된 공정코드로 필터 */
 const modalConfirm = (selectedRow) => {
   if (!selectedRow) return;
   processCode.value = selectedRow.공정코드 || '';
   processName.value = selectedRow.공정명 || '';
   if (selectedRow.공정코드) applyProcessFilter(selectedRow.공정코드);
 };
+
+const page = ref({ title: '설비 정보 관리' });
+const breadcrumbs = shallowRef([
+  { title: '설비', disabled: true, href: '#' },
+  { title: '전체 조회', disabled: false, href: '#' }
+]);
 </script>

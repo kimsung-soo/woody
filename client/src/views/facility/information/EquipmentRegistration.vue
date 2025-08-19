@@ -1,7 +1,7 @@
 <template>
   <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs" />
 
-  <UiParentCard title="설비 정보 등록">
+  <UiParentCard title="설비 등록">
     <v-row class="mb-4">
       <v-col cols="6">
         <v-text-field label="설비코드" v-model.trim="form.code" dense outlined readonly />
@@ -87,18 +87,11 @@ const apiTry = async (method, path, data = null) => {
     return await http.request({ method, url: urlWithApi, data });
   } catch (e) {
     if (e?.response?.status === 404) {
-      // fallback: no prefix
       return await http.request({ method, url: path, data });
     }
     throw e;
   }
 };
-
-const page = ref({ title: '설비 정보 관리' });
-const breadcrumbs = shallowRef([
-  { title: '설비', disabled: true, href: '#' },
-  { title: '설비 정보 등록', disabled: false, href: '#' }
-]);
 
 const form = reactive({
   code: '',
@@ -181,4 +174,10 @@ const sign = async () => {
     loading.value = false;
   }
 };
+
+const page = ref({ title: '설비 정보 관리' });
+const breadcrumbs = shallowRef([
+  { title: '설비', disabled: true, href: '#' },
+  { title: '설비 등록', disabled: false, href: '#' }
+]);
 </script>
