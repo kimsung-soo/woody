@@ -138,6 +138,138 @@ router.post("/masterPrdSearch", async (req, res) => {
   }
 });
 
+// 자재 조회
+router.get("/masterMatSelect", async (req, res) => {
+  let list = await masterService.masterMatSelect();
+  res.send(list);
+});
+
+// 자재(규격) 조회
+router.get("/masterMatModal", async (req, res) => {
+  let list = await masterService.masterMatModal();
+  res.send(list);
+});
+
+// 자재 - 단위 조회
+router.get("/masterMatUnit", async (req, res) => {
+  let list = await masterService.masterMatUnit();
+  res.send(list);
+});
+
+// 자재 - 유형 조회
+router.get("/masterMatType", async (req, res) => {
+  let list = await masterService.masterMatType();
+  res.send(list);
+});
+
+// 자재 - 등록
+router.post("/masterMatInsert", async (req, res) => {
+  try {
+    const data = req.body;
+    console.log(req.body);
+    let result = await masterService.masterMatInsert(data);
+    res.json(result);
+  } catch (e) {
+    console.log(e);
+  }
+});
+
+// 자재 - 수정
+router.post("/masterMatUpdate", async (req, res) => {
+  try {
+    const data = req.body;
+    console.log(req.body);
+    let result = await masterService.masterMatUpdate(data);
+    res.json(result);
+  } catch (e) {
+    console.log(e);
+  }
+});
+
+// 재공품 조회
+router.get("/masterWIPSelect", async (req, res) => {
+  let list = await masterService.masterWIPSelect();
+  res.send(list);
+});
+
+// 재공품(규격) 조회
+router.get("/masterWIPModal", async (req, res) => {
+  let list = await masterService.masterWIPModal();
+  res.send(list);
+});
+
+// 재공품 - 단위 조회
+router.get("/masterWIPUnit", async (req, res) => {
+  let list = await masterService.masterWIPUnit();
+  res.send(list);
+});
+
+// 재공품 - 유형 조회
+router.get("/masterWIPType", async (req, res) => {
+  let list = await masterService.masterWIPType();
+  res.send(list);
+});
+
+// 재공품 - 등록
+router.post("/masterWIPInsert", async (req, res) => {
+  try {
+    const data = req.body;
+    console.log(req.body);
+    let result = await masterService.masterWIPInsert(data);
+    res.json(result);
+  } catch (e) {
+    console.log(e);
+  }
+});
+
+// 재공품 - 수정
+router.post("/masterWIPUpdate", async (req, res) => {
+  try {
+    const data = req.body;
+    console.log(req.body);
+    let result = await masterService.masterWIPUpdate(data);
+    res.json(result);
+  } catch (e) {
+    console.log(e);
+  }
+});
+
+// 공정 전체 조회
+router.get("/masterPrcSelect", async (req, res) => {
+  let list = await masterService.masterPrcSelect();
+  res.send(list);
+});
+
+// 공정 -설비유형 조회
+router.get("/masterPrcModal", async (req, res) => {
+  let list = await masterService.masterPrcModal();
+  res.send(list);
+});
+
+// 공정 - 등록
+router.post("/masterPrcInsert", async (req, res) => {
+  try {
+    const data = req.body;
+    console.log(req.body);
+    let result = await masterService.masterPrcInsert(data);
+    res.json(result);
+  } catch (e) {
+    console.log(e);
+  }
+});
+
+// 공정 - 수정
+router.post("/masterPrcUpdate", async (req, res) => {
+  try {
+    const data = req.body;
+    console.log(req.body);
+    let result = await masterService.masterPrcUpdate(data);
+    res.json(result);
+  } catch (e) {
+    console.log(e);
+  }
+});
+
 // BOM에서 제품 조회
 
 router.get("/BOMprdSelect", async (req, res) => {
@@ -253,6 +385,17 @@ router.post("/prcList", async (req, res) => {
     console.log(e);
   }
 });
+// 공정흐름도 - 공정흐름도 코드 insert
+router.post("/diaInsert", async (req, res) => {
+  try {
+    const data = req.body;
+    console.log(req.body);
+    let result = await masterService.diaInsert(data);
+    res.json(result);
+  } catch (e) {
+    console.log(e);
+  }
+});
 
 // 공정흐름도 - 모달 확인시 insert
 router.post("/prcModalConfirm", async (req, res) => {
@@ -273,6 +416,18 @@ router.post("/prcDelete", async (req, res) => {
     res.json(result);
   } catch (e) {
     console.log(e);
+  }
+});
+
+//공정흐름도 -공정 순서 변경
+router.post("/updateProcessOrder", async (req, res) => {
+  try {
+    const data = req.body; // updatedData 배열
+    const result = await masterService.updateProcessOrder(data);
+    res.json({ success: true, result });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 

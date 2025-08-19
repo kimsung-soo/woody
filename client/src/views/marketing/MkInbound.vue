@@ -100,7 +100,8 @@ const inboundList = async () => {
     검사번호: prd.PRD_CERT_ID,
     제품코드: prd.PRD_CODE,
     제품명: prd.PRD_NAME,
-    입고일자: prd.Q_CHECKED_DATE.substring(0, 10),
+    입고일자:
+      prd.RECEIVED_DATE instanceof Date ? prd.RECEIVED_DATE.toISOString().substring(0, 10) : prd.RECEIVED_DATE?.substring(0, 10) || '',
     입고수량: prd.TOTAL_QTY,
     LOT번호: prd.PRD_LOT
   }));
@@ -115,8 +116,9 @@ const submitForm = async () => {
   const RECEIVED_QTY = selectedRows.map((r) => r.입고수량);
   const RECEIVED_DATE = selectedRows.map((r) => r.입고일자);
   const PRD_CERT_ID = selectedRows.map((r) => r.검사번호);
+  const PRD_CODE = selectedRows.map((r) => r.제품코드);
   // 랏번호는 노드에서 진행
-  const condition = { RECEIVED_QTY, RECEIVED_DATE, PRD_CERT_ID };
+  const condition = { RECEIVED_QTY, RECEIVED_DATE, PRD_CERT_ID, PRD_CODE };
   const res = await axios.post('http://localhost:3000/inboundInsert', condition);
   console.log(res);
 };

@@ -26,7 +26,7 @@
         <div class="add">
           <v-row class="mb-4">
             <v-col cols="6">
-              <v-text-field label="공정코드" v-model="form.prcCode" dense outlined />
+              <v-text-field label="공정코드" v-model="form.prcCode" readonly="true" dense outlined />
             </v-col>
             <v-col cols="6">
               <v-text-field label="공정명" v-model="form.prcName" dense outlined />
@@ -38,11 +38,20 @@
               <v-text-field label="등록일자" v-model="form.date" type="date" dense outlined />
             </v-col>
             <v-col cols="6">
-              <v-text-field label="설비 유형" v-model="form.type" dense outlined />
+              <v-text-field label="설비유형" v-model="form.type" dense outlined readonly>
+                <template #append-inner>
+                  <i
+                    class="fa-solid fa-magnifying-glass"
+                    style="cursor: pointer; font-size: large; margin-right: 0.5rem"
+                    @click="openModal('설비 조회', materialRowData, materialColDefs)"
+                  ></i>
+                </template>
+              </v-text-field>
+              <MoDal ref="modalRef" :title="modalTitle" :rowData="modalRowData" :colDefs="modalColDefs" @confirm="modalConfirm" />
             </v-col>
             <v-col cols="4"> </v-col>
             <v-col cols="12">
-              <v-text-field label="비고" v-model="form.addr" dense outlined />
+              <v-text-field label="비고" v-model="form.note" dense outlined />
             </v-col>
 
             <v-row justify="center">
@@ -59,43 +68,40 @@
 
 <script setup>
 // 기존 스크립트 내용은 동일합니다.
-import { ref, shallowRef } from 'vue';
+import { ref, shallowRef, onMounted } from 'vue';
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
 import { themeQuartz } from 'ag-grid-community';
 import { AgGridVue } from 'ag-grid-vue3';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
-
+import axios from 'axios';
+import MoDal from '../common/NewModal.vue';
 const quartz = themeQuartz;
 const rowSelection = ref({
   mode: 'multiRow'
 });
-const form = ref(
-  { prcCode: '' }, //
-  { prcName: '' },
-  { writer: '' },
-  { date: '' },
-  { type: '' }
-);
+const today = new Date().toISOString().split('T')[0];
+const form = ref({
+  prcCode: '', //
+  prcName: '',
+  writer: '',
+  date: today,
+  type: '',
+  note: ''
+});
 
 // 제품 리스트
-const rowData1 = ref([
-  { 공정코드: 1, 공정명: '재단공정', 설비유형: '절단기', 작성자: '이동섭', 등록일자: '2025-08-29' },
-  { 공정코드: 2, 공정명: '가공공정', 설비유형: '가공기', 작성자: '김태완', 등록일자: '2025-07-29' },
-  { 공정코드: 3, 공정명: '연마공정', 설비유형: '연마기', 작성자: '김성수', 등록일자: '2025-06-29' },
-  { 공정코드: 4, 공정명: '재단공정', 설비유형: '절단기', 작성자: '정경준', 등록일자: '2025-05-29' },
-  { 공정코드: 5, 공정명: '도장공정', 설비유형: '도장기', 작성자: '최은수', 등록일자: '2025-04-29' },
-  { 공정코드: 6, 공정명: '조립공정', 설비유형: '조립기', 작성자: '제갈은경', 등록일자: '2025-03-29' }
-]);
+const rowData1 = ref([]);
 
 const colDefs1 = ref([
   { field: '공정코드', editable: true, width: 140 },
   { field: '공정명', width: 140, editable: true },
   { field: '설비유형', width: 140, editable: true },
   { field: '작성자', width: 130, editable: true },
-  { field: '등록일자', width: 130, editable: true }
+  { field: '등록일자', width: 130, editable: true },
+  { field: '비고', width: 130, editable: true }
 ]);
 
-const page = ref({ title: '사원 관리' });
+const page = ref({ title: '공정 관리' });
 const breadcrumbs = shallowRef([
   {
     title: '기준정보',
@@ -103,36 +109,73 @@ const breadcrumbs = shallowRef([
     href: '#'
   },
   {
-    title: '사원 관리',
+    title: '공정 관리',
     disabled: false,
     href: '#'
   }
 ]);
 
-//cell 단위 수정
-const onCellValueChanged = (event) => {
-  console.log(event.value);
-  console.log(rowData1.value);
+// 제품 리스트
+const prcList = async () => {
+  const res = await axios.get('http://localhost:3000/masterPrcSelect');
+  console.log(res);
+  rowData1.value = res.data.map((prd) => ({
+    공정코드: prd.PRC_CODE,
+    공정명: prd.PRC_NAME,
+    설비유형: prd.FAC_TYPE,
+    작성자: prd.PRC_WRITER,
+    등록일자: prd.PRC_RDATE.substring(0, 10),
+    비고: prd.PRC_NOTE
+  }));
 };
 
-// rowData1 배열에 새로운 행 추가
-const submitForm = () => {
-  const newRow = {
-    제품코드: 'DK-112', // 필요에 따라 기본값 설정
-    공정흐름도: form.value.diagram, // 필요에 따라 기본값 설정
-    사원명: form.value.empName,
-    등록일: form.value.addDate
-  };
-  rowData1.value.push(newRow);
+onMounted(() => {
+  prcList();
+  modalList();
+});
+// 저장버튼
+const submitForm = async () => {
+  console.log(!form.value.prcCode);
+  // 수정
+  if (form.value.prcCode) {
+    const updateRow = {
+      PRC_NAME: form.value.prcName,
+      PRC_TYPE: form.value.type,
+      PRC_WRITER: form.value.writer,
+      PRC_DATE: form.value.date,
+      PRC_NOTE: form.value.note,
+      PRC_CODE: form.value.prcCode
+    };
+    const result = await axios.post('http://localhost:3000/masterPrcUpdate', updateRow);
+    console.log(result.config.data);
+    await prcList();
+  } else {
+    // db저장
+    if (!form.value.type) {
+      alert('값을 올바르게 기재하십시오.');
+      return;
+    }
+    const newRow = {
+      PRC_NAME: form.value.prcName,
+      PRC_TYPE: form.value.type,
+      PRC_WRITER: form.value.writer,
+      PRC_DATE: form.value.date,
+      PRC_NOTE: form.value.note
+    };
+    const result = await axios.post('http://localhost:3000/masterPrcInsert', newRow);
+    console.log(result.config.data);
+    await prcList();
+  }
 };
 
 // 폼 데이터를 초기화하는 함수
 const resetForm = () => {
   form.value = {
-    empName: '',
-    addDate: '',
-    empNo: '',
-    diagram: ''
+    prcCode: '',
+    prcName: '',
+    note: '',
+    date: '',
+    type: ''
   };
 };
 
@@ -141,8 +184,47 @@ const onRowClicked = (event) => {
   form.value.prcCode = event.data.공정코드;
   form.value.prcName = event.data.공정명;
   form.value.writer = event.data.작성자;
-  form.value.date = event.data.등록일;
+  form.value.date = event.data.등록일자;
   form.value.type = event.data.설비유형;
+  form.value.note = event.data.비고;
+};
+
+//모달 value들
+const modalRef = ref(null);
+const modalTitle = ref('');
+const modalRowData = ref([]);
+const modalColDefs = ref([]);
+const materialColDefs = [
+  { field: '그룹코드', headerName: '그룹코드', flex: 1 },
+  { field: '설비유형', headerName: '설비유형', flex: 1 },
+  { field: '사용유무', headerName: '사용유무', flex: 1 }
+];
+const materialRowData = ref([]);
+
+// 모달 조회
+const modalList = async () => {
+  const res = await axios.get('http://localhost:3000/masterPrcModal');
+  materialRowData.value = res.data.map((prd) => ({
+    그룹코드: prd.group_code,
+    설비유형: prd.code_name,
+    사용유무: prd.use_yn
+  }));
+  console.log(res);
+};
+
+//모달 열때 데이터값 자식컴포넌트로
+const openModal = async (title, rowData, colDefs) => {
+  modalTitle.value = title;
+  modalRowData.value = rowData;
+  modalColDefs.value = colDefs;
+  if (modalRef.value) {
+    modalRef.value.open();
+  }
+};
+
+// 모달에서 확인시 행추가
+const modalConfirm = async (selectedRow) => {
+  form.value.type = selectedRow.설비유형;
 };
 </script>
 

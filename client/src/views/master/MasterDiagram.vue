@@ -15,6 +15,7 @@
           @cell-value-changed="onCellValueChanged"
           rowSelection="single"
           @rowClicked="onRowClicked"
+          @grid-ready="onGridReadyPrd"
         >
           <!--  :defaultColDef="{ width: 150 }" 로 전체 width지정도가능-->
         </ag-grid-vue>
@@ -90,15 +91,19 @@ const quartz = themeQuartz;
 const form = ref({ product: '', diagram: '', writer: '', addDate: '' });
 
 const gridApiMat = ref(null); // mat 그리드 API 저장용
-
+const gridApiPrd = ref(null);
 const onGridReadyMat = (params) => {
   gridApiMat.value = params.api;
+};
+const onGridReadyPrd = (params) => {
+  gridApiPrd.value = params.api;
 };
 
 // 제품 리스트
 const rowData1 = ref([]);
 
 const colDefs1 = ref([
+  { headerCheckboxSelection: true, checkboxSelection: true, width: 50 },
   { field: '제품명', editable: true, width: 120 },
   { field: '제품코드', width: 130 },
   { field: '제품유형', width: 130 },
@@ -155,19 +160,30 @@ const onCellValueChanged = (event) => {
   console.log(rowData1.value);
 };
 
-// rowData1 배열에 새로운 행 추가
-const submitForm = () => {
+// 저장버튼
+
+const submitForm = async () => {
+  const selectedRows2 = gridApiPrd.value.getSelectedRows();
+  if (selectedRows2.length === 0) {
+    alert('제품을 선택하세요');
+    return;
+  }
+  const alreadyAssigned = selectedRows2.find((r) => r.공정흐름도); // 공정흐름도 컬럼 값 존재 여부 확인
+  if (alreadyAssigned) {
+    alert(`이미 공정흐름도 코드가 부여된 제품입니다: ${alreadyAssigned.제품명}`);
+    return;
+  }
+
+  const prdCode = selectedRows2.map((r) => r.제품코드);
   const newRow = {
-    제품명: form.value.product,
-    제품코드: 'DK-112', // 필요에 따라 기본값 설정
-    공정흐름도: form.value.diagram, // 필요에 따라 기본값 설정
+    제품코드: prdCode,
     작성자: form.value.writer,
     등록일: form.value.addDate
   };
-  rowData1.value.push(newRow);
+  console.log(newRow);
+  await axios.post('http://localhost:3000/diaInsert', newRow);
 
-  // 폼 데이터를 초기화합니다.
-  resetForm();
+  await prdList();
 };
 
 // 폼 데이터를 초기화하는 함수
@@ -204,6 +220,10 @@ const onRowClicked = (event) => {
   form.value.writer = event.data.작성자;
   form.value.addDate = event.data.등록일;
   prcList();
+  const selectedRows = gridApiMat.value.getSelectedRows();
+  const selectedRows2 = gridApiPrd.value.getSelectedRows();
+  console.log(selectedRows);
+  console.log(selectedRows2);
 };
 
 // 공정 삭제
@@ -219,6 +239,29 @@ const del = async () => {
     diaCode: form.value.diagram,
     prcCode
   });
+  await prcList();
+};
+
+// 드래그 앤 드랍 공정순서 변화
+
+const onRowDragEnd = async () => {
+  const updatedData = [];
+  gridApiMat.value.forEachNode((node, index) => {
+    updatedData.push({
+      DIA_CODE: form.value.diagram, // 현재 다이어그램 코드
+      PRC_CODE: node.data.공정코드, // 공정 코드
+      PRC_ORDER: index + 1 // 새로운 순서
+    });
+  });
+
+  console.log(updatedData);
+
+  try {
+    await axios.post('http://localhost:3000/updateProcessOrder', updatedData);
+  } catch (error) {
+    console.error('순서 저장 실패', error);
+  }
+
   await prcList();
 };
 
