@@ -293,6 +293,7 @@ async function saveForm() {
       Q_CHECKED_DATE: d.doneDate,
       CREATED_BY: d.user
     });
+    alert('합격등록이 완료되었습니다.');
   } else {
     await axios.post('http://localhost:3000/rjtmat', {
       RECEIPT_NO: d.inNo,
@@ -302,6 +303,7 @@ async function saveForm() {
       TOTAL_QTY: Number(d.totalQty),
       CREATED_BY: d.user
     });
+    alert('불합격등록이 완료되었습니다.');
   }
 }
 </script>

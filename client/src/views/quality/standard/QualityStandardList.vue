@@ -56,9 +56,8 @@ const breadcrumbs = shallowRef([
 
 // 컬럼 정의
 const colDefs = ref([
-  { headerName: '기준', field: 'stdName', flex: 1 },
-  { headerName: '검사내용', field: 'stdContent', flex: 1 },
-  { headerName: '허용수치', field: 'allowedValue', flex: 1 }
+  { headerName: '기준명', field: 'stdName', flex: 1, suppressSizeToFit: true },
+  { headerName: '허용수치', field: 'allowedValue', flex: 1, suppressSizeToFit: true }
 ]);
 
 const qcStdRowData = ref([]);
@@ -69,17 +68,15 @@ const search = ref({
   type: '' // 제품 구분 선택
 });
 
-// DB에서 데이터 가져오기
+// 품질기준 데이터 가져오기
 const getQStandardList = async () => {
   try {
     const url = 'http://localhost:3000/qstdlist';
-
     const result = await axios.get(url);
 
     if (result.data && result.data.length > 0) {
       qcStdRowData.value = result.data.map((item) => ({
         stdName: item.STD_NAME,
-        stdContent: item.STD_CONTENT,
         allowedValue: item.ALLOWED_VALUE
       }));
     } else {

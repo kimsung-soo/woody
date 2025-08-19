@@ -46,9 +46,9 @@ SELECT q.id, q.wo_id, q.finished_at, q.qty,
 // 합격제품등록
 const passPrd = `
 INSERT INTO PRODUCT_CERTIFICATE
-  (PRD_CERT_ID, TP_ID, Q_STD_ID, PRD_CODE, TOTAL_QTY, PRD_TYPE, Q_CHECKED_DATE, CREATED_BY, PRD_STATUS, CREATED_BY)
+ (PRD_CERT_ID, TP_ID, Q_STD_ID, PRD_CODE, PRD_NAME, TOTAL_QTY, PRD_TYPE, Q_CHECKED_DATE, PRD_STATUS, CREATED_BY)
 VALUES
-  (getNextPRD_CERT_ID(), ?, ?, ?, ?, ?, ?, ?, '합격', ?)
+ (getNextPRD_CERT_ID(), ?, ?, ?, ?, ?, ?, ?, '합격', ?)
 `;
 
 // 불합격제품등록
@@ -63,7 +63,7 @@ const selectProductCertificate = `SELECT PRD_CERT_ID, PRD_ID, PRD_NAME, Q_CHECKE
 FROM PRODUCT_CERTIFICATE`;
 
 // 품질기준조회
-const selectQStandard = `SELECT STD_NAME, STD_CONTENT, ALLOWED_VALUE 
+const selectQStandard = `SELECT STD_NAME, STD_TYPE, ALLOWED_VALUE 
                          FROM QUALITY_STANDARD`;
 // 원자재 검수 관리
 
