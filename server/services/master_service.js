@@ -137,6 +137,157 @@ const masterPrdSearch = async (data) => {
   return result;
 };
 
+// 자재관리 - 조회
+const masterMatSelect = async () => {
+  let list = await mariadb.query("masterMatSelect");
+  return list;
+};
+
+// 자재관리 - 모달조회
+const masterMatModal = async () => {
+  let list = await mariadb.query("masterMatModal");
+  return list;
+};
+
+// 자재관리 - 유형
+const masterMatType = async () => {
+  let list = await mariadb.query("masterMatType");
+  return list;
+};
+
+//  자재관리 - 단위
+const masterMatUnit = async () => {
+  let list = await mariadb.query("masterMatUnit");
+  return list;
+};
+
+// 자재관리 - 등록
+const masterMatInsert = async (data) => {
+  const params = [
+    data.MAT_NAME,
+    data.MAT_TYPE,
+    data.MAT_UNIT,
+    data.MAT_SIZE,
+    data.MAT_SAFEQT,
+    data.MAT_DATE,
+    data.MAT_NOTE || null,
+    data.MAT_WRITER,
+  ];
+  let result = await mariadb.query("masterMatInsert", params);
+  return result;
+};
+
+// 자재관리 - 수정
+const masterMatUpdate = async (data) => {
+  const params = [
+    data.MAT_NAME,
+    data.MAT_TYPE,
+    data.MAT_UNIT,
+    data.MAT_SIZE,
+    data.MAT_SAFEQT,
+    data.MAT_DATE,
+    data.MAT_NOTE || null,
+    data.MAT_WRITER,
+    data.MAT_CODE,
+  ];
+  let result = await mariadb.query("masterMatUpdate", params);
+  return result;
+};
+
+// 재공품관리 - 조회
+const masterWIPSelect = async () => {
+  let list = await mariadb.query("masterWIPSelect");
+  return list;
+};
+
+// 재공품관리 - 모달조회
+const masterWIPModal = async () => {
+  let list = await mariadb.query("masterWIPModal");
+  return list;
+};
+
+// 재공품관리 - 유형
+const masterWIPType = async () => {
+  let list = await mariadb.query("masterWIPType");
+  return list;
+};
+
+// 공정관리 - 단위
+const masterWIPUnit = async () => {
+  let list = await mariadb.query("masterWIPUnit");
+  return list;
+};
+
+// 공정관리 - 조회
+const masterPrcSelect = async () => {
+  let list = await mariadb.query("masterPrcSelect");
+  return list;
+};
+
+// 공정관리 - 모달조회
+const masterPrcModal = async () => {
+  let list = await mariadb.query("masterPrcModal");
+  return list;
+};
+
+// 공정관리 - 등록
+const masterPrcInsert = async (data) => {
+  const params = [
+    data.PRC_NAME,
+    data.FAC_TYPE,
+    data.PRC_WRITER,
+    data.PRC_RDATE,
+    data.PRC_NOTE || null,
+  ];
+  let result = await mariadb.query("masterPrcInsert", params);
+  return result;
+};
+
+// 공정관리 - 수정
+const masterPrcUpdate = async (data) => {
+  const params = [
+    data.PRC_NAME,
+    data.PRC_TYPE,
+    data.PRC_WRITER,
+    data.PRC_RDATE,
+    data.PRC_NOTE || null,
+    data.PRC_CODE,
+  ];
+  let result = await mariadb.query("masterPrcUpdate", params);
+  return result;
+};
+
+// 재공품관리 - 등록
+const masterWIPInsert = async (data) => {
+  const params = [
+    data.WIP_NAME,
+    data.WIP_TYPE,
+    data.WIP_UNIT,
+    data.WIP_SIZE,
+    data.WIP_DATE,
+    data.WIP_NOTE || null,
+    data.WIP_WRITER,
+  ];
+  let result = await mariadb.query("masterWIPInsert", params);
+  return result;
+};
+
+// 재공품관리 - 수정
+const masterWIPUpdate = async (data) => {
+  const params = [
+    data.WIP_NAME,
+    data.WIP_TYPE,
+    data.WIP_UNIT,
+    data.WIP_SIZE,
+    data.WIP_DATE,
+    data.WIP_NOTE || null,
+    data.WIP_WRITER,
+    data.WIP_CODE,
+  ];
+  let result = await mariadb.query("masterWIPUpdate", params);
+  return result;
+};
+
 // BOM관리에서 제품 조회
 const BOMprdSelect = async () => {
   let list = await mariadb.query("BOMprdSelect");
@@ -237,6 +388,13 @@ const prcList = async (data) => {
   return list;
 };
 
+// 공정흐름도 - 흐름도 코드 insert
+const diaInsert = async (data) => {
+  const params = [data.제품코드, data.작성자, data.등록일];
+  let result = await mariadb.query("diaInsert", params);
+  return result;
+};
+
 // 공정흐름도 - 모달 확인 insert
 const prcModalConfirm = async (data) => {
   const params = [
@@ -250,6 +408,13 @@ const prcModalConfirm = async (data) => {
   return result;
 };
 
+// 공정 순서 업데이트
+const updateProcessOrder = async (data) => {
+  const jsonData = JSON.stringify(data); // JSON 배열로 변환
+  const params = [jsonData];
+  let result = await mariadb.query("updateProcessOrder", params);
+  return result;
+};
 // 공정흐름도 삭제
 const prcDelete = async (data) => {
   const diaCode = data.diaCode;
@@ -303,4 +468,22 @@ module.exports = {
   masterPrdSearch,
   wrModalSelect,
   wrSelect,
+  diaInsert,
+  updateProcessOrder,
+  masterMatSelect,
+  masterMatModal,
+  masterMatType,
+  masterMatUnit,
+  masterMatInsert,
+  masterMatUpdate,
+  masterWIPSelect,
+  masterWIPModal,
+  masterWIPType,
+  masterWIPUnit,
+  masterWIPInsert,
+  masterWIPUpdate,
+  masterPrcUpdate,
+  masterPrcInsert,
+  masterPrcModal,
+  masterPrcSelect,
 };

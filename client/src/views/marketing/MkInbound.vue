@@ -45,14 +45,9 @@ import { themeQuartz } from 'ag-grid-community';
 import { AgGridVue } from 'ag-grid-vue3';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
 import axios from 'axios';
-<<<<<<< HEAD
-// 모달 임포트
-
-=======
 
 // 모달 임포트
 
->>>>>>> 29618b5dc0a94c668d3c889b2986a996dab19726
 const gridApiMat = ref(null); // mat 그리드 API 저장용
 
 const onGridReadyMat = (params) => {
@@ -60,11 +55,7 @@ const onGridReadyMat = (params) => {
 };
 const quartz = themeQuartz;
 const today = new Date().toISOString().split('T')[0];
-<<<<<<< HEAD
-const form = ref({ startDate: today, addDate: '' });
-=======
 const form = ref({ startDate: today, endDate: '' });
->>>>>>> 29618b5dc0a94c668d3c889b2986a996dab19726
 
 // 제품 리스트
 const rowData1 = ref([]);
@@ -72,20 +63,12 @@ const rowData1 = ref([]);
 const colDefs1 = ref([
   { headerCheckboxSelection: true, checkboxSelection: true, width: 50 },
   { field: '입고번호', flex: 1 },
-<<<<<<< HEAD
-  { field: '제품코드', flex: 1 },
-  { field: '제품명', flex: 1 },
-  { field: '입고일자', flex: 1 },
-  { field: '입고수량', flex: 1 },
-  { field: 'LOT번호', flex: 1 }
-=======
   { field: '검사번호', flex: 1 },
   { field: '제품코드', flex: 1 },
   { field: '제품명', flex: 1 },
   { field: '입고일자', flex: 1 },
   { field: '입고수량', flex: 0.7 },
   { field: 'LOT번호', flex: 1.3 }
->>>>>>> 29618b5dc0a94c668d3c889b2986a996dab19726
 ]);
 
 const page = ref({ title: '입고 및 LOT번호등록' });
@@ -114,33 +97,17 @@ const inboundList = async () => {
   console.log(res);
   rowData1.value = res.data.map((prd) => ({
     입고번호: prd.RECEIVED_NO,
-<<<<<<< HEAD
-    제품코드: prd.PRD_CODE,
-    제품명: prd.PRD_NAME,
-    입고일자: prd.Q_CHECKED_DATE.substring(10, 0),
-=======
     검사번호: prd.PRD_CERT_ID,
     제품코드: prd.PRD_CODE,
     제품명: prd.PRD_NAME,
-    입고일자: prd.Q_CHECKED_DATE.substring(0, 10),
->>>>>>> 29618b5dc0a94c668d3c889b2986a996dab19726
+    입고일자:
+      prd.RECEIVED_DATE instanceof Date ? prd.RECEIVED_DATE.toISOString().substring(0, 10) : prd.RECEIVED_DATE?.substring(0, 10) || '',
     입고수량: prd.TOTAL_QTY,
     LOT번호: prd.PRD_LOT
   }));
 };
 
 // lot 번호 등록버튼
-<<<<<<< HEAD
-// const submitForm = () => {
-//   const condition = {
-// RECEIVED_QTY:
-// RECEIVED_DATE
-// PRD_CERT_ID
-// };
-//   // 폼 데이터를 초기화합니다.
-//   resetForm();
-// };
-=======
 const submitForm = async () => {
   const selectedRows = gridApiMat.value.getSelectedRows();
   if (selectedRows.length === 0) {
@@ -149,8 +116,9 @@ const submitForm = async () => {
   const RECEIVED_QTY = selectedRows.map((r) => r.입고수량);
   const RECEIVED_DATE = selectedRows.map((r) => r.입고일자);
   const PRD_CERT_ID = selectedRows.map((r) => r.검사번호);
+  const PRD_CODE = selectedRows.map((r) => r.제품코드);
   // 랏번호는 노드에서 진행
-  const condition = { RECEIVED_QTY, RECEIVED_DATE, PRD_CERT_ID };
+  const condition = { RECEIVED_QTY, RECEIVED_DATE, PRD_CERT_ID, PRD_CODE };
   const res = await axios.post('http://localhost:3000/inboundInsert', condition);
   console.log(res);
 };
@@ -175,7 +143,6 @@ const searchData = async () => {
     LOT번호: prd.PRD_LOT
   }));
 };
->>>>>>> 29618b5dc0a94c668d3c889b2986a996dab19726
 
 const onCellValueChanged = (event) => {
   console.log(event.value);

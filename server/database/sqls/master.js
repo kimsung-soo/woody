@@ -134,6 +134,96 @@ const masterPrdSearch = `SELECT
                       FROM PRODUCT
                       WHERE PRD_NAME LIKE CONCAT('%', ?, '%')`;
 
+// 자재목록
+const masterMatSelect = `SELECT MAT_CODE, MAT_NAME, MAT_TYPE, MAT_UNIT, MAT_SIZE, MAT_SAFEQT, MAT_DATE, MAT_WRITER, MAT_NOTE FROM MATERIALS`;
+
+// 자재 모달
+const masterMatModal = `SELECT group_code, code_name, use_yn
+                         FROM code_master
+                         WHERE group_code = 'MT'
+                         or group_code ='BT'`;
+
+// 자재 유형
+const masterMatType = `SELECT code_name FROM code_master 
+WHERE group_code = 'CC'
+AND code In('04','05');`;
+
+// 자재관리 - 저장버튼(등록)
+const masterMatInsert = `INSERT INTO MATERIALS(MAT_CODE, MAT_NAME, MAT_TYPE, MAT_UNIT, MAT_SIZE, MAT_SAFEQT, MAT_DATE, MAT_NOTE, MAT_WRITER)
+                    VALUES(GetNextMat_Code(), ?,?,?,?,?,?,?,?)`;
+
+// 자재관리 - 저장버튼(수정)
+const masterMatUpdate = `UPDATE MATERIALS
+                         SET MAT_NAME = ? ,
+                         MAT_TYPE = ?,
+                         MAT_UNIT = ?,
+                         MAT_SIZE =?,
+                         MAT_SAFEQT =?,
+                         MAT_DATE =?, 
+                         MAT_NOTE =?, 
+                         MAT_WRITER =?
+                         WHERE MAT_CODE = ?`;
+
+// 자재관리 - 단위
+const masterMatUnit = `SELECT code_name FROM code_master 
+WHERE group_code = 'UN'`;
+
+// 재공품 목록
+const masterWIPSelect = `SELECT WIP_CODE, WIP_NAME, WIP_TYPE, WIP_SIZE,WIP_UNIT, WIP_WRITER,WIP_DATE, WIP_NOTE FROM WIP;`;
+
+// 재공품 모달
+const masterWIPModal = `SELECT group_code, code_name, use_yn
+                         FROM code_master
+                         WHERE group_code = 'WP'`;
+
+// 재공품 유형
+const masterWIPType = `SELECT code_name FROM code_master 
+WHERE group_code = 'WS'`;
+
+// 재공품관리 - 저장버튼(등록)
+const masterWIPInsert = `INSERT INTO WIP(WIP_CODE, WIP_NAME, WIP_TYPE, WIP_UNIT, WIP_SIZE, WIP_DATE, WIP_NOTE, WIP_WRITER)
+                    VALUES(GetNextWIP_Code(), ?,?,?,?,?,?,?)`;
+
+// 재공품관리 - 저장버튼(수정)
+const masterWIPUpdate = `UPDATE WIP
+                         SET WIP_NAME = ? ,
+                         WIP_TYPE = ?,
+                         WIP_UNIT = ?,
+                         WIP_SIZE =?,
+                         WIP_DATE =?, 
+                         WIP_NOTE =?, 
+                         WIP_WRITER =?
+                         WHERE WIP_CODE = ?`;
+
+// 재공품관리 - 단위
+const masterWIPUnit = `SELECT code_name FROM code_master 
+WHERE group_code = 'UN'`;
+
+// 공정 목록
+const masterPrcSelect = `SELECT PRC_CODE, PRC_NAME, PRC_RDATE, PRC_WRITER, PRC_NOTE, FAC_TYPE FROM PROCESS;`;
+
+// 공정 모달(설비유형)
+const masterPrcModal = `SELECT group_code, code_name, use_yn
+                         FROM code_master
+                         WHERE group_code = 'FC'`;
+
+// 공정 유형
+const masterPrcType = `SELECT code_name FROM code_master 
+WHERE group_code = 'WS'`;
+
+// 공정관리 - 저장버튼(등록)
+const masterPrcInsert = `INSERT INTO PROCESS(PRC_CODE, PRC_NAME,FAC_TYPE,PRC_WRITER, PRC_RDATE,PRC_NOTE)
+                    VALUES(GetNextPrc_Code(), ?,?,?,?,?)`;
+
+// 공정관리 - 저장버튼(수정)
+const masterPrcUpdate = `UPDATE PROCESS
+                         SET PRC_NAME = ? ,
+                         FAC_TYPE = ?,
+                         PRC_WRITER =?,
+                         PRC_RDATE =?,
+                         PRC_NOTE =?
+                         WHERE PRC_CODE = ?`;
+
 // BOM 관리에서 제품조회
 const BOMprdSelect = `SELECT p.PRD_NAME,
                              p.PRD_CODE,
@@ -239,7 +329,18 @@ const diaModalList = `SELECT PRC_CODE,
 // 공정흐름도 - 공정 조회
 const prcList = `SELECT PRC_ORDER, PRC_CODE, PRC_NAME, FAC_TYPE 
                   FROM DIAGRAM_DETAIL
-                  WHERE DIA_CODE = ?`;
+                  WHERE DIA_CODE = ?
+                  ORDER BY PRC_ORDER`;
+// 공정흐름도 순서변경
+const updateProcessOrder = `CALL update_process_order(?)`;
+
+// 공정흐름도 추가
+const diaInsert = `INSERT INTO DIAGRAM(DIA_CODE,
+                                        PRD_CODE,
+                                        DIA_WRITER, 
+                                        DIA_DATE
+                                        )
+                    VALUES (GetNextDIA_Code(), ?, ?, ?)`;
 
 // 공정흐름도 - 모달에서 공정추가
 const prcModalConfirm = `INSERT INTO DIAGRAM_DETAIL(DIA_CODE,
@@ -297,4 +398,22 @@ module.exports = {
   masterPrdSearch,
   wrModalSelect,
   wrSelect,
+  diaInsert,
+  updateProcessOrder,
+  masterMatModal,
+  masterMatSelect,
+  masterMatType,
+  masterMatUnit,
+  masterMatInsert,
+  masterMatUpdate,
+  masterWIPModal,
+  masterWIPSelect,
+  masterWIPType,
+  masterWIPUnit,
+  masterWIPInsert,
+  masterWIPUpdate,
+  masterPrcSelect,
+  masterPrcModal,
+  masterPrcInsert,
+  masterPrcUpdate,
 };

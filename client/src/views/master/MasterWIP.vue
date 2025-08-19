@@ -26,7 +26,7 @@
         <div class="add">
           <v-row class="mb-4">
             <v-col cols="6">
-              <v-text-field label="재공품코드" v-model="form.wipCode" dense outlined />
+              <v-text-field label="재공품코드" v-model="form.wipCode" readonly="true" dense outlined />
             </v-col>
             <v-col cols="6">
               <v-text-field label="재공품명" v-model="form.wipName" dense outlined />
@@ -37,24 +37,26 @@
             <v-col cols="6">
               <v-text-field label="등록일자" v-model="form.date" type="date" dense outlined />
             </v-col>
-            <v-col cols="4">
-              <v-text-field label="규격(가로)" v-model="form.horr" dense outlined />
+            <v-col cols="6">
+              <v-select label="단위" v-model="form.unit" :items="unitOptions" dense outlined />
             </v-col>
-            <v-col cols="4">
-              <v-text-field label="규격(세로)" v-model="form.vert" dense outlined />
+            <v-col cols="6">
+              <v-select label="재공품유형" v-model="form.type" :items="typeOptions" dense outlined />
             </v-col>
-            <v-col cols="4">
-              <v-text-field label="규격(폭)" v-model="form.height" dense outlined />
-            </v-col>
-            <v-col cols="4">
-              <v-text-field label="단위" v-model="form.unit" dense outlined />
-            </v-col>
-            <v-col cols="4">
-              <v-text-field label="재공품유형" v-model="form.type" dense outlined />
-            </v-col>
-            <v-col cols="4"> </v-col>
             <v-col cols="12">
-              <v-text-field label="비고" v-model="form.addr" dense outlined />
+              <v-text-field label="규격" v-model="form.size" placeholder="규격" dense outlined readonly>
+                <template #append-inner>
+                  <i
+                    class="fa-solid fa-magnifying-glass"
+                    style="cursor: pointer; font-size: large; margin-right: 0.5rem"
+                    @click="openModal('재공품 규격 조회', materialRowData, materialColDefs)"
+                  ></i>
+                </template>
+              </v-text-field>
+              <MoDal ref="modalRef" :title="modalTitle" :rowData="modalRowData" :colDefs="modalColDefs" @confirm="modalConfirm" />
+            </v-col>
+            <v-col cols="12">
+              <v-text-field label="비고" v-model="form.note" dense outlined />
             </v-col>
 
             <v-row justify="center">
@@ -71,48 +73,50 @@
 
 <script setup>
 // 기존 스크립트 내용은 동일합니다.
-import { ref, shallowRef } from 'vue';
+import { ref, shallowRef, onMounted } from 'vue';
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
 import { themeQuartz } from 'ag-grid-community';
 import { AgGridVue } from 'ag-grid-vue3';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
-
+import axios from 'axios';
+import MoDal from '../common/NewModal.vue';
 const quartz = themeQuartz;
 const rowSelection = ref({
   mode: 'multiRow'
 });
-const form = ref(
-  { prdCode: '' }, //
-  { prdName: '' },
-  { writer: '' },
-  { date: '' },
-  { horr: '' },
-  { vert: '' },
-  { height: '' },
-  { type: '' }
-);
+const today = new Date().toISOString().split('T')[0];
+const form = ref({
+  wipCode: '', //
+  wipName: '',
+  writer: '',
+  date: today,
+  size: '',
+  unit: '',
+  type: '',
+  note: ''
+});
+
+onMounted(() => {
+  wipList();
+  // modalList();
+  unitList();
+  typeList();
+});
 
 // 제품 리스트
-const rowData1 = ref([
-  { 재공품코드: 1, 재공품명: '이동섭', 재공품유형: '원목', 규격: '1000*400*720', 단위: 'EA', 입사일자: '2025-08-29' },
-  { 재공품코드: 2, 재공품명: '김태완', 재공품유형: '원목', 규격: '1200*400*720', 단위: 'EA', 입사일자: '2025-07-29' },
-  { 재공품코드: 3, 재공품명: '김성수', 재공품유형: '원목', 규격: '1100*400*720', 단위: 'EA', 입사일자: '2025-06-29' },
-  { 재공품코드: 4, 재공품명: '정경준', 재공품유형: '합판', 규격: '660*400*720', 단위: 'EA', 입사일자: '2025-05-29' },
-  { 재공품코드: 5, 재공품명: '최은수', 재공품유형: '합판', 규격: '700*400*720', 단위: 'EA', 입사일자: '2025-04-29' },
-  { 재공품코드: 6, 재공품명: '제갈은경', 재공품유형: '합판', 규격: '200*400*720', 단위: 'EA', 입사일자: '2025-03-29' }
-]);
+const rowData1 = ref([]);
 
 const colDefs1 = ref([
-  { field: '재공품코드', editable: true, flex: 1 },
-  { field: '재공품명', flex: 1, editable: true },
-  { field: '재공품유형', flex: 1, editable: true },
-  { field: '규격', flex: 1.2, editable: true },
-  { field: '단위', flex: 0.6, editable: true },
-  { field: '작성자', flex: 0.7, editable: true },
-  { field: '등록일자', flex: 1, editable: true }
+  { field: '재공품코드', editable: true, width: 130 },
+  { field: '재공품명', width: 130, editable: true },
+  { field: '재공품유형', width: 130, editable: true },
+  { field: '규격', width: 110, editable: true },
+  { field: '단위', width: 110, editable: true },
+  { field: '작성자', width: 110, editable: true },
+  { field: '등록일자', width: 110, editable: true }
 ]);
 
-const page = ref({ title: '사원 관리' });
+const page = ref({ title: '재공품 관리' });
 const breadcrumbs = shallowRef([
   {
     title: '기준정보',
@@ -120,30 +124,77 @@ const breadcrumbs = shallowRef([
     href: '#'
   },
   {
-    title: '사원 관리',
+    title: '재공품 관리',
     disabled: false,
     href: '#'
   }
 ]);
 
-//cell 단위 수정
-const onCellValueChanged = (event) => {
-  console.log(event.value);
-  console.log(rowData1.value);
+// 제품 리스트
+const wipList = async () => {
+  const res = await axios.get('http://localhost:3000/masterWIPSelect');
+  console.log(res);
+  rowData1.value = res.data.map((prd) => ({
+    재공품코드: prd.WIP_CODE,
+    재공품명: prd.WIP_NAME,
+    재공품유형: prd.WIP_TYPE,
+    규격: prd.WIP_SIZE,
+    단위: prd.WIP_UNIT,
+    작성자: prd.WIP_WRITER,
+    등록일자: prd.WIP_DATE.substring(0, 10),
+    비고: prd.WIP_NOTE
+  }));
 };
 
-// rowData1 배열에 새로운 행 추가
-const submitForm = () => {
-  const newRow = {
-    제품코드: 'DK-112', // 필요에 따라 기본값 설정
-    공정흐름도: form.value.diagram, // 필요에 따라 기본값 설정
-    사원명: form.value.empName,
-    등록일: form.value.addDate
-  };
-  rowData1.value.push(newRow);
+// 단위, 유형 드롭박스
+const unitOptions = ref([]);
+const typeOptions = ref([]);
+const unitList = async () => {
+  const unitRes = await axios.get('http://localhost:3000/masterWIPUnit');
+  unitOptions.value = unitRes.data.map((prd) => prd.code_name);
+};
+const typeList = async () => {
+  const typeRes = await axios.get('http://localhost:3000/masterWIPType');
+  typeOptions.value = typeRes.data.map((prd) => prd.code_name);
+};
 
-  // 폼 데이터를 초기화합니다.
-  resetForm();
+/// 저장버튼
+const submitForm = async () => {
+  console.log(!form.value.wipCode);
+  // 수정
+  if (form.value.wipCode) {
+    const updateRow = {
+      WIP_NAME: form.value.wipName,
+      WIP_TYPE: form.value.type,
+      WIP_UNIT: form.value.unit,
+      WIP_SIZE: form.value.size,
+      WIP_DATE: form.value.date,
+      WIP_NOTE: form.value.note,
+      WIP_WRITER: form.value.writer,
+      WIP_CODE: form.value.wipCode
+    };
+    const result = await axios.post('http://localhost:3000/masterWIPUpdate', updateRow);
+    console.log(result.config.data);
+    wipList();
+  } else {
+    // db저장
+    if (!form.value.type || !form.value.wipName || !form.value.size) {
+      alert('값을 올바르게 기재하십시오.');
+      return;
+    }
+    const newRow = {
+      WIP_NAME: form.value.wipName,
+      WIP_TYPE: form.value.type,
+      WIP_UNIT: form.value.unit,
+      WIP_SIZE: form.value.size,
+      WIP_DATE: form.value.date,
+      WIP_NOTE: form.value.note,
+      WIP_WRITER: form.value.writer
+    };
+    const result = await axios.post('http://localhost:3000/masterWIPInsert', newRow);
+    console.log(result.config.data);
+    wipList();
+  }
 };
 
 // 폼 데이터를 초기화하는 함수
@@ -158,16 +209,14 @@ const resetForm = () => {
 
 // 행선택시 등록 폼으로
 const onRowClicked = (event) => {
-  form.value.prdCode = event.data.제품코드;
-  form.value.prdName = event.data.제품명;
+  form.value.wipCode = event.data.재공품코드;
+  form.value.wipName = event.data.재공품명;
   form.value.writer = event.data.작성자;
-  form.value.date = event.data.등록일;
-  const [horr, vert, height] = event.data.규격.split('*');
-  form.value.horr = horr;
-  form.value.vert = vert;
-  form.value.height = height;
+  form.value.date = event.data.등록일자;
+  form.value.size = event.data.규격;
   form.value.unit = event.data.단위;
-  form.value.type = event.data.제품유형;
+  form.value.type = event.data.재공품유형;
+  form.value.note = event.data.비고;
 };
 </script>
 

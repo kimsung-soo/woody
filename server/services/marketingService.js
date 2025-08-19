@@ -81,6 +81,7 @@ const inboundInsert = async (rows) => {
       row.RECEIVED_DATE,
       row.PRD_CERT_ID,
       row.PRD_LOT,
+      row.PRD_CODE,
     ];
     await mariadb.query("inboundInsert", params);
   }
@@ -106,5 +107,4 @@ module.exports = {
   getAccountList,
   getItemList,
   addOrder,
-
 };

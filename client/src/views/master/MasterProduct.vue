@@ -87,11 +87,12 @@ const quartz = themeQuartz;
 const rowSelection = ref({
   mode: 'multiRow'
 });
+const today = new Date().toISOString().split('T')[0];
 const form = ref({
   prdCode: '', //
   prdName: '',
   writer: '',
-  date: '',
+  date: today,
   size: '',
   safeQT: '',
   unit: '',
@@ -164,12 +165,6 @@ const typeList = async () => {
   typeOptions.value = typeRes.data.map((prd) => prd.code_name);
 };
 
-//cell 단위 수정
-const onCellValueChanged = (event) => {
-  console.log(event.value);
-  console.log(rowData1.value);
-};
-
 // 저장버튼
 const submitForm = async () => {
   console.log(!form.value.prdCode);
@@ -186,7 +181,7 @@ const submitForm = async () => {
       PRD_NOTE: form.value.note,
       PRD_CODE: form.value.prdCode
     };
-    const result = await axios.put('http://localhost:3000/masterPrdUpdate', updateRow);
+    const result = await axios.post('http://localhost:3000/masterPrdUpdate', updateRow);
     console.log(result.config.data);
     prdList();
   } else {
@@ -232,6 +227,7 @@ const del = async () => {
   await prdList();
 };
 
+//  검색
 const searchKeyword = ref('');
 const searchData = async () => {
   const condition = { PRD_NAME: searchKeyword.value };

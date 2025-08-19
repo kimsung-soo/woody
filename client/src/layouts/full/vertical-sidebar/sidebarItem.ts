@@ -107,10 +107,6 @@ const sidebarItem: menu[] = [
             to: '/marketing/MkInbound'
           },
           {
-            title: '출고',
-            to: '/marketing/MkOutbound'
-          },
-          {
             title: 'LOT 조회',
             to: '/marketing/MkLotList'
           },

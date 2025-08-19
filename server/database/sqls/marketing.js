@@ -38,14 +38,15 @@ const insertOrder = `
 `;
 
 // 태완 작업.
-const inboundList = `SELECT r.RECEIVED_NO,c.PRD_CERT_ID, c.PRD_CODE,c.PRD_NAME, c.Q_CHECKED_DATE,c.TOTAL_QTY, r.PRD_LOT
-FROM PRODUCT_RECEIPT AS r RIGHT JOIN PRODUCT_CERTIFICATE AS c
-						   ON r.PRD_CERT_ID = c.PRD_CERT_ID`;
+const inboundList = `SELECT r.RECEIVED_NO,c.PRD_CERT_ID, c.PRD_CODE,c.PRD_NAME, r.RECEIVED_DATE ,c.TOTAL_QTY, r.PRD_LOT
+  FROM PRODUCT_RECEIPT AS r RIGHT JOIN PRODUCT_CERTIFICATE AS c
+                ON r.PRD_CERT_ID = c.PRD_CERT_ID
+                `;
 
 // LOT넘버 생성
 const getNextLotNo = `SELECT generate_lot_number()`;
-const inboundInsert = `INSERT INTO PRODUCT_RECEIPT( RECEIVED_QTY, RECEIVED_DATE, PRD_CERT_ID, PRD_LOT)
-VALUES(?,?,?,?);`;
+const inboundInsert = `INSERT INTO PRODUCT_RECEIPT( RECEIVED_QTY, RECEIVED_DATE, PRD_CERT_ID, PRD_LOT, PRD_CODE)
+VALUES(?,?,?,?,?);`;
 
 // 날짜 조건 검색
 const inboundSearch = `SELECT r.RECEIVED_NO,
@@ -72,6 +73,17 @@ const outboundList = `SELECT SHIP_NO,
  SHIP_STATUS
  FROM REQUSET_SHIPMENT;`;
 
+// 출하지시서 등록 모달2(입고 조회)
+
+const shipPrdSelect = `SELECT r.RECEIVED_NO,
+                              c.PRD_CODE,
+                              c.PRD_NAME,
+                              c.Q_CHECKED_DATE,
+                              c.TOTAL_QTY, 
+                              r.PRD_LOT
+FROM PRODUCT_RECEIPT AS r RIGHT JOIN PRODUCT_CERTIFICATE AS c
+						   ON r.PRD_CERT_ID = c.PRD_CERT_ID`;
+
 module.exports = {
   insertAccount,
   selectAccountList,
@@ -82,4 +94,5 @@ module.exports = {
   inboundInsert,
   inboundSearch,
   outboundList,
+  shipPrdSelect,
 };
