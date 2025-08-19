@@ -1,13 +1,26 @@
 const express = require("express");
 const cors = require("cors");
+const session = require("express-session");
 
 require("dotenv").config({ path: "./database/dbconfig.env" });
 
 const app = express();
 const PORT = 3000;
 
+let sessionSetting = session({
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: true,
+  cookie: {
+    httpOnly: true,
+    secure: false,
+    maxAge: 60000,
+  },
+});
+
 app.use(cors());
 app.use(express.json());
+app.use(sessionSetting);
 
 app.listen(PORT, () => {
   console.log(`✅ Node 서버 실행: http://localhost:${PORT}`);
@@ -33,3 +46,7 @@ app.use(FacilityRouter);
 //영업
 const marketingRouter = require("./routers/marketingRouter.js");
 app.use(marketingRouter);
+
+// f로그인
+const loginRouter = require("./routers/login_router.js");
+app.use(loginRouter);
