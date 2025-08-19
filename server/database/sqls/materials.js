@@ -157,6 +157,86 @@ VALUES (?, ?, ?, ?)`;
 // 자재반품요청서 요청서번호 프로시저 호출
 const GetNextRRNO = `CALL GetNextRR_NO()`;
 
+// 원자재 합격품 조회(모달)
+const materialsPass = `SELECT MC.MAT_CERT_ID,
+       MC.RECEIPT_NO,
+       MC.TOTAL_QTY,
+       MC.MAT_CODE,
+       TMP.RECEIPT_QTY,
+       TMP.RECEIVED_QTY,
+       M.MAT_NAME,
+       M.MAT_SIZE,
+       M.MAT_UNIT
+FROM MATERIAL_CERTIFICATE AS MC
+JOIN MAT_IN_TMP AS TMP
+    ON MC.RECEIPT_NO = TMP.RECEIPT_NO
+JOIN MATERIALS AS M
+    ON MC.MAT_CODE = M.MAT_CODE
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM MATERIAL_RECEIPT MR
+    WHERE MR.RECEIPT_NO = MC.RECEIPT_NO
+      AND MR.MAT_CODE = MC.MAT_CODE
+)
+ORDER BY MC.RECEIPT_NO DESC`;
+
+// 원자재 LOT 등록
+const LOTInsert = `INSERT INTO MATERIAL_RECEIPT 
+      (LOT_NO, MAT_CODE, MANAGER, MAT_QTY, RECEIPT_NO, RECEIVED_DATE)
+  VALUES (generate_lot_MAT(), ?, ?, ?, ?, ?)`;
+
+// LOT 등록 시 입고 번호 상태 변경
+const updateTMP = `UPDATE MAT_IN_TMP
+SET TMP_STATUS = ?
+WHERE RECEIPT_NO = ?`;
+
+// 재고 조회
+const stockSelect = `SELECT M.MAT_CODE,
+       M.MAT_NAME,
+       M.MAT_TYPE,
+       M.MAT_UNIT,
+       M.MAT_SIZE,
+       M.MAT_NOTE,
+       IFNULL(SUM(MR.MAT_QTY),0) AS MAT_QTY
+FROM MATERIALS AS M
+LEFT JOIN MATERIAL_RECEIPT AS MR
+  ON M.MAT_CODE = MR.MAT_CODE
+WHERE M.MAT_TYPE = ?
+GROUP BY M.MAT_CODE, M.MAT_NAME, M.MAT_TYPE, M.MAT_UNIT, M.MAT_SIZE;`;
+
+// 입출고 조회
+const stockStatus = `SELECT 
+    MR.LOT_NO,
+    MR.MAT_CODE,
+    M.MAT_NAME,
+    M.MAT_SIZE,
+    M.MAT_TYPE,
+    M.MAT_UNIT,
+    MR.MAT_QTY AS QTY,
+    MR.RECEIVED_DATE AS DATE,
+    '입고' AS TYPE
+FROM MATERIAL_RECEIPT MR
+JOIN MATERIALS M
+    ON MR.MAT_CODE = M.MAT_CODE
+
+UNION ALL
+
+SELECT 
+    MS.LOT_NO,
+    MS.MAT_CODE,
+    M.MAT_NAME,
+    M.MAT_SIZE,
+    M.MAT_TYPE,
+    M.MAT_UNIT,
+    MS.SHIPMENT_QTY AS QTY,
+    MS.SHIPPED_DATE AS DATE,
+    '출고' AS TYPE
+FROM MATERIAL_SHIPMENT MS
+JOIN MATERIALS M
+    ON MS.MAT_CODE = M.MAT_CODE
+
+ORDER BY DATE DESC`;
+
 module.exports = {
   materialsAllSelect,
   materialOrder,
@@ -175,4 +255,9 @@ module.exports = {
   reMaterialInsert,
   reMaterialInsertDetail,
   GetNextRRNO,
+  materialsPass,
+  LOTInsert,
+  updateTMP,
+  stockSelect,
+  stockStatus,
 };

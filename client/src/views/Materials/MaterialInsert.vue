@@ -121,7 +121,8 @@ const openModal = async (title) => {
     상태: item.PO_STATUS,
     규격: item.MAT_SIZE,
     단위: item.MAT_UNIT,
-    업데이트수량: item.UPDATE_QTY
+    업데이트수량: item.UPDATE_QTY,
+    자재유형: item.MAT_TYPE
   }));
 
   if (modalRef.value) {
@@ -144,7 +145,8 @@ function onModalConfirm(selectedRow) {
     규격: selectedRow.규격 || '',
     단위: selectedRow.단위 || '',
     발주수량: selectedRow.발주수량 || 0,
-    업데이트수량: selectedRow.업데이트수량 || 0
+    업데이트수량: selectedRow.업데이트수량 || 0,
+    자재유형: selectedRow.자재유형 || ''
   });
 }
 
@@ -172,19 +174,30 @@ async function submitForm() {
       }
     }
 
-    const data = rowData.value.map((row) => ({
-      PO_NO: form.issueNumber,
-      RECEIPT_DATE: form.insertDate,
-      SUPPLYER: form.name,
-      MANAGER: form.manager,
-      MAT_CODE: row.자재코드,
-      RECEIPT_QTY: row.발주수량,
-      RECEIVED_QTY: row.입고수량,
-      TMP_STATUS: '입고'
-    }));
+    for (const row of rowData.value) {
+      const status = row.자재유형 == '원자재' ? '검수 대기' : '입고';
 
-    for (const row of data) {
-      await axios.post('http://localhost:3000/materialInsert', row);
+      // 1) MAT_IN_TMP에 등록 (모든 자재)
+      await axios.post('http://localhost:3000/materialInsert', {
+        PO_NO: form.issueNumber,
+        RECEIPT_DATE: form.insertDate,
+        SUPPLYER: form.name,
+        MANAGER: form.manager,
+        MAT_CODE: row.자재코드,
+        RECEIPT_QTY: row.발주수량,
+        RECEIVED_QTY: row.입고수량,
+        TMP_STATUS: status
+      });
+
+      // 2) 부자재만 MATERIAL_RECEIPT에 등록
+      if (row.자재유형 && row.자재유형 !== '원자재') {
+        await axios.post('http://localhost:3000/LOTInsert', {
+          MAT_CODE: row.자재코드,
+          MANAGER: form.manager,
+          MAT_QTY: row.입고수량,
+          RECEIPT_NO: row.입고번호
+        });
+      }
     }
 
     alert('등록 되었습니다.');
