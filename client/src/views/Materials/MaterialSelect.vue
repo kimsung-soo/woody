@@ -164,7 +164,7 @@ onMounted(async () => {
       입고일자: item.RECEIPT_DATE.slice(0, 10),
       담당자: item.MANAGER,
       입고수량: item.RECEIVED_QTY,
-      상태: item.MAT_TYPE == '원자재' ? '검수 대기' : item.MAT_TYPE == '부자재' ? '입고' : '실패'
+      상태: item.TMP_STATUS
     }));
   } catch (err) {
     console.error('발주 조회 실패:', err);

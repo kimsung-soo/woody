@@ -177,6 +177,49 @@ const GetNextRRNO = async () => {
 //   return result;
 // };
 
+// 원자재 합격품 조회
+const materialsPass = async () => {
+  const list = await mariadb.query("materialsPass");
+  return list;
+};
+
+// LOT 등록
+const LOTInsert = async (data) => {
+  const params = [
+    data.MAT_CODE,
+    data.MANAGER,
+    data.MAT_QTY,
+    data.RECEIPT_NO,
+    data.RECEIVED_DATE,
+  ];
+  let result = await mariadb.query("LOTInsert", params);
+  return result;
+};
+
+// LOT 등록시 입고 번호 상태 변경
+const updateTMP = async (receiptNo, status) => {
+  const result = await mariadb.query("updateTMP", [status, receiptNo]);
+  return result;
+};
+
+// 자재 조회
+const stockSelect = async (matType) => {
+  try {
+    const rows = await mariadb.query("stockSelect", [matType]);
+    // rows가 배열인지 확인
+    console.log("stockSelect rows:", rows);
+    return Array.isArray(rows) ? rows : [];
+  } catch (err) {
+    console.error("stockSelect Error:", err);
+    throw err;
+  }
+};
+
+const stockStatus = async (req, res) => {
+  let list = await mariadb.query("stockStatus");
+  return list;
+};
+
 module.exports = {
   materialsSelect,
   materialOrder,
@@ -192,4 +235,9 @@ module.exports = {
   reMaterialInsert,
   reMaterialInsertDetail,
   GetNextRRNO,
+  materialsPass,
+  LOTInsert,
+  updateTMP,
+  stockSelect,
+  stockStatus,
 };

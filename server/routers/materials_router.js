@@ -129,4 +129,69 @@ router.post("/return/request/insert", async (req, res) => {
   }
 });
 
+// 원자재 합격품 조회
+router.get("/materialPass", async (req, res) => {
+  let list = await materialService.materialsPass();
+  res.send(list);
+});
+
+// LOT 등록
+router.post("/LOTInsert", async (req, res) => {
+  console.log(req.body);
+  try {
+    const rows = Array.isArray(req.body) ? req.body : [req.body];
+
+    let results = [];
+
+    for (const row of rows) {
+      const params = {
+        MAT_CODE: row.MAT_CODE,
+        MANAGER: row.MANAGER,
+        MAT_QTY: row.MAT_QTY,
+        RECEIPT_NO: row.RECEIPT_NO,
+        RECEIVED_DATE: new Date().toISOString().slice(0, 10),
+      };
+      const result = await materialService.LOTInsert(params);
+      results.push(result);
+    }
+
+    res.status(200).json({
+      message: "LOT 등록 완료",
+      results: results,
+    });
+  } catch (error) {
+    console.error("LOTInsert 오류:", error);
+    res.status(500).json({ message: "LOT 등록 실패", error });
+  }
+});
+
+// LOT 등록 시 입고 번호 상태 변경
+router.put("/updateTMP", async (req, res) => {
+  const { RECEIPT_NO, STATUS } = req.body;
+  try {
+    await materialService.updateTMP(RECEIPT_NO, STATUS);
+    res.status(200).send({ message: "입고 상태 변경 성공" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({ message: "입고 상태 변경 실패" });
+  }
+});
+
+// 자재 조회
+router.get("/stockSelect", async (req, res) => {
+  const matType = req.query.matType;
+  try {
+    const list = await materialService.stockSelect(matType);
+    res.json(list);
+  } catch (err) {
+    res.status(500).json({ message: "재고 조회 실패", error: err.message });
+  }
+});
+
+// 입출고 조회
+router.get("/stockStatus", async (req, res) => {
+  let list = await materialService.stockStatus();
+  res.send(list);
+});
+
 module.exports = router;
