@@ -77,6 +77,32 @@ router.get("/taskprd", async (req, res) => {
   res.send(list);
 });
 
+// 합격제품등록
+router.post("/passprd", async (req, res) => {
+  try {
+    const b = req.body || {};
+    const result = await qualityService.addPassPrd({
+      TP_ID: String(b.TP_ID),
+      Q_STD_ID: String(b.Q_STD_ID),
+      PRD_NAME: String(b.PRD_NAME),
+      PRD_CODE: String(b.PRD_CODE),
+      TOTAL_QTY: Number(b.TOTAL_QTY) || 0,
+      PRD_TYPE: String(b.PRD_TYPE),
+      Q_CHECKED_DATE: String(b.Q_CHECKED_DATE),
+      CREATED_BY: b.CREATED_BY || null,
+    });
+
+    res.json({ ok: true, affected: result.affectedRows || 1 });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      ok: false,
+      message: err.sqlMessage || err.message,
+      code: err.code,
+    });
+  }
+});
+
 // 품질기준 조회
 router.get("/qstdlist", async (req, res) => {
   let list = await qualityService.selectQstd();

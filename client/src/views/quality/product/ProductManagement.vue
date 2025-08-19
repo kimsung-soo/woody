@@ -53,6 +53,7 @@ const colDefs = ref([
   { headerName: '지시번호', field: 'wo_no' },
   { headerName: '제품코드', field: 'product_code' },
   { headerName: '제품명', field: 'product_name' },
+  { headerName: '제품유형', field: 'product_type' },
   { headerName: '총생산량', field: 'qty' },
   { headerName: '지시상태', field: 'status' },
   { headerName: '작업자', field: 'writer' },
@@ -73,7 +74,7 @@ const getTaskPrd = async () => {
 
 // 검색(필터)
 const gridData = computed(() => {
-  const date = (form.value.chkedDate || '').trim();
+  const date = (form.value.finished_at || '').trim();
   return rowData.value
     .map((r) => {
       return {
@@ -99,11 +100,11 @@ const onRowClicked = (event) => {
   router.push({
     path: '/qm/prdmngcert',
     query: {
-      wo_no: String(row.wo_no || ''), // 지시번호
+      wo_no: String(row.wo_no), // 지시번호
       product_code: String(row.product_code || ''), // 제품코드
-      product_name: String(row.product_name || ''), // 제품이름
-      qty: String(row.qty || 0), // 총수량
-      status: String(row.status || ''), // 상태
+      product_name: String(row.product_name || ''), // 제품명
+      product_type: String(row.product_type || ''), // 제품유형
+      qty: String(row.qty || 0), // 총생산량
       writer: String(row.writer || ''), // 작업자
       finished_at: String(row.finished_at || '') // 생산완료일
     }

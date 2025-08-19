@@ -61,6 +61,7 @@
 </template>
 
 <script setup>
+import axios from 'axios';
 import { ref, shallowRef, computed, onMounted } from 'vue';
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
@@ -159,21 +160,35 @@ const detailRows = ref([
     certid: '(함수실행)',
     prdCode: '(자동입력)',
     prdName: '(자동입력)',
+    prdType: '(자동입력)',
     totalQty: '(자동입력)',
     writer: '(세션id)',
-    writeDate: '(자동입력)',
-    doneDate: '(오늘날짜)'
+    finished_at: '(자동입력)',
+    certDate: '(오늘날짜)'
+    /*
+
+    */
   }
 ]);
-
+/*
+    query: {
+      product_code: String(row.product_code || ''), // 제품코드
+      product_name: String(row.product_name || ''), // 제품명
+      product_type: String(row.product_type || ''), // 제품유형
+      qty: String(row.qty || 0), // 총수량
+      writer: String(row.writer || ''), // 작업자
+      finished_at: String(row.finished_at || '') // 생산완료일
+    }
+      */
 const detailCols = ref([
   { headerName: '제품검사번호', field: 'certid', width: 170, editable: false },
   { headerName: '제품코드', field: 'prdCode', width: 140, editable: false },
   { headerName: '제품명', field: 'prdName', width: 150, editable: false },
+  { headerName: '제품유형', field: 'prdType', width: 150, editable: false },
   { headerName: '총수량', field: 'totalQty', width: 110, editable: false, valueParser: numParser },
-  { headerName: '작성자', field: 'writer', width: 120, editable: false },
-  { headerName: '입고일자', field: 'writeDate', width: 140, editable: false },
-  { headerName: '검사완료일자', field: 'doneDate', width: 140, editable: true }
+  { headerName: '작업자', field: 'writer', width: 120, editable: false },
+  { headerName: '생산완료일자', field: 'finished_at', width: 140, editable: false },
+  { headerName: '검사완료일자', field: 'certDate', width: 140, editable: false }
 ]);
 
 function numParser(p) {
@@ -205,23 +220,47 @@ function resetForm() {
   r.doneDate = '';
 }
 
-function saveForm() {
-  const api = criteriaApi.value;
-  if (!api) return;
-  const criteria = criteriaRows.value.map((r) => {
-    const node = api.getRowNode(r._id);
-    return { key: r._id, label: r.label, pass: !!node?.isSelected() };
-  });
-
+async function saveForm() {
   const d = detailRows.value[0];
-  if (d.passQty > d.totalQty) return alert('합격수량이 총수량을 초과할 수 없습니다.');
+  const isPass = finalStatus.value === '합격';
 
-  console.log('payload', {
-    criteria, // 각 항목 합격 여부
-    status: finalStatus.value, // 최종처리 (합/불)
-    detail: d
-  });
-  alert('등록되었습니다! (콘솔 payload 확인)');
+  if (!isPass && !defectReason.value.description.trim()) {
+    alert('불합격 사유를 입력해주세요.');
+    return;
+  }
+
+  if (isPass) {
+    await axios.post('http://localhost:3000/passprd', {
+      TP_ID: d.wo_no, // 지시번호
+      PRD_CODE: d.prdCode, // 제품코드
+      PRD_NAME: d.prdName, // 제품명
+      PRD_TYPE: d.prdType, // 제품유형
+      TOTAL_QTY: d.totalQty, // 총수량
+      CREATED_BY: d.writer, // 작성자
+      Q_CHECKED_DATE: d.doneDate // 검사완료일자
+
+      /*
+  r.prdCode = String(route.query.product_code || ''); // 제품코드
+  r.prdName = String(route.query.product_name || ''); // 제품명
+  r.prdType = String(route.query.product_type || ''); // 제품유형
+  r.totalQty = Number(route.query.qty || 0); // 총수량
+  r.writer = String(route.query.writer || ''); // 작업자  // 스토어로 세션값 받아오기
+  r.finished_at = String(route.query.finished_at || ''); // 생산완료일자
+  const today = new Date();
+  r.certDate = today.toISOString().slice(0, 10); // 검사완료일자
+    }
+      */
+    });
+  } else {
+    await axios.post('http://localhost:3000/rjtmat', {
+      RECEIPT_NO: d.inNo,
+      MAT_CODE: d.materialCode,
+      RJT_REASON: defectReason.value.description.trim().slice(0, 100),
+      Q_CHECKED_DATE: d.doneDate,
+      TOTAL_QTY: Number(d.totalQty),
+      CREATED_BY: d.user
+    });
+  }
 }
 
 // 불합격 사유 관련 데이터
@@ -232,28 +271,15 @@ const defectReason = ref({
 // 클릭한 행의 내용가져오기
 onMounted(() => {
   const r = detailRows.value[0];
-
-  /*
-  {
-    certid: '(함수실행)',
-    prdCode: '(자동입력)',
-    prdName: '(자동입력)',
-    totalQty: '(자동입력)',
-    writer: '(세션id)',
-    writeDate: '(자동입력)',
-    doneDate: '(오늘날짜)'
-  }
-  */
   // 쿼리에서 값 채우기
-  r.certid = String(route.query.wo_no || ''); // 제품검사번호
   r.prdCode = String(route.query.product_code || ''); // 제품코드
-  r.prdName = String(route.query.product_name || ''); // 제품이름
+  r.prdName = String(route.query.product_name || ''); // 제품명
+  r.prdType = String(route.query.product_type || ''); // 제품유형
   r.totalQty = Number(route.query.qty || 0); // 총수량
-  r.writer = String(route.query.writer || ''); // 작업자
-  r.writeDate = String(route.query.finished_at || ''); // 세션값 받아오면 반영(스토어)
+  r.writer = String(route.query.writer || ''); // 작업자  // 스토어로 세션값 받아오기
+  r.finished_at = String(route.query.finished_at || ''); // 생산완료일자
   const today = new Date();
-  // r.doneDate = String(route.query.finished_at || '');
-  r.doneDate = today.toISOString().slice(0, 10);
+  r.certDate = today.toISOString().slice(0, 10); // 검사완료일자
 });
 </script>
 

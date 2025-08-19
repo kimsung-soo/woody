@@ -15,6 +15,7 @@ SELECT M.MAT_CERT_ID,
 const matManagement = `
 SELECT RECEIPT_NO, RECEIPT_DATE, SUPPLYER, MAT_CODE, RECEIVED_QTY, TMP_STATUS
 FROM MAT_IN_TMP
+WHERE TMP_STATUS = '검수대기'
 `;
 
 // 합격원자재 등록
@@ -34,8 +35,8 @@ VALUES
 
 // 제품공정조회
 const taskPrd = `
-SELECT w.wo_no, q.finished_at, q.qty,
-       w.product_code, w.product_name, w.status, w.writer
+SELECT q.id, q.wo_id, q.finished_at, q.qty,
+       w.wo_no, w.product_code, w.product_name, w.product_type, w.writer, w.status
   FROM production_done_queue q
   JOIN work_orders w ON w.id = q.wo_id
  WHERE q.picked = 0
@@ -43,11 +44,19 @@ SELECT w.wo_no, q.finished_at, q.qty,
 `;
 
 // 합격제품등록
-// const passPrd = `
-// INSERT INTO
-// `;
+const passPrd = `
+INSERT INTO PRODUCT_CERTIFICATE
+  (PRD_CERT_ID, TP_ID, Q_STD_ID, PRD_CODE, TOTAL_QTY, PRD_TYPE, Q_CHECKED_DATE, CREATED_BY, PRD_STATUS, CREATED_BY)
+VALUES
+  (getNextPRD_CERT_ID(), ?, ?, ?, ?, ?, ?, ?, '합격', ?)
+`;
 
-// 불량제품등록
+// 불합격제품등록
+
+// 합격불합격_세부항목등록
+// const prdDetail = `
+
+// `;
 
 // 제품성적서조회
 const selectProductCertificate = `SELECT PRD_CERT_ID, PRD_ID, PRD_NAME, Q_CHECKED_DATE, PRD_STATUS
@@ -78,6 +87,7 @@ module.exports = {
   passMat,
   rejactMat,
   taskPrd,
+  passPrd,
   selectProductCertificate,
   selectQStandard,
   qcStatus,

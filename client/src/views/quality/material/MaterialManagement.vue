@@ -64,6 +64,13 @@
 </template>
 
 <script setup>
+/*
+
+기능 필요한거
+1. 뒤로가기 버튼 하나 만들어주세요
+2. 원자재검사 등록 후에 알람창 하나 만들어주세요.
+
+*/
 import axios from 'axios';
 import { ref, shallowRef, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
