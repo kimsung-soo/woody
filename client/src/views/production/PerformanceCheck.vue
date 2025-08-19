@@ -1,5 +1,4 @@
 <!-- 생산 실적 조회 -->
-<!-- src/views/production/PerformanceCheck.vue -->
 <template>
   <BaseBreadcrumb :title="page.title" :breadcrumbs="breadcrumbs" />
 
@@ -41,13 +40,11 @@
         </v-col>
       </v-row>
 
-      <!-- 검색 버튼 (중앙 정렬 유지) -->
       <div class="search-actions">
         <v-btn variant="flat" color="error" @click="resetQuery">초기화</v-btn>
         <v-btn class="ml-2" color="darkText" @click="doSearch">검색</v-btn>
       </div>
 
-      <!-- 선택 요약 -->
       <div class="mini-summary" v-if="result">
         <v-alert type="info" variant="tonal" density="compact">
           지시번호: <b>{{ result.issueNumber }}</b>
@@ -59,7 +56,7 @@
       </div>
     </div>
 
-    <!-- 상단 기본정보 패널 (검색 성공 시에만 표시) -->
+    <!-- 상단 기본정보 패널 -->
     <v-card class="info-card mt-4" variant="outlined" v-if="result">
       <v-card-title class="py-2">기본정보</v-card-title>
       <v-card-text>
@@ -102,13 +99,12 @@
           </v-col>
         </v-row>
 
-        <!-- 목표/실적/미생산 요약 배지 -->
         <div class="summary-chips">
           <v-chip size="small" variant="tonal">목표 {{ (form.targetQty ?? 0).toLocaleString() }}</v-chip>
           <v-chip size="small" color="primary" variant="tonal">기생산 {{ producedTotal.toLocaleString() }}</v-chip>
-          <v-chip size="small" color="error" variant="tonal"
-            >미생산 {{ Math.max((form.targetQty || 0) - producedTotal, 0).toLocaleString() }}</v-chip
-          >
+          <v-chip size="small" color="error" variant="tonal">
+            미생산 {{ Math.max((form.targetQty || 0) - producedTotal, 0).toLocaleString() }}
+          </v-chip>
         </div>
       </v-card-text>
     </v-card>
@@ -158,37 +154,27 @@ import { ref, shallowRef, computed, markRaw } from 'vue';
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
 import { AgGridVue } from 'ag-grid-vue3';
+import { useProcessSimStore } from '@/stores/useProcessSimStore';
 
-/* ===== 페이지 헤더 ===== */
+/* 페이지 헤더 */
 const page = ref({ title: '생산 실적 조회' });
 const breadcrumbs = shallowRef([
   { title: '생산', disabled: true, href: '#' },
   { title: '생산 실적 조회', disabled: false, href: '#' }
 ]);
 
-/* ===== 검색 상태 ===== */
-const q = ref({
-  issueNumber: '',
-  productName: '',
-  productType: '',
-  startAt: '',
-  endAt: ''
-});
+/* 검색 상태 */
+const q = ref({ issueNumber: '', productName: '', productType: '', startAt: '', endAt: '' });
 
 function resetQuery() {
-  q.value.issueNumber = '';
-  q.value.productName = '';
-  q.value.productType = '';
-  q.value.startAt = '';
-  q.value.endAt = '';
-  // 결과도 초기화
+  q.value = { issueNumber: '', productName: '', productType: '', startAt: '', endAt: '' };
   result.value = null;
   rows.value = [];
   resetForm();
   sizeFit();
 }
 
-/* ===== 더미 데이터 / 유틸 ===== */
+/* 유틸 */
 function pad2(n) {
   return String(n).padStart(2, '0');
 }
@@ -197,8 +183,8 @@ function toDT(y, m, d, hh, mm) {
 }
 const processOrder = ['재단', '가공', '연마', '도장', '조립'];
 
+/* 더미 검색 DB(로컬 테스트용) – 필요 시 유지 */
 const perfDB = shallowRef([
-  /* ... (기존 더미 데이터 그대로) ... */
   {
     issueNumber: 'WO-20250811-2856',
     productCode: 'P001',
@@ -361,30 +347,21 @@ const perfDB = shallowRef([
         defectQty: 1,
         outputQty: 193
       }
-      // 반제품은 조립 없음
     ]
   }
 ]);
 
-/* ===== 검색 실행 결과 상태 ===== */
+/* 검색 실행 결과 상태 */
 const result = ref(null);
 const rows = ref([]);
 
-/* ===== 폼(상단 기본정보) ===== */
-const form = ref({
-  issueNumber: '',
-  orderDate: '',
-  contact: '',
-  productCode: '',
-  dueDate: '',
-  targetQty: 0,
-  productName: ''
-});
+/* 상단 폼 */
+const form = ref({ issueNumber: '', orderDate: '', contact: '', productCode: '', dueDate: '', targetQty: 0, productName: '' });
 function resetForm() {
   form.value = { issueNumber: '', orderDate: '', contact: '', productCode: '', dueDate: '', targetQty: 0, productName: '' };
 }
 
-/* ===== 검색 로직 ===== */
+/* 기간 체크 */
 function inRange(dt) {
   const from = q.value.startAt ? new Date(q.value.startAt).getTime() : null;
   const to = q.value.endAt ? new Date(q.value.endAt).getTime() : null;
@@ -394,15 +371,22 @@ function inRange(dt) {
   return true;
 }
 
+/* 실제 검색: 우선 스토어(실데이터) → 없으면 로컬 더미 */
+const store = useProcessSimStore();
 function doSearch() {
-  const kwNo = q.value.issueNumber.trim();
-  const kwName = q.value.productName.trim();
-  const type = q.value.productType;
+  // 1) 스토어 기반(실서버 진행건) 우선
+  const hitFromStore = store.findPerformance(q.value);
+  let hit = hitFromStore;
 
-  let hit = null;
-  if (kwNo) hit = perfDB.value.find((x) => x.issueNumber.includes(kwNo));
-  if (!hit && (kwName || type)) {
-    hit = perfDB.value.find((x) => (!kwName || x.productName.includes(kwName)) && (!type || x.productType === type));
+  // 2) 없으면 로컬 더미에서 검색
+  if (!hit) {
+    const kwNo = q.value.issueNumber.trim();
+    const kwName = q.value.productName.trim();
+    const type = q.value.productType;
+    if (kwNo) hit = perfDB.value.find((x) => x.issueNumber.includes(kwNo));
+    if (!hit && (kwName || type)) {
+      hit = perfDB.value.find((x) => (!kwName || x.productName.includes(kwName)) && (!type || x.productType === type));
+    }
   }
 
   if (!hit) {
@@ -421,8 +405,8 @@ function doSearch() {
   rows.value = ranged.map((r, i) => ({
     seq: i + 1,
     ...r,
-    startText: r.startAt.replace('T', ' '),
-    endText: r.endAt.replace('T', ' '),
+    startText: (r.startAt || '').replace('T', ' '),
+    endText: (r.endAt || '').replace('T', ' '),
     durationMin: diffMinutes(r.startAt, r.endAt)
   }));
 
@@ -439,7 +423,7 @@ function doSearch() {
   sizeFit();
 }
 
-/* ===== 실적 합계/요약 ===== */
+/* 실적 합계/요약 */
 function requiredProcessNames(productType) {
   return productType === '반제품' ? ['재단', '가공', '연마', '도장'] : ['재단', '가공', '연마', '도장', '조립'];
 }
@@ -453,7 +437,7 @@ const producedTotal = computed(() => {
 });
 function recalcNeed() {}
 
-/* ===== 소계 ===== */
+/* 소계 */
 const totals = computed(() => {
   const t = { orderQty: 0, inputQty: 0, defectQty: 0, outputQty: 0, durationMin: 0 };
   rows.value.forEach((r) => {
@@ -467,7 +451,7 @@ const totals = computed(() => {
 });
 const totalDurationText = computed(() => toHrMin(totals.value.durationMin));
 
-/* ===== 유틸 ===== */
+/* 유틸 */
 function diffMinutes(a, b) {
   return Math.max(0, Math.round((new Date(b) - new Date(a)) / 60000));
 }
@@ -477,7 +461,7 @@ function toHrMin(mins) {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
-/* ===== AG Grid ===== */
+/* AG Grid */
 let gridApi;
 function onGridReady(e) {
   gridApi = e.api;
@@ -514,15 +498,12 @@ const colDefs = markRaw([
   padding-bottom: 8px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
-
-/* ✅ 검색 버튼 중앙정렬 */
 .search-actions {
   display: flex;
   justify-content: center;
   gap: 8px;
   margin-top: 6px;
 }
-
 .section-head {
   display: flex;
   align-items: center;
@@ -535,7 +516,6 @@ const colDefs = markRaw([
 .mini-summary {
   margin-top: 10px;
 }
-
 .info-card .v-card-title {
   font-weight: 700;
 }
@@ -544,8 +524,6 @@ const colDefs = markRaw([
   gap: 8px;
   margin-top: 8px;
 }
-
-/* ag-grid looks */
 .ag-no-wrap .ag-cell {
   white-space: nowrap;
   overflow: hidden;
@@ -560,8 +538,6 @@ const colDefs = markRaw([
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
-/* 합계 박스 */
 .totals {
   display: grid;
   grid-template-columns: repeat(5, auto);
@@ -572,8 +548,6 @@ const colDefs = markRaw([
     grid-template-columns: repeat(2, auto);
   }
 }
-
-/* 공용 마진/간격 */
 .ml-2 {
   margin-left: 8px;
 }

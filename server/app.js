@@ -28,6 +28,8 @@ app.listen(PORT, () => {
 
 const boardRouter = require("./routers/board_router.js");
 app.use(boardRouter);
+
+// 생산
 const productionRouter = require("./routers/production_router.js");
 app.use(productionRouter);
 
