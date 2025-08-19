@@ -4,7 +4,7 @@
 // ( 따옴표는 줄을 바꿀 경우 값이 깨지면서 에러발생 )
 
 // 자재 조회 (모달)
-const materialsAllSelect = `SELECT MAT_CODE, MAT_NAME, MAT_TYPE, MAT_UNIT, MAT_WIDTH, MAT_HEIGHT, MAT_DEPT, MAT_SAFEQT, MAT_DATE, MAT_NOTE, MAT_WRITER
+const materialsAllSelect = `SELECT MAT_CODE, MAT_NAME, MAT_TYPE, MAT_UNIT, MAT_SIZE, MAT_SAFEQT, MAT_DATE, MAT_NOTE, MAT_WRITER
 FROM MATERIALS`;
 
 // 자재발주서 insert
@@ -24,13 +24,14 @@ const orderSelect = `SELECT O.PO_NO,
        D.MAT_CODE,
        M.MAT_NAME,
        M.MAT_TYPE,
-       CONCAT(M.MAT_WIDTH, ' X ', M.MAT_HEIGHT, ' X ', M.MAT_DEPT) AS '규격',
+       M.MAT_SIZE,
        M.MAT_UNIT,
        O.ORDER_DATE,
        O.PO_DDAY,
        O.MANAGER,
        D.RECEIPT_QTY,
-       O.PO_STATUS
+       O.PO_STATUS,
+       D.UPDATE_QTY
 FROM PURCHASE_ORDER AS O 
 LEFT JOIN PURCHASE_DETAIL AS D
   ON O.PO_NO = D.PO_NO
@@ -38,9 +39,123 @@ LEFT JOIN MATERIALS AS M
   ON D.MAT_CODE = M.MAT_CODE
   ORDER BY O.PO_NO DESC`;
 
+// 자재발주서 조회 검색
+const orderSearch = `SELECT O.PO_NO,
+       O.SUPPLYER,
+       D.MAT_CODE,
+       M.MAT_NAME,
+       M.MAT_TYPE,
+       M.MAT_SIZE,
+       M.MAT_UNIT,
+       O.ORDER_DATE,
+       O.PO_DDAY,
+       O.MANAGER,
+       D.RECEIPT_QTY,
+       O.PO_STATUS,
+       D.UPDATE_QTY
+FROM PURCHASE_ORDER AS O 
+LEFT JOIN PURCHASE_DETAIL AS D
+  ON O.PO_NO = D.PO_NO
+LEFT JOIN MATERIALS AS M
+  ON D.MAT_CODE = M.MAT_CODE
+WHERE ( ? IS NULL OR O.PO_NO LIKE CONCAT('%', ?, '%') )
+  AND ( ? IS NULL OR M.MAT_NAME LIKE CONCAT('%', ?, '%') )
+  AND ( ? IS NULL OR M.MAT_CODE LIKE CONCAT('%', ?, '%') )
+  AND ( ? IS NULL OR O.MANAGER LIKE CONCAT('%', ?, '%') )
+  AND ( ? IS NULL OR DATE(O.ORDER_DATE) = ? )
+  AND ( ? IS NULL OR DATE(O.PO_DDAY) = ? )
+  AND ( ? IS NULL OR O.PO_STATUS = ? )
+ORDER BY PO_NO DESC`;
+
+// 자재발주서 발주수량 및 상태 조회
+const qtyAndStatus = `SELECT D.RECEIPT_QTY, D.UPDATE_QTY, O.PO_STATUS
+FROM PURCHASE_ORDER AS O
+JOIN PURCHASE_DETAIL AS D
+  ON O.PO_NO = D.PO_NO
+WHERE O.PO_NO = ? AND D.MAT_CODE = ?`;
+
+// 누적 입고량 업데이트
+const updatePURCHASEDETAIL = `UPDATE PURCHASE_DETAIL
+SET UPDATE_QTY = ?
+WHERE PO_NO = ? AND MAT_CODE = ?`;
+
+// 상태 변경
+const updatePURCHASEORDER = `UPDATE PURCHASE_ORDER
+SET PO_STATUS = ?
+WHERE PO_NO = ?`;
+
 // 임시 입고 등록
 const tmpMaterialInsert = `INSERT INTO MAT_IN_TMP (RECEIPT_NO, PO_NO, RECEIPT_DATE, SUPPLYER, MAT_CODE, RECEIPT_QTY, RECEIVED_QTY, TMP_STATUS, MANAGER)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?),`;
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+// 입고번호 프로시저 호출
+const GetNextPeceiptNo = `CALL GetNextReceipt_NO()`;
+
+// 임시 입고 조회
+const tmpSelect = `SELECT TMP.RECEIPT_NO,
+       TMP.RECEIPT_DATE,
+       TMP.SUPPLYER,
+       TMP.MAT_CODE,
+       TMP.RECEIPT_QTY,
+       TMP.RECEIVED_QTY,
+       TMP.TMP_STATUS,
+       TMP.MANAGER,
+       M.MAT_NAME,
+       M.MAT_SIZE,
+       M.MAT_UNIT,
+       M.MAT_TYPE
+FROM MAT_IN_TMP AS TMP JOIN MATERIALS AS M
+ON TMP.MAT_CODE = M.MAT_CODE
+ORDER BY RECEIPT_NO DESC`;
+
+// 임시 입고 검색
+const tmpSearch = `SELECT TMP.RECEIPT_NO,
+       TMP.RECEIPT_DATE,
+       TMP.SUPPLYER,
+       TMP.MAT_CODE,
+       TMP.RECEIPT_QTY,
+       TMP.RECEIVED_QTY,
+       TMP.TMP_STATUS,
+       TMP.MANAGER,
+       M.MAT_NAME,
+       M.MAT_SIZE,
+       M.MAT_UNIT,
+       M.MAT_TYPE
+FROM MAT_IN_TMP AS TMP JOIN MATERIALS AS M
+ON TMP.MAT_CODE = M.MAT_CODE
+WHERE 1=1
+  AND ( ? IS NULL OR M.MAT_NAME LIKE CONCAT('%', ?, '%') )
+  AND ( ? IS NULL OR M.MAT_CODE LIKE CONCAT('%', ?, '%') )
+  AND ( ? IS NULL OR M.MAT_TYPE = ? )
+  AND ( ? IS NULL OR DATE(TMP.RECEIVED_QTY) = ? )
+  AND ( ? IS NULL OR TMP.TMP_STATUS = ? )
+  ORDER BY RECEIPT_NO DESC`;
+
+// 불량품 조회
+const failMaterials = `SELECT RM.RJT_MAT_ID,
+       RM.MAT_CERT_ID,
+       RM.MAT_CODE,
+       RM.RJT_REASON,
+       RM.RJT_CODE,
+       RM.RECEIPT_NO,
+       RM.MAT_STATUS,
+       M.MAT_NAME,
+       M.MAT_SIZE,
+       M.MAT_TYPE,
+       M.MAT_UNIT
+FROM REJECTED_MATERIAL AS RM LEFT JOIN MATERIALS AS M
+ON RM.MAT_CODE = M.MAT_CODE`;
+
+// 자재반품요청서 INSERT
+const reMaterialInsert = `INSERT INTO RETURN_REQUEST (RR_NO, CREATED_DATE, RR_DATE, MANAGER, RE_STATUS)
+VALUES (?, ?, ?, ?, ?)`;
+
+// 자재반품요청서 상세 isnert
+const reMaterialInsertDetail = `INSERT INTO RETURN_REQUEST_DETAIL (RR_DETAIL_NO, RR_NO, RE_QTY, MAT_CODE)
+VALUES (?, ?, ?, ?)`;
+
+// 자재반품요청서 요청서번호 프로시저 호출
+const GetNextRRNO = `CALL GetNextRR_NO()`;
 
 module.exports = {
   materialsAllSelect,
@@ -48,5 +163,16 @@ module.exports = {
   materialOrderDetail,
   GetNextPoNo,
   orderSelect,
+  orderSearch,
   tmpMaterialInsert,
+  GetNextPeceiptNo,
+  qtyAndStatus,
+  updatePURCHASEDETAIL,
+  updatePURCHASEORDER,
+  tmpSelect,
+  tmpSearch,
+  failMaterials,
+  reMaterialInsert,
+  reMaterialInsertDetail,
+  GetNextRRNO,
 };

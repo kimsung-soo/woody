@@ -4,7 +4,7 @@
   <UiParentCard title="설비 정보 등록">
     <v-row class="mb-4">
       <v-col cols="6">
-        <v-text-field label="설비코드" v-model.trim="form.code" dense outlined required />
+        <v-text-field label="설비코드" v-model.trim="form.code" dense outlined readonly />
       </v-col>
 
       <v-col cols="6">
@@ -12,8 +12,19 @@
       </v-col>
 
       <v-col cols="6">
-        <v-text-field label="설비유형" v-model.trim="form.type" dense outlined />
+        <v-select
+          label="설비유형"
+          v-model="form.type"
+          :items="typeItems"
+          item-title="code_name"
+          item-value="code"
+          dense
+          outlined
+          clearable
+          placeholder="유형 선택"
+        />
       </v-col>
+
       <v-col cols="6">
         <v-text-field label="제조사" v-model.trim="form.maker" dense outlined />
       </v-col>
@@ -41,10 +52,6 @@
       <v-col cols="6">
         <v-text-field label="담당자" v-model.trim="form.manager" dense outlined />
       </v-col>
-
-      <v-col cols="">
-        <v-text-field label="공정 코드" v-model.trim="form.prId" dense outlined />
-      </v-col>
     </v-row>
 
     <v-row justify="end">
@@ -54,14 +61,38 @@
 </template>
 
 <script setup>
-import { ref, shallowRef, reactive, computed } from 'vue';
+import { ref, shallowRef, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
-
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
 
 const router = useRouter();
+
+const http = axios.create({
+  baseURL: 'http://localhost:3000',
+  headers: { 'Content-Type': 'application/json' }
+});
+
+const EP = {
+  nextId: '/facility/next-id',
+  codesFC: '/common/codes/FC',
+  insert: '/facilityInsert',
+  list: '/facility'
+};
+
+const apiTry = async (method, path, data = null) => {
+  try {
+    const urlWithApi = '/api' + path;
+    return await http.request({ method, url: urlWithApi, data });
+  } catch (e) {
+    if (e?.response?.status === 404) {
+      // fallback: no prefix
+      return await http.request({ method, url: path, data });
+    }
+    throw e;
+  }
+};
 
 const page = ref({ title: '설비 정보 관리' });
 const breadcrumbs = shallowRef([
@@ -73,17 +104,17 @@ const form = reactive({
   code: '',
   name: '',
   type: '',
-  useYn: '사용', // '사용' | '미사용'
+  useYn: '사용',
   maker: '',
-  makeDate: '', // 'YYYY-MM-DD'
-  installDate: '', // 'YYYY-MM-DD'
-  checkCycle: '', // number | ''
-  manager: '',
-  prId: ''
+  makeDate: '',
+  installDate: '',
+  checkCycle: '',
+  manager: ''
 });
-
+const typeItems = ref([]);
 const loading = ref(false);
-const canSubmit = computed(() => !!form.code && !!form.prId);
+
+const canSubmit = computed(() => !!form.name && !!form.type);
 
 const toNull = (v) => (v === '' || v === undefined ? null : v);
 const toIntOrNull = (v) => {
@@ -92,14 +123,26 @@ const toIntOrNull = (v) => {
   return Number.isFinite(n) ? n : null;
 };
 
+/* ========= 초기 로딩 ========= */
+onMounted(async () => {
+  try {
+    const [idRes, codeRes] = await Promise.all([apiTry('get', EP.nextId), apiTry('get', EP.codesFC)]);
+    form.code = idRes?.data?.FAC_ID || '';
+    typeItems.value = Array.isArray(codeRes?.data) ? codeRes.data : [];
+  } catch (e) {
+    console.error(e);
+    alert('초기 로딩 실패: ' + (e?.response?.data?.error || e?.message));
+  }
+});
+
+/* ========= 등록 ========= */
 const sign = async () => {
   if (!canSubmit.value) {
-    alert('설비코드와 공정코드를 입력하세요');
+    alert('(설비명/설비유형)을 확인하세요.');
     return;
   }
 
   const payload = {
-    FAC_ID: form.code,
     FAC_NAME: toNull(form.name),
     FAC_TYPE: toNull(form.type),
     FAC_USE: form.useYn === '사용' ? 1 : 0,
@@ -107,28 +150,33 @@ const sign = async () => {
     FAC_MDATE: toNull(form.makeDate),
     FAC_IDATE: toNull(form.installDate),
     FAC_CHECKDAY: toIntOrNull(form.checkCycle),
-    PR_ID: form.prId,
     MANAGER: toNull(form.manager)
   };
 
   try {
     loading.value = true;
 
-    const res = await axios.post('http://localhost:3000/facilityInsert', payload, {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    // 1) 등록
+    const res = await apiTry('post', EP.insert, payload);
+    if (!res?.data?.ok) throw new Error('등록 실패');
 
-    const affected = res?.data?.affectedRows ?? 0;
-    if (affected >= 1) {
-      alert('설비 등록 완료!');
-      await router.push('/facility');
-      return;
+    const listRes = await apiTry('get', EP.list);
+    const rows = Array.isArray(listRes?.data) ? listRes.data : [];
+    const created = rows.find((r) => (r.FAC_ID ?? '') === (form.code ?? ''));
+
+    const prId = created?.PR_ID || '';
+
+    alert('설비 등록 완료!');
+
+    const LIST_ROUTE = '/utils/List';
+    if (prId) {
+      router.push({ path: LIST_ROUTE, query: { proc: prId } });
+    } else {
+      router.push({ path: LIST_ROUTE });
     }
-    alert('등록 실패');
   } catch (err) {
     console.error(err);
-    const msg = err?.response?.data?.error || err?.message || '등록 실패';
-    alert(msg);
+    alert(err?.response?.data?.error || err?.message || '등록 실패');
   } finally {
     loading.value = false;
   }

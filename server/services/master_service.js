@@ -6,6 +6,16 @@ const masterEmpSelect = async () => {
   return list;
 };
 
+// 공통코드조회
+const commonDept = async () => {
+  let list = await mariadb.query("commonDept");
+  return list;
+};
+
+const commonAuth = async () => {
+  let list = await mariadb.query("commonAuth");
+  return list;
+};
 // 사원 검색
 const masterEmpSelectName = async (empName) => {
   const params = [empName];
@@ -51,6 +61,79 @@ const masterEmpUpdate = async (data) => {
 const masterEmpDelete = async (EMP_NO) => {
   const params = [EMP_NO];
   let result = await mariadb.query("masterEmpDelete", params);
+  return result;
+};
+
+// 제품관리 - 조회
+const masterPrdSelect = async () => {
+  let list = await mariadb.query("masterPrdSelect");
+  return list;
+};
+
+// 제품관리 - 모달조회
+const masterPrdModal = async () => {
+  let list = await mariadb.query("masterPrdModal");
+  return list;
+};
+
+// 제품관리 - 유형
+const masterPrdType = async () => {
+  let list = await mariadb.query("masterPrdType");
+  return list;
+};
+
+// // 제품관리 - 단위
+const masterPrdUnit = async () => {
+  let list = await mariadb.query("masterPrdUnit");
+  return list;
+};
+
+// 제품관리 - 등록
+const masterPrdInsert = async (data) => {
+  const params = [
+    data.PRD_NAME,
+    data.PRD_TYPE,
+    data.PRD_UNIT,
+    data.PRD_SIZE,
+    data.PRD_SAFEQT,
+    data.PRD_WRITER,
+    data.PRD_DATE,
+    data.PRD_NOTE || null,
+  ];
+  let result = await mariadb.query("masterPrdInsert", params);
+  return result;
+};
+
+// 제품관리 - 수정
+const masterPrdUpdate = async (data) => {
+  const params = [
+    data.PRD_NAME,
+    data.PRD_TYPE,
+    data.PRD_UNIT,
+    data.PRD_SIZE,
+    data.PRD_SAFEQT,
+    data.PRD_WRITER,
+    data.PRD_DATE,
+    data.PRD_NOTE || null,
+    data.PRD_CODE,
+  ];
+  let result = await mariadb.query("masterPrdUpdate", params);
+  return result;
+};
+
+// 제품관리 - 삭제
+
+const masterPrdDelete = async (data) => {
+  const prdJSON = JSON.stringify(data.prdCode);
+  const params = [prdJSON];
+  let result = await mariadb.query("masterPrdDelete", params);
+  return result;
+};
+
+// 제품관리 - 검색
+const masterPrdSearch = async (data) => {
+  const params = [data.PRD_NAME];
+  let result = await mariadb.query("masterPrdSearch", params);
   return result;
 };
 
@@ -176,6 +259,18 @@ const prcDelete = async (data) => {
   return result;
 };
 
+// 창고 모달 조회
+const wrModalSelect = async () => {
+  let list = await mariadb.query("wrModalSelect");
+  return list;
+};
+
+// 창고 - 조회
+const wrSelect = async (data) => {
+  const params = [data.WR_NO];
+  let list = await mariadb.query("wrSelect", params);
+  return list;
+};
 module.exports = {
   masterEmpSelect,
   masterEmpInsert,
@@ -196,4 +291,16 @@ module.exports = {
   prcList,
   prcModalConfirm,
   prcDelete,
+  commonAuth,
+  commonDept,
+  masterPrdSelect,
+  masterPrdModal,
+  masterPrdType,
+  masterPrdUnit,
+  masterPrdInsert,
+  masterPrdUpdate,
+  masterPrdDelete,
+  masterPrdSearch,
+  wrModalSelect,
+  wrSelect,
 };

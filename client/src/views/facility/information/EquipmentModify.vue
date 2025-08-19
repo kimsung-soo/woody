@@ -15,7 +15,7 @@
     </v-row>
 
     <ag-grid-vue
-      style="height: 240px"
+      style="height: 460px"
       :theme="quartz"
       :rowData="rows"
       :columnDefs="columnDefs"
@@ -131,13 +131,21 @@ const mapRow = (r) => ({
   공정코드: r.PR_ID ?? '',
   설비코드: r.FAC_ID ?? '',
   설비명: r.FAC_NAME ?? '',
-  설비유형: r.FAC_TYPE ?? '',
+
+  // 원본 키 유지
+  FAC_TYPE: r.FAC_TYPE ?? '', // 저장용(코드)
+  FAC_TYPE_NM: r.FAC_TYPE_NM ?? undefined, // 표시용(이름, 조인 시 존재)
+
+  // 표시용 필드
+  설비유형: r.FAC_TYPE_NM ?? r.FAC_TYPE ?? '',
+
   사용유무: (r.FAC_USE ?? 1) === 1 ? '사용' : '정지',
   제조사: r.FAC_COMPANY ?? '',
   설비등록일: fmtDate(r.FAC_MDATE),
   설비설치일: fmtDate(r.FAC_IDATE),
   담당자: r.MANAGER ?? '',
-  // 화면에는 안 보이지만 행 데이터로 같이 싣는 원본 키들
+
+  // 숨겨둔 원본
   PR_ID: r.PR_ID ?? '',
   FAC_CHECKDAY: r.FAC_CHECKDAY ?? null
 });
@@ -228,9 +236,9 @@ const saveEdit = async () => {
 
     if (res.status === 200) {
       if (affected === 0) {
-        alert('수정 대상이 없습니다. ');
+        alert('수정 되었습니다 ');
       } else if (changed === 0) {
-        alert('수정되었습니다.');
+        alert('수정 변경사항이 없습니다');
       }
 
       await fetchList();

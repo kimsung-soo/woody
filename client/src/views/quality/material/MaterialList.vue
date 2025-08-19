@@ -3,23 +3,35 @@
   <UiParentCard>
     <v-row class="mb-4">
       <v-col cols="3">
-        <v-text-field label="입고일자" v-model="form.dueDate" type="date" dense outlined />
+        <v-text-field label="입고일자" v-model="form.receiptNo" type="date" dense outlined />
       </v-col>
       <v-col cols="3">
-        <v-text-field label="자재코드" v-model="form.contact" dense outlined />
+        <v-text-field label="자재코드" v-model="form.materialCode" dense outlined />
       </v-col>
       <v-col cols="3">
         <!-- 처리상태를 드롭다운으로 변경 -->
-        <v-select label="상태" v-model="form.status" :items="statusOptions" item-title="label" item-value="value" dense outlined />
+        <v-select
+          label="상태"
+          v-model="form.materialStatus"
+          :items="statusOptions"
+          item-title="label"
+          item-value="value"
+          dense
+          outlined
+          clearable
+        />
       </v-col>
-      <!-- 모달-->
-
-      <!-- 버튼 -->
-      <v-row justify="end">
-        <v-btn color="error" variant="elevated" @click="resetForm">초기화</v-btn>
-      </v-row>
+      <v-col cols="3">
+        <!-- 검색 버튼 추가 -->
+        <v-btn color="primary" variant="elevated" @click="searchData">검색</v-btn>
+      </v-col>
     </v-row>
-    <br />
+
+    <!-- 버튼 -->
+    <v-row justify="end" class="mb-4">
+      <v-btn color="error" variant="elevated" @click="resetForm">초기화</v-btn>
+    </v-row>
+
     <ag-grid-vue
       :rowData="gridData"
       :columnDefs="colDefs"
@@ -51,87 +63,93 @@ const breadcrumbs = shallowRef([
   { title: '원자재검수관리', disabled: false, href: '#' }
 ]);
 
-// ----- 폼 상태(필터) -----
-interface Item {
-  name: string;
-  code: string;
-  qty: number;
-  price: number;
-  note: string;
-  amount: number;
-}
+// 검색열
 interface FormType {
-  supplier: string; // 원자재명 검색어
-  contact: string; // 처리상태 검색어
-  issueNumber: string;
-  orderDate: string; // 발주일자(From)
-  dueDate: string; // 납기일자(To)
-  items: Item[];
+  receiptNo: string; // 입고일자
+  materialCode: string; // 자재코드
+  materialStatus: string; // 상태
 }
+
 const form = reactive<FormType>({
-  supplier: '',
-  contact: '',
-  issueNumber: '',
-  orderDate: '',
-  dueDate: '',
-  items: [
-    { name: '', code: '', qty: 0, price: 0, note: '', amount: 0 },
-    { name: '', code: '', qty: 0, price: 0, note: '', amount: 0 },
-    { name: '', code: '', qty: 0, price: 0, note: '', amount: 0 }
-  ]
+  receiptNo: '',
+  materialCode: '',
+  materialStatus: ''
 });
 
 // ----- ag-Grid용 행 타입/데이터/컬럼 -----
 interface Row {
-  receiptNo: number; // 입고번호
-  receiptDate: string; // 입고일자
-  supplyer: string; // 공급처
-  materialCode: string; // 자재코드
-  receivedQty: number; // 입고수량
-  matStatus: string; // 상태  // 입고, 검수대기, 검수완료 값이 존재=> 품질은 전부 조회하면서 검수대기가 주력 포인트가 될듯?
+  receiptNo: string;
+  receiptDate: string;
+  supplyer: string;
+  materialCode: string;
+  receivedQty: number;
+  matStatus: string;
 }
-const rowData: Ref<Row[]> = ref([
-  {
-    receiptNo: 1001,
-    receiptDate: '2025-07-30',
-    supplyer: '원목세상',
-    materialCode: 'MT1001',
-    receivedQty: 100,
-    matStatus: '입고'
-  },
-  {
-    receiptNo: 1002,
-    receiptDate: '2025-07-31',
-    supplyer: '합판세상',
-    materialCode: 'MT1002',
-    receivedQty: 200,
-    matStatus: '입고'
-  },
-  {
-    receiptNo: 1003,
-    receiptDate: '2025-08-01',
-    supplyer: '원목세상',
-    materialCode: 'MT1001',
-    receivedQty: 50,
-    matStatus: '검수대기'
-  }
-]);
+
+const rowData: Ref<Row[]> = ref([]);
 
 // 행 클릭 이벤트 핸들러
-const onRowClicked = (event: any) => {
-  const rowData = event.data;
-  console.log('클릭된 행:', rowData);
-
-  // /qm/qrdpass 경로로 이동하면서 데이터 전달
+const onRowClicked = (e) => {
+  const r = e.data;
   router.push({
-    path: '/qm/matmng',
+    path: '/qm/matmng', // 폼 페이지
     query: {
-      receiptNo: rowData.receiptNo
+      receiptNo: r.receiptNo, // 'MCERT001' 식
+      matCode: r.materialCode, // 자재코드
+      totalQty: String(r.receivedQty), // 총수량
+      inDate: r.receiptDate, // 입고일자 YYYY-MM-DD
+      materialName: r.materialName || '', // 있다면
+      createdBy: r.currentUserName
     }
   });
+};
 
-  // 또는 단순히 경로만 이동하고 싶다면:
-  // router.push('/qm/qrdpass');
+function coalesce<T = any>(...vals: any[]): T {
+  for (const v of vals) if (v !== undefined && v !== null && v !== '') return v as T;
+  return '' as unknown as T;
+}
+
+function fmtDate(d: any): string {
+  if (!d) return '';
+  // d가 '2025-08-17T15:00:00.000Z' 형태면 날짜부분만 사용
+  try {
+    const iso = new Date(d);
+    if (!isNaN(iso.getTime())) return iso.toISOString().slice(0, 10); // YYYY-MM-DD
+  } catch (_) {}
+  // 이미 'YYYY-MM-DD'면 그대로
+  const s = String(d);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // 'YYYYMMDD'면 변환
+  if (/^\d{8}$/.test(s)) return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6)}`;
+  return s;
+}
+
+const getMaterialList = async () => {
+  try {
+    const { data } = await axios.get('http://localhost:3000/matmng');
+
+    if (Array.isArray(data) && data.length > 0) {
+      rowData.value = data.map((item: any): Row => {
+        // 입고번호: 숫자 변환 금지 (문자형 코드 허용)
+        const receiptNo = coalesce(item.RECEIPT_NO, item.receiptNo, item.receipt_no, item.MCERT_NO);
+        // 날짜 포맷
+        const receiptDate = fmtDate(coalesce(item.RECEIPT_DATE, item.receiptDate, item.receipt_dt, item.inDate));
+        // 공급처
+        const supplyer = coalesce(item.SUPPLIER, item.supplier, item.SUPPLYER, item.supplyer);
+        // 자재코드: MAT_CODE도 함께 확인
+        const materialCode = coalesce(item.MAT_CODE, item.MATERIAL_CODE, item.materialCode, item.MATL_CD);
+        // 수량: 숫자로 파싱
+        const receivedQty = Number(coalesce(item.RECEIVED_QTY, item.receivedQty, item.RCV_QTY, item.qty, 0)) || 0;
+        // 상태
+        const matStatus = coalesce(item.TMP_STATUS, item.matStatus, item.STATUS, item.status);
+        return { receiptNo, receiptDate, supplyer, materialCode, receivedQty, matStatus };
+      });
+    } else {
+      rowData.value = [];
+    }
+  } catch (err) {
+    console.error('원자재 데이터 로드 실패:', err);
+  }
 };
 
 const colDefs: Ref<ColDef<Row>[]> = ref([
@@ -139,90 +157,93 @@ const colDefs: Ref<ColDef<Row>[]> = ref([
   { headerName: '입고일자', field: 'receiptDate', flex: 1, resizable: true },
   { headerName: '공급처', field: 'supplyer', flex: 1, resizable: true },
   { headerName: '자재코드', field: 'materialCode', flex: 1, resizable: true },
-  { headerName: '입고수량', field: 'receivedQty', resizable: true },
+  { headerName: '입고수량', field: 'receivedQty', flex: 1, resizable: true },
   { headerName: '상태', field: 'matStatus', flex: 1, resizable: true }
 ]);
 
 // ----- 상단 필터를 적용한 그리드 데이터 -----
 const gridData = computed(() => {
-  const name = form.supplier.trim().toLowerCase();
-  const status = form.contact.trim().toLowerCase();
-  const from = form.orderDate || '';
+  const materialCode = form.materialCode.trim().toLowerCase(); // 자재코드
+  const status = form.materialStatus?.trim().toLowerCase() || ''; // 상태
+  const dateFilter = form.receiptNo || ''; // 입고일자
 
-  return rowData.value.filter((r) => {
-    const byName = !name || r.materialCode.toLowerCase().includes(name);
+  const filtered = rowData.value.filter((r) => {
+    const byMaterialCode = !materialCode || r.materialCode.toLowerCase().includes(materialCode);
     const byStatus = !status || r.matStatus.toLowerCase().includes(status);
-    const byFrom = !from || r.receiptDate >= from;
-    return byName && byStatus && byFrom;
+
+    // 입고일자 필터링 수정 - 정확한 날짜 매칭
+    let byDate = true;
+    if (dateFilter) {
+      // receiptDate가 'YYYY-MM-DD' 형식이라고 가정
+      // 선택한 날짜와 정확히 일치하는 경우
+      byDate = r.receiptDate === dateFilter;
+    }
+
+    return byMaterialCode && byStatus && byDate;
   });
+
+  console.log('필터링 결과:', {
+    전체데이터: rowData.value.length,
+    필터링후: filtered.length,
+    검색조건: { materialCode, status, dateFilter }
+  });
+
+  return filtered;
 });
 
 // 페이지네이션, 컬럼 사이즈조절
 const gridOptions = ref<GridOptions<Row>>({
   defaultColDef: { flex: 1, minWidth: 100, resizable: true },
-  // columnDefs: colDefs,
   pagination: true,
-  paginationAutoPageSize: true, // 화면 높이에 맞춰 자동 조절
+  paginationAutoPageSize: true,
   paginationPageSizeSelector: true
 });
 
 // ----- 버튼 핸들러 -----
 function resetForm(): void {
-  form.supplier = '';
-  form.contact = '';
-  form.orderDate = '';
+  form.receiptNo = '';
+  form.materialCode = '';
+  form.materialStatus = '';
 }
 
-// const getMtrList = async () => {
-//   const result = await axios.get('http://localhost:3000/prdcertlist');
-// };
+function searchData(): void {
+  console.log('검색 조건:', {
+    입고일자: form.receiptNo,
+    자재코드: form.materialCode,
+    상태: form.materialStatus
+  });
+}
 
-// // db 연결
-// const getPrdList = async () => {
-//   try {
-//     const result = await axios.get('http://localhost:3000/prdcertlist');
-
-//     // DB 응답 데이터를 rowData에 매핑
-//     if (result.data.length > 0) {
-//       // DB 필드명을 Vue 컴포넌트에서 사용하는 필드명으로 매핑
-//       rowData.value = result.data.map((item) => ({
-//         certId: item.PRD_CERT_ID || item.certId,
-//         prdCode: item.PRD_ID || item.prdCode,
-//         prdName: item.PRD_NAME || item.prdName,
-//         chkedDate: item.Q_CHECKED_DATE || item.chkedDate,
-//         prdType: item.PRD_STATUS || item.prdType
-//       }));
-//     }
-//   } catch (err) {
-//     console.error(err);
-//   }
-// };
-
-// 공통코드 처리상태(자재에서 )
+// 공통코드 처리상태
 interface StatusOption {
   label: string;
   value: string;
 }
-const statusOptions = ref<StatusOption[]>([]);
 
-// 처리상태 옵션 불러오기
+const statusOptions = ref<StatusOption[]>();
+
+// 처리상태 옵션 불러오기 (기존 함수는 제거하고 getMatStatus 사용)
 const getStatusOptions = async () => {
   try {
-    const result = await axios.get('http://localhost:3000/qccommon');
-    if (result.data.length > 0) {
-      statusOptions.value = result.data.map((item: any) => ({
-        label: item.code_name,
-        value: item.code
-      }));
+    const result = await axios.get('http://localhost:3000/matcommon');
+    if (result.data && result.data.length > 0) {
+      statusOptions.value = [
+        { label: '입고', value: '' }, // 필터 초기값
+        ...result.data.map((item: any) => ({
+          label: item.code_name,
+          value: item.code_name
+        }))
+      ];
     }
   } catch (err) {
-    console.error(err);
+    console.error('상태 옵션 로드 실패:', err);
   }
 };
 
 // ----- 컴포넌트 마운트 시 데이터 로드 -----
 onMounted(() => {
-  getStatusOptions(); // 처리상태 옵션 로드
+  getStatusOptions();
+  getMaterialList();
 });
 </script>
 

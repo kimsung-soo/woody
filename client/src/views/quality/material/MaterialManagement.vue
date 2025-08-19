@@ -30,11 +30,27 @@
       <v-col cols="12" class="py-1">
         <div class="d-flex align-center">
           <h5 class="mr-4">최종처리</h5>
-          <v-chip :color="finalStatus === '합격' ? 'primary' : 'error'">{{ finalStatus }}</v-chip>
+          <v-chip :color="finalStatus == '합격' ? 'primary' : 'error'">{{ finalStatus }}</v-chip>
           <span class="ml-auto text-caption">선택 {{ selectedCount }}/{{ totalCount }}</span>
         </div>
       </v-col>
     </v-row>
+
+    <!-- 불합격 사유 입력 섹션 -->
+    <v-card v-show="finalStatus === '불합격'" class="mb-4" elevation="2">
+      <v-card-title class="bg-red-lighten-5 text-red-darken-2"> </v-card-title>
+      <v-card-text>
+        <v-textarea
+          v-model="defectReason.description"
+          label="불합격 사유"
+          variant="outlined"
+          rows="3"
+          counter="500"
+          maxlength="500"
+          :rules="[(v) => finalStatus === '합격' || (v && v.length > 0) || '불합격 시 사유는 필수입니다.']"
+        />
+      </v-card-text>
+    </v-card>
 
     <!-- 2) 하단 입력 그리드(1행) -->
     <ag-grid-vue
@@ -48,17 +64,20 @@
 </template>
 
 <script setup>
-import { ref, shallowRef, computed } from 'vue';
+import axios from 'axios';
+import { ref, shallowRef, computed, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
 
 import { AgGridVue } from 'ag-grid-vue3';
 import { ModuleRegistry, themeQuartz, ClientSideRowModelModule, RowSelectionModule, ValidationModule } from 'ag-grid-community';
 
-// 모듈 등록 (개발 모드에서만 Validation)
+// 모듈 등록
 ModuleRegistry.registerModules([ClientSideRowModelModule, RowSelectionModule, ...(import.meta.env.PROD ? [] : [ValidationModule])]);
 
 const quartz = themeQuartz;
+const route = useRoute();
 
 /* breadcrumb */
 const page = ref({ title: '원자재 검수관리 등록' });
@@ -66,6 +85,30 @@ const breadcrumbs = ref([
   { title: '품질', disabled: true, href: '#' },
   { title: '원자재 검수관리 등록', disabled: false, href: '#' }
 ]);
+
+/* ------------ 불합격 사유 관련 데이터 ------------ */
+const defectReason = ref({
+  category: '',
+  severity: '',
+  description: ''
+});
+
+// 불합격 항목 목록 계산
+const failedItems = computed(() => {
+  const api = criteriaApi.value;
+  if (!api) return [];
+
+  const failed = [];
+  criteriaRows.value.forEach((row) => {
+    const node = api.getRowNode(row._id);
+    if (!node?.isSelected()) {
+      failed.push(row.label);
+    }
+  });
+  return failed;
+});
+
+// 원자재 품질기준 조회
 
 /* ------------ 1) 검사기준 그리드 (선택=합격) ------------ */
 // 행 데이터 (rowId로 쓸 고유 키 _id 포함)
@@ -135,6 +178,15 @@ function recalcCriteria() {
   totalCount.value = api.getDisplayedRowCount();
   selectedCount.value = api.getSelectedNodes().length;
   api.refreshCells({ columns: ['result'], force: true });
+
+  // 모든 항목이 합격이 되면 불합격 사유 초기화
+  if (selectedCount.value === totalCount.value) {
+    defectReason.value = {
+      category: '',
+      severity: '',
+      description: ''
+    };
+  }
 }
 
 /* ------------ 2) 하단 입력 그리드(1행) ------------ */
@@ -143,7 +195,6 @@ const detailRows = ref([
     id: '(자동생성)',
     inNo: '(자동입력)',
     materialCode: '(자동입력)',
-    materialName: '(필요할꺼같은데?)',
     totalQty: '(자동입력)',
     user: '(세션사용자)',
     inDate: '(자동입력)',
@@ -151,25 +202,39 @@ const detailRows = ref([
   }
 ]);
 
+function numParser(p) {
+  const v = Number(String(p.newValue).replace(/,/g, '').trim());
+  return Number.isFinite(v) ? v : p.oldValue;
+}
+
 const detailCols = ref([
   { headerName: '원자재검사번호', field: 'id', width: 170, editable: false },
   { headerName: '입고번호', field: 'inNo', width: 140, editable: false },
   { headerName: '원자재코드', field: 'materialCode', width: 150, editable: false },
-  { headerName: '원자재명', field: 'materialName', width: 160, editable: false },
   { headerName: '총수량', field: 'totalQty', width: 110, editable: true, valueParser: numParser },
   { headerName: '작성자', field: 'user', width: 120, editable: true },
   { headerName: '입고일자', field: 'inDate', width: 140, editable: true },
   { headerName: '검사완료일자', field: 'doneDate', width: 140, editable: true }
 ]);
 
-function numParser(p) {
-  const v = Number(String(p.newValue).replace(/,/g, '').trim());
-  return Number.isFinite(v) ? v : p.oldValue;
-}
-
 const detailGridOptions = ref({
   defaultColDef: { resizable: true, minWidth: 110 },
   autoSizeStrategy: { type: 'fitGridWidth' }
+});
+
+// 클릭한 행의 내용가져오기
+onMounted(() => {
+  const r = detailRows.value[0];
+
+  // 쿼리에서 값 채우기
+  r.inNo = String(route.query.receiptNo || '');
+  r.materialCode = String(route.query.matCode || '');
+  r.materialName = String(route.query.materialName || '');
+  r.totalQty = Number(route.query.totalQty || 0);
+  r.inDate = String(route.query.inDate || '');
+  r.user = String(route.query.createdBy || ''); // 세션값 받아오면 반영(스토어)
+  const today = new Date();
+  r.doneDate = today.toISOString().slice(0, 10);
 });
 
 /* ------------ 버튼 로직 ------------ */
@@ -189,25 +254,50 @@ function resetForm() {
   r.user = '';
   r.inDate = '';
   r.doneDate = '';
+
+  // 불합격 사유 초기화
+  defectReason.value = {
+    category: '',
+    severity: '',
+    description: ''
+  };
 }
 
-function saveForm() {
-  const api = criteriaApi.value;
-  if (!api) return;
-  const criteria = criteriaRows.value.map((r) => {
-    const node = api.getRowNode(r._id);
-    return { key: r._id, label: r.label, pass: !!node?.isSelected() };
-  });
-
+async function saveForm() {
   const d = detailRows.value[0];
-  if (d.passQty > d.totalQty) return alert('합격수량이 총수량을 초과할 수 없습니다.');
+  const isPass = finalStatus.value === '합격';
 
-  console.log('payload', {
-    criteria, // 각 항목 합격 여부
-    status: finalStatus.value, // 최종처리 (합/불)
-    detail: d
-  });
-  alert('등록되었습니다! (콘솔 payload 확인)');
+  if (!isPass && !defectReason.value.description.trim()) {
+    alert('불합격 사유를 입력해주세요.');
+    return;
+  }
+
+  try {
+    if (isPass) {
+      // /passmat 은 "평평한 바디"를 기대
+      await axios.post('http://localhost:3000/passmat', {
+        RECEIPT_NO: d.inNo, // 문자열
+        MAT_CODE: d.materialCode,
+        TOTAL_QTY: d.totalQty,
+        Q_CHECKED_DATE: d.doneDate, // 'YYYY-MM-DD'
+        CREATED_BY: d.user
+      });
+    } else {
+      await axios.post('http://localhost:3000/rejectmat', {
+        RECEIPT_NO: d.inNo,
+        MAT_CODE: d.materialCode,
+        RJT_REASON: defectReason.value.description.trim().slice(0, 100),
+        Q_CHECKED_DATE: d.doneDate,
+        TOTAL_QTY: d.totalQty,
+        CREATED_BY: d.user
+      });
+    }
+
+    alert('등록되었습니다!');
+  } catch (e) {
+    console.error(e);
+    alert('등록 중 오류가 발생했습니다.');
+  }
 }
 </script>
 

@@ -44,25 +44,22 @@
 
 <script setup>
 // 기존 스크립트 내용은 동일합니다.
-import { ref, shallowRef } from 'vue';
+import { ref, shallowRef, onMounted } from 'vue';
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
 import { themeQuartz } from 'ag-grid-community';
 import { AgGridVue } from 'ag-grid-vue3';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
 import MoDal from './WrModal.vue'; // 창고모달
-
+import axios from 'axios';
 const quartz = themeQuartz;
 
+onMounted(() => {
+  modalList();
+});
+
 const form = ref({ wrNo: '' }, { wrName: '' }, { wrAddr: '' });
-// 제품 리스트
-const rowData1 = ref([
-  { 구역번호: '절단기', 섹션코드: '이동섭', 품목코드: '2025-08-29', 품목유형: '대기', 품목이름: '흰책상(반)' },
-  { 구역번호: '가공기', 섹션코드: '김태완', 품목코드: '2025-07-29', 품목유형: '대기', 품목이름: '흰책상(반)' },
-  { 구역번호: '연마기', 섹션코드: '김성수', 품목코드: '2025-06-29', 품목유형: '대기', 품목이름: '흰책상(반)' },
-  { 구역번호: '절단기', 섹션코드: '정경준', 품목코드: '2025-05-29', 품목유형: '폐기완료', 품목이름: '흰책상(반)' },
-  { 구역번호: '도장기', 섹션코드: '최은수', 품목코드: '2025-04-29', 품목유형: '폐기완료', 품목이름: '흰책상(반)' },
-  { 구역번호: '조립기', 섹션코드: '제갈은경', 품목코드: '2025-03-29', 품목유형: '폐기완료', 품목이름: '흰책상(반)' }
-]);
+// 창고 정보 리스트
+const rowData1 = ref([]);
 
 const colDefs1 = ref([
   {
@@ -73,8 +70,7 @@ const colDefs1 = ref([
   { field: '구역번호', flex: 1, editable: true },
   { field: '섹션코드', flex: 1, editable: true },
   { field: '품목코드', flex: 1, editable: true },
-  { field: '품목유형', flex: 1, editable: true },
-  { field: '품목이름', flex: 1, editable: true }
+  { field: '품목유형', flex: 1, editable: true }
 ]);
 
 const page = ref({ title: '창고 관리' });
@@ -127,11 +123,18 @@ const materialColDefs = [
   { field: '창고명', headerName: '창고명', flex: 1, editable: true },
   { field: '창고주소', headerName: '창고주소', flex: 3, editable: true }
 ];
+
 // 모달행에 들어갈 값.
-const materialRowData = ref([
-  { 창고번호: 'ABC-001', 창고명: '백호', 창고주소: '대구시 수성구 카카오 API' },
-  { 창고번호: 'XYZ-002', 창고명: '사자', 창고주소: '대구시 수성구 카카오 API' }
-]);
+const materialRowData = ref([]);
+// 모달 조회
+const modalList = async () => {
+  const res = await axios.get('http://localhost:3000/wrModalSelect');
+  materialRowData.value = res.data.map((prd) => ({
+    창고번호: prd.WR_NO,
+    창고명: prd.WR_NAME,
+    창고주소: prd.WR_ADDR
+  }));
+};
 
 const openModal = (title, rowData, colDefs) => {
   modalTitle.value = title;
@@ -143,11 +146,20 @@ const openModal = (title, rowData, colDefs) => {
 };
 
 // 모달에서 확인시 행추가
-const modalConfirm = (selectedRow) => {
+const modalConfirm = async (selectedRow) => {
   console.log(selectedRow);
   form.value.wrNo = selectedRow.창고번호;
   form.value.wrName = selectedRow.창고명;
   form.value.wrAddr = selectedRow.창고주소;
+  // 조회
+  const condition = { WR_NO: form.value.wrNo };
+  const res = await axios.post('http://localhost:3000/wrSelect', condition);
+  rowData1.value = res.data.map((prd) => ({
+    구역번호: prd.WR_AREANO,
+    섹션코드: prd.WR_SECTION,
+    품목코드: prd.WR_PRD_ID,
+    품목유형: prd.WR_TYPE
+  }));
 };
 </script>
 

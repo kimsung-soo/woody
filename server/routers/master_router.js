@@ -9,6 +9,19 @@ router.get("/masterEmp", async (req, res) => {
   res.send(list);
 });
 
+// 공통코드 조회
+
+router.get("/commonDept", async (req, res) => {
+  let list = await masterService.commonDept();
+  res.send(list);
+});
+
+// 사원 조회
+router.get("/commonAuth", async (req, res) => {
+  let list = await masterService.commonAuth();
+  res.send(list);
+});
+
 // 사원 검색
 router.post("/masterEmpName", async (req, res) => {
   try {
@@ -48,6 +61,77 @@ router.delete("/masterEmpDelete", async (req, res) => {
   try {
     const { empNo } = req.body;
     let result = await masterService.masterEmpDelete(empNo);
+    res.json(result);
+  } catch (e) {
+    console.log(e);
+  }
+});
+
+// 제품 조회
+router.get("/masterPrdSelect", async (req, res) => {
+  let list = await masterService.masterPrdSelect();
+  res.send(list);
+});
+
+// 모달(규격) 조회
+router.get("/masterPrdModal", async (req, res) => {
+  let list = await masterService.masterPrdModal();
+  res.send(list);
+});
+
+// 제품 - 단위 조회
+router.get("/masterPrdUnit", async (req, res) => {
+  let list = await masterService.masterPrdUnit();
+  res.send(list);
+});
+
+// 제품 - 유형 조회
+router.get("/masterPrdType", async (req, res) => {
+  let list = await masterService.masterPrdType();
+  res.send(list);
+});
+
+// 제품 - 등록
+router.post("/masterPrdInsert", async (req, res) => {
+  try {
+    const data = req.body;
+    console.log(req.body);
+    let result = await masterService.masterPrdInsert(data);
+    res.json(result);
+  } catch (e) {
+    console.log(e);
+  }
+});
+
+// 제품 - 수정
+router.post("/masterPrdUpdate", async (req, res) => {
+  try {
+    const data = req.body;
+    console.log(req.body);
+    let result = await masterService.masterPrdUpdate(data);
+    res.json(result);
+  } catch (e) {
+    console.log(e);
+  }
+});
+
+// 제품 - 삭제
+router.post("/masterPrdDelete", async (req, res) => {
+  try {
+    const data = req.body;
+    let result = await masterService.masterPrdDelete(data);
+    res.json(result);
+  } catch (e) {
+    console.log(e);
+  }
+});
+
+// 제품관리 - 검색
+
+router.post("/masterPrdSearch", async (req, res) => {
+  try {
+    const data = req.body;
+    let result = await masterService.masterPrdSearch(data);
     res.json(result);
   } catch (e) {
     console.log(e);
@@ -192,4 +276,20 @@ router.post("/prcDelete", async (req, res) => {
   }
 });
 
+// 창고 - 모달조회
+router.get("/wrModalSelect", async (req, res) => {
+  let list = await masterService.wrModalSelect();
+  res.send(list);
+});
+
+// 창고 - 조회
+router.post("/wrSelect", async (req, res) => {
+  const data = req.body;
+  try {
+    let list = await masterService.wrSelect(data);
+    res.send(list);
+  } catch (e) {
+    console.log(e);
+  }
+});
 module.exports = router;
