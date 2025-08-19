@@ -259,6 +259,18 @@ const prcDelete = async (data) => {
   return result;
 };
 
+// 창고 모달 조회
+const wrModalSelect = async () => {
+  let list = await mariadb.query("wrModalSelect");
+  return list;
+};
+
+// 창고 - 조회
+const wrSelect = async (data) => {
+  const params = [data.WR_NO];
+  let list = await mariadb.query("wrSelect", params);
+  return list;
+};
 module.exports = {
   masterEmpSelect,
   masterEmpInsert,
@@ -289,4 +301,6 @@ module.exports = {
   masterPrdUpdate,
   masterPrdDelete,
   masterPrdSearch,
+  wrModalSelect,
+  wrSelect,
 };

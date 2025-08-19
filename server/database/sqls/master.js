@@ -252,6 +252,17 @@ const prcModalConfirm = `INSERT INTO DIAGRAM_DETAIL(DIA_CODE,
 // 공정흐름도 - 삭제
 const prcDelete = `CALL delete_process_for_dia(?,?)`;
 
+// 창고 정보 모달조회
+const wrModalSelect = `SELECT WR_NO, WR_NAME, WR_ADDR FROM WAREHOUSE`;
+
+// 창고 정보 조회
+const wrSelect = `SELECT WR_AREANO, 
+                         WR_SECTION,
+                         WR_PRD_ID,
+                         WR_TYPE
+                 FROM WR_DETAIL
+                 WHERE WR_NO = ?`;
+
 module.exports = {
   masterEmpSelect,
   masterEmpInsert,
@@ -284,4 +295,6 @@ module.exports = {
   masterPrdUpdate,
   masterPrdDelete,
   masterPrdSearch,
+  wrModalSelect,
+  wrSelect,
 };
