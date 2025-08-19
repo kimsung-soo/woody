@@ -132,18 +132,19 @@ WHERE 1=1
   ORDER BY RECEIPT_NO DESC`;
 
 // 불량품 조회
-const failMaterials = `SELECT RM.RJT_MAT_ID,
-       RM.MAT_CERT_ID,
-       RM.MAT_CODE,
-       RM.RJT_REASON,
-       RM.RJT_CODE,
-       RM.RECEIPT_NO,
-       RM.MAT_STATUS,
-       M.MAT_NAME,
-       M.MAT_SIZE,
-       M.MAT_TYPE,
-       M.MAT_UNIT
-FROM REJECTED_MATERIAL AS RM LEFT JOIN MATERIALS AS M
+const failMaterials = `SELECT 
+    RM.RJT_MAT_ID,
+    RM.RECEIPT_NO,
+    RM.MAT_CODE,
+    RM.RJT_REASON,
+    RM.Q_CHECKED_DATE,
+    RM.TOTAL_QTY,
+    RM.MAT_STATUS,
+    RM.CREATED_BY,
+    M.MAT_NAME,
+    M.MAT_SIZE,
+    M.MAT_UNIT
+FROM REJECTED_MATERIAL AS RM JOIN MATERIALS AS M
 ON RM.MAT_CODE = M.MAT_CODE`;
 
 // 자재반품요청서 INSERT
@@ -151,11 +152,36 @@ const reMaterialInsert = `INSERT INTO RETURN_REQUEST (RR_NO, CREATED_DATE, RR_DA
 VALUES (?, ?, ?, ?, ?)`;
 
 // 자재반품요청서 상세 isnert
-const reMaterialInsertDetail = `INSERT INTO RETURN_REQUEST_DETAIL (RR_DETAIL_NO, RR_NO, RE_QTY, MAT_CODE)
-VALUES (?, ?, ?, ?)`;
+const reMaterialInsertDetail = `INSERT INTO RETURN_REQUEST_DETAIL (RR_NO, RE_QTY, MAT_CODE)
+VALUES (?, ?, ?)`;
 
 // 자재반품요청서 요청서번호 프로시저 호출
 const GetNextRRNO = `CALL GetNextRR_NO()`;
+
+// 반품요청서 처리 후 불량품 테이블 상태 업데이트
+const reMaterialUpdate = `UPDATE REJECTED_MATERIAL SET MAT_STATUS = ? WHERE RECEIPT_NO = ?`;
+
+// 자재반품요청서 목록조회
+const reMaterialSelect = `SELECT RR.RR_NO,
+	   RR.CREATED_DATE,
+       RR.RR_DATE,
+       RR.MANAGER,
+       RR.RE_STATUS,
+       RRD.MAT_CODE,
+       RRD.RE_QTY,
+       M.MAT_NAME,
+       M.MAT_UNIT,
+       M.MAT_SIZE
+FROM   RETURN_REQUEST AS RR JOIN RETURN_REQUEST_DETAIL RRD
+ON     RR.RR_NO = RRD.RR_NO
+JOIN MATERIALS AS M
+ON   RRD.MAT_CODE = M.MAT_CODE`;
+
+// 자재반품요청서 기간 지난 후 상태 변경
+const reMaterialSelectUpdate = `UPDATE RETURN_REQUEST
+SET RE_STATUS = '완료'
+WHERE RR_DATE < CURDATE()
+AND RE_STATUS != '완료';`;
 
 // 원자재 합격품 조회(모달)
 const materialsPass = `SELECT MC.MAT_CERT_ID,
@@ -255,6 +281,9 @@ module.exports = {
   reMaterialInsert,
   reMaterialInsertDetail,
   GetNextRRNO,
+  reMaterialUpdate,
+  reMaterialSelect,
+  reMaterialSelectUpdate,
   materialsPass,
   LOTInsert,
   updateTMP,

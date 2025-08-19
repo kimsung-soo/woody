@@ -106,20 +106,23 @@ router.post("/return/request/insert", async (req, res) => {
     const { requestData, detailList } = req.body;
 
     // 1. service를 통해 다음 RR_NO 생성
-    const newRR_NO = await returnRequestService.getNextRRNo();
+    const newRR_NO = await materialService.GetNextRRNO();
 
     // 2. 생성된 RR_NO를 requestData에 추가
     requestData.RR_NO = newRR_NO;
 
     // 3. 반품요청서 등록 (RETURN_REQUEST)
-    await returnRequestService.returnRequest(requestData);
+    await materialService.reMaterialInsert(requestData);
 
     // 4. 반품요청서 상세 등록 (RETURN_REQUEST_DETAIL)
     for (const detail of detailList) {
-      await returnRequestService.returnRequestDetail({
+      await materialService.reMaterialInsertDetail({
         ...detail,
         RR_NO: newRR_NO, // 새로 생성된 RR_NO 사용
       });
+
+      // 상태 업데이트
+      await materialService.reMaterialUpdate(detail.RECEIPT_NO, "완료");
     }
 
     res.status(200).json({ message: "등록 완료", rrNo: newRR_NO });
@@ -127,6 +130,18 @@ router.post("/return/request/insert", async (req, res) => {
     console.error(err);
     res.status(500).json({ message: "등록 실패", error: err.message });
   }
+});
+
+// 자재반품요청서 목록 조회
+router.get("/reMaterialSelect", async (req, res) => {
+  let list = await materialService.reMaterialSelect();
+  res.send(list);
+});
+
+// 자재반품요청서 기간 지난 후 상태 변경
+router.post("/reMaterialSelectUpdate", async (req, res) => {
+  const result = await materialService.reMaterialSelectUpdate();
+  res.send(result);
 });
 
 // 원자재 합격품 조회

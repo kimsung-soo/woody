@@ -110,15 +110,18 @@ const openModal = async (title) => {
 
   try {
     const res = await axios.get('http://localhost:3000/failMaterials');
-    modalRowData.value = res.data.map((mat) => ({
-      입고번호: mat.RRECEIPT_NO,
-      자재명: mat.MAT_NAME,
-      자재코드: mat.MAT_CODE,
-      규격: mat.MAT_SIZE,
-      단위: mat.MAT_UNIT,
-      // 수량추가
-      상태: mat.MAT_STATUS
-    }));
+    modalRowData.value = res.data
+      .filter((mat) => mat.MAT_STATUS !== '완료')
+      .map((mat) => ({
+        입고번호: mat.RECEIPT_NO,
+        자재명: mat.MAT_NAME,
+        자재코드: mat.MAT_CODE,
+        규격: mat.MAT_SIZE,
+        단위: mat.MAT_UNIT,
+        수량: mat.TOTAL_QTY,
+        상태: mat.MAT_STATUS,
+        사유: mat.RJT_REASON
+      }));
 
     if (modalRef.value) {
       modalRef.value.open();
@@ -164,15 +167,16 @@ async function submitForm() {
     // 1. 반품요청서 기본 데이터
     const requestData = {
       CREATED_DATE: new Date().toISOString().slice(0, 10), // 오늘 날짜
-      RR_DATE: form.rrDate,
+      RR_DATE: form.reDate,
       MANAGER: form.manager,
-      RE_STATUS: '대기'
+      RE_STATUS: '등록'
     };
 
     // 2. 상세 데이터
     const detailList = rowData.value.map((row) => ({
       MAT_CODE: row.자재코드,
-      RE_QTY: row.수량 || 0
+      RE_QTY: row.수량 || 0,
+      RECEIPT_NO: row.입고번호
     }));
 
     // 3. POST 요청
