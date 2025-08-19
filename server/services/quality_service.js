@@ -27,14 +27,14 @@ const addPassMat = async (data) => {
 // 불합격원자재 등록
 const addRejectMat = async (b) => {
   const params = [
-    String(b.RECEIPT_NO), // 1: RECEIPT_NO
-    String(b.MAT_CODE), // 2: MAT_CODE
-    String(b.RJT_REASON).slice(0, 100), // 3: RJT_REASON (100자 컷)
-    String(b.Q_CHECKED_DATE), // 4: Q_CHECKED_DATE  'YYYY-MM-DD'
-    Number(b.TOTAL_QTY) || 0, // 5: TOTAL_QTY
-    b.CREATED_BY || null, // 6: CREATED_BY
+    String(b.RECEIPT_NO),
+    String(b.MAT_CODE),
+    b.RJT_REASON ? String(b.RJT_REASON).slice(0, 100) : null,
+    String(b.Q_CHECKED_DATE), // 'YYYY-MM-DD'
+    Number(b.TOTAL_QTY) || 0,
+    b.CREATED_BY || null,
   ];
-  return await mariadb.query("rejactMat", params);
+  return await mariadb.query("rejectMat", params);
 };
 
 // 제품공정조회
@@ -52,14 +52,13 @@ const selectPrdCert = async () => {
 // 합격제품등록
 const addPassPrd = async (b) => {
   const params = [
-    String(b.TP_ID),
-    String(b.Q_STD_ID),
-    String(b.PRD_CODE),
-    String(b.PRD_NAME),
-    Number(b.TOTAL_QTY) || 0,
-    String(b.PRD_TYPE),
-    String(b.Q_CHECKED_DATE),
-    String(b.PRD_STATUS),
+    Number(b.TP_ID) || 0, // INT
+    b.Q_STD_ID || null, // 없으면 null
+    String(b.PRD_CODE || ""),
+    b.PRD_NAME || null,
+    Number(b.TOTAL_QTY) || 0, // INT
+    b.PRD_TYPE || null,
+    String(b.Q_CHECKED_DATE || ""), // 'YYYY-MM-DD'
     b.CREATED_BY || null,
   ];
   return await mariadb.query("passPrd", params);

@@ -24,20 +24,13 @@ router.get("/prdcertlist", async (req, res) => {
 router.post("/passmat", async (req, res) => {
   try {
     const body = req.body || {};
-    // 필수 필드 로그
-    console.log("passmat body:", body);
+    console.log("passprd body:", body);
 
-    // 서비스 호출
-    const result = await qualityService.addPassMat({
-      RECEIPT_NO: body.RECEIPT_NO,
-      MAT_CODE: body.MAT_CODE,
-      TOTAL_QTY: body.TOTAL_QTY,
-      Q_CHECKED_DATE: body.Q_CHECKED_DATE,
-      CREATED_BY: body.CREATED_BY,
-    });
+    const result = await qualityService.addPassPrd(body);
+
     res.json({
       ok: true,
-      affected: result.affectedRows || result.affected_rows || 1,
+      affected: result.affectedRows ?? result.affected_rows ?? 0,
     });
   } catch (err) {
     console.error(err);
@@ -50,24 +43,30 @@ router.post("/passmat", async (req, res) => {
 // 불합격원자재 등록
 router.post("/rjtmat", async (req, res) => {
   try {
-    const b = req.body || {};
-    const result = await qualityService.addRejectMat({
-      RECEIPT_NO: String(b.RECEIPT_NO),
-      MAT_CODE: String(b.MAT_CODE),
-      RJT_REASON: String(b.RJT_REASON),
-      Q_CHECKED_DATE: String(b.Q_CHECKED_DATE), // 'YYYY-MM-DD'
-      TOTAL_QTY: Number(b.TOTAL_QTY) || 0,
-      CREATED_BY: b.CREATED_BY || null,
-    });
+    const body = req.body || {};
 
-    res.json({ ok: true, affected: result.affectedRows || 1 });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      ok: false,
-      message: err.sqlMessage || err.message,
-      code: err.code,
+    const {
+      RECEIPT_NO,
+      MAT_CODE,
+      RJT_REASON,
+      Q_CHECKED_DATE,
+      TOTAL_QTY,
+      CREATED_BY,
+    } = body;
+    const result = await qualityService.addRejectMat({
+      RECEIPT_NO,
+      MAT_CODE,
+      RJT_REASON,
+      Q_CHECKED_DATE, // 'YYYY-MM-DD'
+      TOTAL_QTY,
+      CREATED_BY,
     });
+    return res.json({ ok: true, affected: result.affectedRows ?? 0 });
+  } catch (err) {
+    console.error("[/quality/rjtmat] ERROR:", err);
+    return res
+      .status(500)
+      .json({ ok: false, message: err.message, detail: String(err) });
   }
 });
 

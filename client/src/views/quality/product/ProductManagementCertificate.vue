@@ -229,38 +229,33 @@ async function saveForm() {
     return;
   }
 
-  if (isPass) {
-    await axios.post('http://localhost:3000/passprd', {
-      TP_ID: d.wo_no, // 지시번호
-      PRD_CODE: d.prdCode, // 제품코드
-      PRD_NAME: d.prdName, // 제품명
-      PRD_TYPE: d.prdType, // 제품유형
-      TOTAL_QTY: d.totalQty, // 총수량
-      CREATED_BY: d.writer, // 작성자
-      Q_CHECKED_DATE: d.doneDate // 검사완료일자
+  // 1) 화면의 행들 → 결과배열로 변환
+  const api = criteriaApi.value;
+  const results = [];
+  api.forEachNode((node) => {
+    const r = node.data; // {label, allow, value}
+    results.push({
+      stdName: r.label, // QUALITY_STANDARD.STD_NAME에 매칭할 값
+      allowedItem: r.label, // 결과 표시용(원하면 allow 사용)
+      measuredValue: String(r.value ?? ''),
+      status: node.isSelected() ? '합격' : '불합격'
+    });
+  });
 
-      /*
-  r.prdCode = String(route.query.product_code || ''); // 제품코드
-  r.prdName = String(route.query.product_name || ''); // 제품명
-  r.prdType = String(route.query.product_type || ''); // 제품유형
-  r.totalQty = Number(route.query.qty || 0); // 총수량
-  r.writer = String(route.query.writer || ''); // 작업자  // 스토어로 세션값 받아오기
-  r.finished_at = String(route.query.finished_at || ''); // 생산완료일자
-  const today = new Date();
-  r.certDate = today.toISOString().slice(0, 10); // 검사완료일자
-    }
-      */
-    });
-  } else {
-    await axios.post('http://localhost:3000/rjtmat', {
-      RECEIPT_NO: d.inNo,
-      MAT_CODE: d.materialCode,
-      RJT_REASON: defectReason.value.description.trim().slice(0, 100),
-      Q_CHECKED_DATE: d.doneDate,
-      TOTAL_QTY: Number(d.totalQty),
-      CREATED_BY: d.user
-    });
-  }
+  // 2) 헤더 + 결과 같이 전송
+  await axios.post('http://localhost:3000/passprd', {
+    TP_ID: d.tpId || Number(route.query.wo_no || 0),
+    PRD_CODE: d.prdCode,
+    PRD_NAME: d.prdName,
+    PRD_TYPE: d.prdType,
+    TOTAL_QTY: Number(d.totalQty) || 0,
+    Q_CHECKED_DATE: d.certDate,
+    CREATED_BY: d.writer
+    // PRD_STATUS 보내지 않음 (SQL에서 '합격')
+    // Q_STD_ID 모르면 안 보냄 (SQL에서 NULL)
+  });
+
+  alert('등록되었습니다!');
 }
 
 // 불합격 사유 관련 데이터
@@ -271,15 +266,14 @@ const defectReason = ref({
 // 클릭한 행의 내용가져오기
 onMounted(() => {
   const r = detailRows.value[0];
-  // 쿼리에서 값 채우기
-  r.prdCode = String(route.query.product_code || ''); // 제품코드
-  r.prdName = String(route.query.product_name || ''); // 제품명
-  r.prdType = String(route.query.product_type || ''); // 제품유형
-  r.totalQty = Number(route.query.qty || 0); // 총수량
-  r.writer = String(route.query.writer || ''); // 작업자  // 스토어로 세션값 받아오기
-  r.finished_at = String(route.query.finished_at || ''); // 생산완료일자
-  const today = new Date();
-  r.certDate = today.toISOString().slice(0, 10); // 검사완료일자
+  r.tpId = Number(route.query.wo_no || 0); // 지시번호 저장하고
+  r.prdCode = String(route.query.product_code || '');
+  r.prdName = String(route.query.product_name || '');
+  r.prdType = String(route.query.product_type || '');
+  r.totalQty = Number(route.query.qty || 0);
+  r.writer = String(route.query.writer || '');
+  r.finished_at = String(route.query.finished_at || '');
+  r.certDate = new Date().toISOString().slice(0, 10);
 });
 </script>
 
