@@ -71,6 +71,7 @@ router.post("/inboundInsert", async (req, res) => {
 });
 
 
+
 // 주문서 목록 조회
 router.get("/marketing/getordlist", async (req, res) => {
   try {
@@ -81,6 +82,8 @@ router.get("/marketing/getordlist", async (req, res) => {
     res.send({ error: e });
   }
 });
+
+
 
 
 module.exports = router;
