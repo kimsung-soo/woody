@@ -227,7 +227,7 @@ const completeInspection = async () => {
     // 현재 상태 FS_ID 얻기
     const { data: cur } = await axios.get(STATUS_CURRENT_API(form.code));
     const FS_ID = Array.isArray(cur) ? cur[0]?.FS_ID : cur?.FS_ID;
-    if (!FS_ID) return alert('상태(FS_ID)를 찾을 수 없습니다.');
+    if (!FS_ID) return alert('상태를 찾을 수 없습니다.');
 
     // 점검완료 저장(+ 상태 종료)
     await axios.post(INSPECTION_COMPLETE_API, {
