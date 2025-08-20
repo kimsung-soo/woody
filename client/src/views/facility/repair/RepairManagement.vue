@@ -257,12 +257,12 @@ const modalRef = ref(null);
 const modalTitle = ref('');
 const modalRowData = ref([]);
 const modalColDefs = ref([
-  { field: '공정코드', headerName: '공정코드', flex: 1 },
-  { field: '공정명', headerName: '공정명', flex: 1 },
-  { field: '설비유형', headerName: '설비유형', flex: 1 },
-  { field: '등록일자', headerName: '등록일자', flex: 1 },
-  { field: '작성자', headerName: '작성자', flex: 1 },
-  { field: '비고', headerName: '비고', flex: 1 }
+  { field: '공정코드', flex: 1 },
+  { field: '공정명', flex: 1 },
+  { field: '설비유형', flex: 1 },
+  { field: '등록일자', flex: 1 },
+  { field: '작성자', flex: 1 },
+  { field: '비고', flex: 1 }
 ]);
 
 const mapProcess = (r) => ({
