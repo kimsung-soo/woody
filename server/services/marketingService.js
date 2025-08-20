@@ -96,6 +96,20 @@ const inboundSearch = async (data) => {
   return result;
 };
 
+
+// 주문서 목록 조회
+const getOrderList = async () => {
+  try {
+    const result = await mariadb.query("selectOrderList");
+    return result;
+  } catch (e) {
+    console.error(e);
+    return { error: e };
+  }
+};
+
+
+
 module.exports = {
   addAccount,
   inboundList,
@@ -107,4 +121,7 @@ module.exports = {
   getAccountList,
   getItemList,
   addOrder,
+
+  getOrderList,
+
 };
