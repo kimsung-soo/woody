@@ -137,11 +137,11 @@ const mapOpenInspection = (r) => ({
   담당자: r.MANAGER ?? ''
 });
 
-const loadOpenInspections = async () => {
-  const { data } = await axios.get(INSPECTION_OPEN_API);
-  rows.value = (Array.isArray(data) ? data : []).map(mapOpenInspection);
-  if (processCode.value) applyProcessFilter(processCode.value);
-};
+// const loadOpenInspections = async () => {
+//   const { data } = await axios.get(INSPECTION_OPEN_API);
+//   rows.value = (Array.isArray(data) ? data : []).map(mapOpenInspection);
+//   if (processCode.value) applyProcessFilter(processCode.value);
+// };
 
 onMounted(loadOpenInspections);
 

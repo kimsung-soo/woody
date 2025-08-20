@@ -15,7 +15,7 @@ router.get("/facility", async (_req, res) => {
   }
 });
 
-// 설비 단건
+// 설비 조회
 router.get("/facilityById", async (req, res) => {
   try {
     const data = await facilityService.facilityById({
@@ -33,8 +33,8 @@ router.get("/facilityById", async (req, res) => {
 // 설비 등록
 router.post("/facilityInsert", async (req, res) => {
   try {
-    const newId = await facilityService.facilityInsert(req.body);
-    res.status(200).json({ ok: true, FAC_ID: newId });
+    await facilityService.facilityInsert(req.body);
+    res.status(200).json({ ok: true });
   } catch (err) {
     console.error("FACILITY INSERT ERROR:", err);
     res
@@ -43,11 +43,11 @@ router.post("/facilityInsert", async (req, res) => {
   }
 });
 
-// 다음 설비코드
+// 설비코드 증가
 router.get("/facility/next-id", async (_req, res) => {
   try {
-    const id = await facilityService.getNextFacilityId();
-    res.send({ FAC_ID: id });
+    const rows = await facilityService.getNextFacilityId();
+    res.send(rows?.[0] ?? {});
   } catch (err) {
     console.error("NEXT FACILITY ID ERROR:", err);
     res
@@ -82,11 +82,35 @@ router.delete("/facilityDelete", async (req, res) => {
   }
 });
 
-// FAC_TYPE별 설비
+// 공정 목록
+router.get("/process", async (_req, res) => {
+  try {
+    const list = await facilityService.processList();
+    res.send(list);
+  } catch (err) {
+    console.error("PROCESS LIST ERROR:", err);
+    res.status(500).json({ message: "PROCESS LIST ERROR", error: err.message });
+  }
+});
+
+// 공정 설비
+router.get("/process/fac-types", async (_req, res) => {
+  try {
+    const list = await facilityService.processFacTypes();
+    res.send(list);
+  } catch (err) {
+    console.error("PROCESS FAC_TYPES ERROR:", err);
+    res
+      .status(500)
+      .json({ message: "PROCESS FAC_TYPES ERROR", error: err.message });
+  }
+});
+
+// 설비타입
 router.get("/facility/by-type", async (req, res) => {
   try {
     const list = await facilityService.facilitySelectByFacType(
-      req.query.facType || null
+      req.query.facType
     );
     res.send(list);
   } catch (err) {
@@ -97,7 +121,20 @@ router.get("/facility/by-type", async (req, res) => {
   }
 });
 
-// 상태 목록(최신 1건 포함)
+// 공통코드
+router.get("/common/codes/:group", async (req, res) => {
+  try {
+    const list = await facilityService.getCodesByGroup(req.params.group);
+    res.send(list);
+  } catch (err) {
+    console.error("COMMON CODE LIST ERROR:", err);
+    res
+      .status(500)
+      .json({ message: "COMMON CODE LIST ERROR", error: err.message });
+  }
+});
+
+// 최신 설비 상태
 router.get("/facility/status", async (_req, res) => {
   try {
     const rows = await facilityService.facilityStatusList();
@@ -125,20 +162,21 @@ router.get("/facility/status/current/:facId", async (req, res) => {
   }
 });
 
-// 비가동 설정/업데이트
+// 비가동
 router.patch("/facility/status/down", async (req, res) => {
   try {
     await facilityService.facilityStatusUpdateToDown(req.body);
     res.status(200).json({ ok: true });
   } catch (err) {
-    console.error("FACILITY STATUS DOWN ERROR:", err);
-    res
-      .status(500)
-      .json({ message: "FACILITY STATUS DOWN ERROR", error: err.message });
+    console.error("FACILITY STATUS DOWN(UPDATE) ERROR:", err);
+    res.status(500).json({
+      message: "FACILITY STATUS DOWN(UPDATE) ERROR",
+      error: err.message,
+    });
   }
 });
 
-// 비가동 종료 (수리 자동기록 O)
+// 비가동 종료
 router.patch("/facility/status/end", async (req, res) => {
   try {
     const {
@@ -147,19 +185,33 @@ router.patch("/facility/status/end", async (req, res) => {
       restoreStatus = 0,
       checkTime = null,
       MANAGER = null,
-      repairContent = null,
-      repairNote = null,
+      repairContent,
+      repairNote,
+      repairStart = null,
+      repairEnd = null,
+      repairManager = null,
     } = req.body;
 
+    // 1) 상태 종료
     await facilityService.facilityStatusEndDowntime({
       FS_ID,
       endTime,
       restoreStatus,
       checkTime,
       MANAGER,
-      repairContent,
-      repairNote,
     });
+
+    // 2) 수리 내용이 있으면 수리내역 생성
+    if (repairContent && String(repairContent).trim() !== "") {
+      await facilityService.facilityRepairInsertFromStatus({
+        fsId: FS_ID,
+        content: String(repairContent).trim(),
+        note: repairNote ?? null,
+        start: repairStart,
+        end: repairEnd ?? endTime,
+        manager: repairManager,
+      });
+    }
 
     res.status(200).json({ ok: true });
   } catch (err) {
@@ -170,7 +222,7 @@ router.patch("/facility/status/end", async (req, res) => {
   }
 });
 
-// 상태 이력 필터
+// 상태 필터
 router.get("/facility/status/filter", async (req, res) => {
   try {
     const rows = await facilityService.facilityStatusFilter({
@@ -187,7 +239,7 @@ router.get("/facility/status/filter", async (req, res) => {
   }
 });
 
-// 수리 목록(전체/설비별)
+// 수리내역 목록
 router.get("/facility/repairs", async (req, res) => {
   try {
     const rows = req.query.facId
@@ -202,7 +254,20 @@ router.get("/facility/repairs", async (req, res) => {
   }
 });
 
-// 진행중 점검
+// 현재 비가동
+router.get("/facility/repairs/open", async (_req, res) => {
+  try {
+    const rows = await facilityService.facilityOpenRepairs();
+    res.send(rows);
+  } catch (err) {
+    console.error("FACILITY OPEN REPAIR LIST ERROR:", err);
+    res
+      .status(500)
+      .json({ message: "FACILITY OPEN REPAIR LIST ERROR", error: err.message });
+  }
+});
+
+// 현재 점검 대상
 router.get("/facility/inspections/open", async (_req, res) => {
   try {
     const rows = await facilityService.facilityOpenInspections();
@@ -216,12 +281,13 @@ router.get("/facility/inspections/open", async (_req, res) => {
   }
 });
 
-// 점검 완료(저장 + 종료)
+// 점검 완료
 router.post("/facility/inspection/complete", async (req, res) => {
   try {
     const { FS_ID, FAC_ID, fit, ngReason, content, nextAt, doneAt, manager } =
       req.body;
 
+    // 1) 점검 기록 저장
     await facilityService.facilityCheckInsert({
       FS_ID,
       FAC_ID,
@@ -232,7 +298,9 @@ router.post("/facility/inspection/complete", async (req, res) => {
       MANAGER: manager ?? null,
     });
 
+    // 2) 점검 종료
     const restoreStatus = fit === "부적합" ? 1 : 0;
+
     await facilityService.facilityStatusEndInspection({
       FS_ID,
       endTime: doneAt,
@@ -252,7 +320,7 @@ router.post("/facility/inspection/complete", async (req, res) => {
   }
 });
 
-// 점검 이력
+// 점검 내역
 router.get("/facility/inspections/history", async (req, res) => {
   try {
     const rows = await facilityService.facilityInspectionHistory({
@@ -267,29 +335,6 @@ router.get("/facility/inspections/history", async (req, res) => {
       message: "FACILITY INSPECTION HISTORY ERROR",
       error: err.message,
     });
-  }
-});
-
-// 공통코드(그룹)
-router.get("/common/codes/:group", async (req, res) => {
-  try {
-    const list = await facilityService.getCodesByGroup(req.params.group);
-    res.send(list);
-  } catch (err) {
-    console.error("COMMON CODE LIST ERROR:", err);
-    res
-      .status(500)
-      .json({ message: "COMMON CODE LIST ERROR", error: err.message });
-  }
-});
-
-router.get("/process", async (_req, res) => {
-  try {
-    const rows = await facilityService.getProcessList();
-    res.send(rows);
-  } catch (err) {
-    console.error("PROCESS LIST ERROR:", err);
-    res.status(500).json({ message: "PROCESS LIST ERROR", error: err.message });
   }
 });
 

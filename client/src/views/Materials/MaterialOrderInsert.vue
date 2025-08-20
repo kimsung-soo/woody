@@ -12,7 +12,7 @@
         <v-text-field label="공급처" v-model="form.supplier" dense outlined />
       </v-col>
       <v-col cols="6">
-        <v-text-field label="담당자" v-model="form.manager" outlined readonly />
+        <v-text-field label="담당자" v-model="form.manager" outlined />
       </v-col>
       <v-col cols="6">
         <v-text-field label="발주일자" v-model="form.orderDate" type="date" dense outlined />
@@ -48,10 +48,6 @@ import { AgGridVue } from 'ag-grid-vue3';
 import { themeQuartz } from 'ag-grid-community';
 import MoDal from '../common/NewModal.vue';
 import axios from 'axios';
-import { useAuthStore } from '@/stores/auth';
-
-// 로그인한 세션의 정보들이 담김.
-const authStore = useAuthStore();
 
 const quartz = themeQuartz;
 
@@ -64,7 +60,8 @@ const colDefs = ref([
   { field: '자재유형', flex: 1 },
   { field: '규격', flex: 1 },
   { field: '단위', flex: 1 },
-  { field: '수량', editable: true, flex: 1 }
+  { field: '수량', editable: true, flex: 1 },
+  { field: '비고', editable: true, flex: 1 }
 ]);
 
 // ----------------- 폼 입력 필드 (유지) -----------------
@@ -72,7 +69,7 @@ const form = reactive({
   supplier: '',
   orderDate: new Date().toISOString().substring(0, 10),
   dueDate: '',
-  manager: authStore.user?.name || ''
+  manager: ''
 });
 
 // ----------------- 모달 (기본 정의) -----------------
@@ -132,9 +129,10 @@ function onModalConfirm(selectedRow) {
 function resetForm() {
   // 폼 필드 초기화
   form.supplier = '';
-  form.orderDate = new Date().toISOString().substring(0, 10);
+  form.orderDate = '';
   form.dueDate = '';
-  form.manager = authStore.user?.name || '';
+  form.manager = '';
+
   rowData.value = [];
 }
 

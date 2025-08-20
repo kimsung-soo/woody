@@ -25,13 +25,11 @@ export interface menu {
   disabled?: boolean;
   type?: string;
   subCaption?: string;
-  auth?: string[];
 }
 
 const sidebarItem: menu[] = [
   {
     title: '기준정보',
-    auth: ['관리자', '부서담당자'],
     children: [
       {
         title: '사원 관리',

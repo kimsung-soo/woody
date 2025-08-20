@@ -56,10 +56,6 @@ import { AgGridVue } from 'ag-grid-vue3';
 import { themeQuartz } from 'ag-grid-community';
 import MoDal from '../common/NewModal.vue';
 import axios from 'axios';
-import { useAuthStore } from '@/stores/auth';
-
-// 로그인한 세션의 정보들이 담김.
-const authStore = useAuthStore();
 
 const quartz = themeQuartz;
 
@@ -78,9 +74,9 @@ const colDefs = ref([
 // ----------------- 폼 입력 필드 -----------------
 const form = reactive({
   issueNumber: '',
-  insertDate: new Date().toISOString().substring(0, 10),
+  insertDate: '',
   name: '',
-  manager: authStore.user?.name || ''
+  manager: ''
 });
 
 // ----------------- 모달 (기본 정의) -----------------
@@ -116,20 +112,18 @@ const openModal = async (title) => {
   modalColDefs.value = materialColDefs;
 
   const res = await axios.get('http://localhost:3000/materials/order/select');
-  modalRowData.value = res.data
-    .filter((item) => item.PO_STATUS !== '완료')
-    .map((item) => ({
-      발행번호: item.PO_NO,
-      업체: item.SUPPLYER,
-      자재코드: item.MAT_CODE,
-      자재명: item.MAT_NAME,
-      발주수량: item.RECEIPT_QTY,
-      상태: item.PO_STATUS,
-      규격: item.MAT_SIZE,
-      단위: item.MAT_UNIT,
-      업데이트수량: item.UPDATE_QTY,
-      자재유형: item.MAT_TYPE
-    }));
+  modalRowData.value = res.data.map((item) => ({
+    발행번호: item.PO_NO,
+    업체: item.SUPPLYER,
+    자재코드: item.MAT_CODE,
+    자재명: item.MAT_NAME,
+    발주수량: item.RECEIPT_QTY,
+    상태: item.PO_STATUS,
+    규격: item.MAT_SIZE,
+    단위: item.MAT_UNIT,
+    업데이트수량: item.UPDATE_QTY,
+    자재유형: item.MAT_TYPE
+  }));
 
   if (modalRef.value) {
     modalRef.value.open();
@@ -160,9 +154,9 @@ function onModalConfirm(selectedRow) {
 function resetForm() {
   // 폼 필드 초기화
   form.issueNumber = '';
-  form.insertDate = new Date().toISOString().substring(0, 10);
+  form.insertDate = '';
   form.manager = '';
-  form.name = authStore.user?.name || '';
+  form.name = '';
   rowData.value = [];
 }
 

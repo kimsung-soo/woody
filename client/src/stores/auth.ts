@@ -1,53 +1,33 @@
 import { defineStore } from 'pinia';
 import { router } from '@/router';
+import { fetchWrapper } from '@/utils/helpers/fetch-wrapper';
+
+const baseUrl = `${import.meta.env.VITE_API_URL}/users`;
 
 export const useAuthStore = defineStore({
   id: 'auth',
   state: () => ({
-    // localStorage에서 사용자 불러오기 (새로고침 유지용)
-    user: JSON.parse(localStorage.getItem('user') || 'null'),
-    returnUrl: null as string | null
+    // initialize state from local storage to enable user to stay logged in
+    /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */
+    // @ts-ignore
+    user: JSON.parse(localStorage.getItem('user')),
+    returnUrl: null
   }),
   actions: {
-    async login(email: string, password: string) {
-      try {
-        // 프론트 → 백엔드 로그인 요청
-        const res = await fetch('http://localhost:3000/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ email, pwd: password })
-        });
+    async login(username: string, password: string) {
+      const user = await fetchWrapper.post(`${baseUrl}/authenticate`, { username, password });
 
-        const data = await res.json();
-
-        if (data.result) {
-          // 로그인 성공 → Pinia state + localStorage 갱신
-          this.user = { email: data.email, name: data.name, auth: data.auth };
-          localStorage.setItem('user', JSON.stringify(this.user));
-
-          router.push(this.returnUrl || '/dashboard/default');
-        } else {
-          alert(data.message || '로그인 실패');
-        }
-      } catch (err) {
-        console.error('로그인 에러:', err);
-      }
+      // update pinia state
+      this.user = user;
+      // store user details and jwt in local storage to keep user logged in between page refreshes
+      localStorage.setItem('user', JSON.stringify(user));
+      // redirect to previous url or default to home page
+      router.push(this.returnUrl || '/dashboard/default');
     },
-
-    async logout() {
-      try {
-        await fetch('http://localhost:3000/logout', {
-          method: 'GET',
-          credentials: 'include'
-        });
-      } catch (err) {
-        console.error('로그아웃 에러:', err);
-      } finally {
-        this.user = null;
-        localStorage.removeItem('user');
-        router.push('/login');
-      }
+    logout() {
+      this.user = null;
+      localStorage.removeItem('user');
+      router.push('/login');
     }
   }
 });

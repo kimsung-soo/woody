@@ -10,18 +10,32 @@
 
     <!-- 상단 기본정보 -->
     <v-row class="mb-2">
-      <v-col cols="4"><v-text-field label="지시번호" v-model="form.issueNumber" readonly dense outlined /></v-col>
-      <v-col cols="4"><v-text-field label="지시일자" v-model="form.orderDate" type="date" dense outlined /></v-col>
-      <v-col cols="4"><v-text-field label="작성자" v-model="form.contact" dense outlined /></v-col>
+      <v-col cols="4">
+        <v-text-field label="지시번호" v-model="form.issueNumber" readonly dense outlined />
+      </v-col>
+      <v-col cols="4">
+        <v-text-field label="지시일자" v-model="form.orderDate" type="date" dense outlined />
+      </v-col>
+      <v-col cols="4">
+        <v-text-field label="작성자" v-model="form.contact" dense outlined />
+      </v-col>
 
-      <v-col cols="4"><v-text-field label="제품코드" v-model="form.productCode" readonly dense outlined /></v-col>
-      <v-col cols="4"><v-text-field label="납기일자" v-model="form.dueDate" type="date" dense outlined /></v-col>
+      <v-col cols="4">
+        <v-text-field label="제품코드" v-model="form.productCode" readonly dense outlined />
+      </v-col>
+      <v-col cols="4">
+        <v-text-field label="납기일자" v-model="form.dueDate" type="date" dense outlined />
+      </v-col>
       <v-col cols="4">
         <v-text-field label="목표수량" v-model.number="form.targetQty" type="number" min="1" step="1" dense outlined />
       </v-col>
 
-      <v-col cols="4"><v-text-field label="제품명칭" v-model="form.productName" readonly dense outlined /></v-col>
-      <v-col cols="8"><v-text-field label="지시명(계획명)" v-model.trim="form.orderName" dense outlined /></v-col>
+      <v-col cols="4">
+        <v-text-field label="제품명칭" v-model="form.productName" readonly dense outlined />
+      </v-col>
+      <v-col cols="8">
+        <v-text-field label="지시명(계획명)" v-model.trim="form.orderName" dense outlined />
+      </v-col>
 
       <v-col cols="12">
         <v-textarea label="비고" v-model.trim="form.memo" rows="2" auto-grow dense variant="outlined" class="text-right" />
@@ -67,9 +81,11 @@
         />
       </section>
 
-      <!-- 우: 자재현황/BOM -->
+      <!-- 우: 자재현황/BOM (조회 전용) -->
       <section class="pane right-pane">
-        <div class="pane-head"><h5 class="pane-title">자재현황</h5></div>
+        <div class="pane-head">
+          <h5 class="pane-title">자재현황</h5>
+        </div>
         <ag-grid-vue
           class="ag-theme-quartz ag-no-wrap"
           :rowData="pagedWip"
@@ -83,7 +99,9 @@
           @grid-size-changed="sizeFitWip"
         />
 
-        <div class="pane-head mt-6"><h5 class="pane-title">BOM목록</h5></div>
+        <div class="pane-head mt-6">
+          <h5 class="pane-title">BOM목록</h5>
+        </div>
         <ag-grid-vue
           class="ag-theme-quartz ag-no-wrap bom-grid"
           :rowData="pagedBom"
@@ -139,46 +157,13 @@
     </v-card>
   </v-dialog>
 
-  <!-- 🔴 자재 부족 안내 모달 -->
-  <v-dialog v-model="shortageDialog" max-width="720">
-    <v-card>
-      <v-card-title>자재 부족으로 지시등록 중단</v-card-title>
-      <v-card-text>
-        <p class="mb-2">아래 자재는 가용재고가 부족합니다. 재고 보충 후 다시 시도하세요.</p>
-        <v-table density="compact">
-          <thead>
-            <tr>
-              <th>자재코드</th>
-              <th>자재명</th>
-              <th class="r">필요</th>
-              <th class="r">가용</th>
-              <th class="r">부족</th>
-              <th>단위</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="r in shortageRows" :key="r.matCode">
-              <td>{{ r.matCode }}</td>
-              <td>{{ r.matName }}</td>
-              <td class="r">{{ r.requiredQty }}</td>
-              <td class="r">{{ r.availableQty }}</td>
-              <td class="r text-red">{{ r.shortage }}</td>
-              <td>{{ r.unit }}</td>
-            </tr>
-          </tbody>
-        </v-table>
-      </v-card-text>
-      <v-card-actions class="justify-end">
-        <v-btn @click="shortageDialog = false">확인</v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
-
-  <v-snackbar v-model="snack.open" :color="snack.color" :timeout="2000">{{ snack.msg }}</v-snackbar>
+  <v-snackbar v-model="snack.open" :color="snack.color" :timeout="2000">
+    {{ snack.msg }}
+  </v-snackbar>
 </template>
 
 <script setup>
-import { ref, shallowRef, reactive, computed, watch, onMounted } from 'vue';
+import { ref, shallowRef, reactive, computed, onMounted } from 'vue';
 import axios from 'axios';
 import BaseBreadcrumb from '@/components/shared/BaseBreadcrumb.vue';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
@@ -196,10 +181,6 @@ const breadcrumbs = shallowRef([
 /* 토스트 */
 const snack = ref({ open: false, msg: '', color: 'primary' });
 const toast = (msg, color = 'primary') => (snack.value = { open: true, msg, color });
-
-/* 부족 모달 */
-const shortageDialog = ref(false);
-const shortageRows = ref([]);
 
 /* 폼 */
 const form = reactive({
@@ -227,14 +208,15 @@ onMounted(() => {
   fetchProducts();
 });
 
-/* ───────── 제품 목록 ───────── */
+/* ───────── 제품 목록 (PRODUCT) ───────── */
 const products = ref([]);
 const productKeyword = ref('');
 const PROD_PAGE_SIZE = 10;
+
 async function fetchProducts() {
   try {
     const { data } = await axios.get(`${API}/products`, { params: { kw: productKeyword.value, page: 1, size: 100 } });
-    if (data?.ok || data?.rows) products.value = data.rows || [];
+    if (data?.ok) products.value = data.rows || [];
   } catch (e) {
     console.error(e);
     toast('제품 조회 오류', 'error');
@@ -250,36 +232,22 @@ function doProductSearch() {
   fetchProducts();
 }
 
-/* ───────── 자재현황(가용재고) ───────── */
-const matRows = ref([]);
+/* ───────── BOM / WIP ───────── */
+const wipRows = ref([]); // 재공(WIP) 향후 연동용
 const SUB_PAGE_SIZE = 3;
-const pagedWip = computed(() => matRows.value);
-async function fetchMatStatus(productCode, targetQty) {
-  matRows.value = [];
-  const code = String(productCode || '').trim();
-  const qty = Math.max(Number(targetQty || 0), 0);
-  if (!code) return;
-  try {
-    const { data } = await axios.get(`${API}/materials/status`, { params: { productCode: code, targetQty: qty } });
-    const rows = data?.rows || [];
-    matRows.value = rows.map((r) => ({ ...r, status: Number(r.shortage || 0) > 0 ? '부족' : '가능' }));
-  } catch (e) {
-    console.error(e);
-    toast('자재현황 조회 오류', 'error');
-  }
-}
+const pagedWip = computed(() => wipRows.value);
 
-/* ───────── BOM ───────── */
 const bomHeader = ref(null);
 const bomRows = ref([]);
 const pagedBom = computed(() => bomRows.value);
+
 async function fetchBom(productCode) {
   bomHeader.value = null;
   bomRows.value = [];
   if (!productCode) return;
   try {
     const { data } = await axios.get(`${API}/boms`, { params: { productCode } });
-    if (data?.ok || data?.items) {
+    if (data?.ok) {
       bomHeader.value = data.header || null;
       bomRows.value = (data.items || []).map((r) => ({
         seq: r.seq,
@@ -301,11 +269,12 @@ const planDialog = ref(false);
 const planKeyword = ref('');
 const PLAN_PAGE_SIZE = 10;
 const plans = ref([]);
+
 async function fetchPlans() {
   try {
     const kw = planKeyword.value.trim();
     const { data } = await axios.get(`${API}/plans`, { params: { kw, page: 1, size: 200 } });
-    if (data?.ok || data?.rows) plans.value = data.rows || [];
+    if (data?.ok) plans.value = data.rows || [];
     else toast('계획서 조회 실패', 'error');
   } catch (e) {
     console.error(e);
@@ -329,6 +298,7 @@ const filteredPlans = computed(() => {
 });
 const pagedPlans = computed(() => filteredPlans.value);
 const checkedPlanIds = ref([]);
+
 function onPlanSelectionChanged(e) {
   const selected = e.api.getSelectedRows();
   if (selected.length === 0) {
@@ -361,8 +331,9 @@ function applyPlans() {
   const names = rows.map((r) => r.planName).filter(Boolean);
   form.orderName = names.join(', ').slice(0, 200);
   planDialog.value = false;
+
+  // 제품 확정 시 BOM 즉시 로드
   fetchBom(form.productCode);
-  fetchMatStatus(form.productCode, form.targetQty);
 }
 
 /* ───────── 제품 선택 바인딩 ───────── */
@@ -371,15 +342,8 @@ function onProductSelected(e) {
   if (!row?.code) return;
   form.productCode = row.code;
   form.productName = row.name;
-  fetchBom(form.productCode);
-  fetchMatStatus(form.productCode, form.targetQty);
+  fetchBom(form.productCode); // BOM 로딩
 }
-
-/* 목표수량/제품 변경 시 자재현황 갱신 */
-watch([() => form.productCode, () => form.targetQty], ([code, qty]) => {
-  if (!code) return;
-  fetchMatStatus(code, qty);
-});
 
 /* ───────── 저장 ───────── */
 async function submitForm() {
@@ -410,26 +374,17 @@ async function submitForm() {
       selectedPlanIds: checkedPlanIds.value
     };
     const { data } = await axios.post(`${API}/workorders`, payload);
-
     if (data?.ok) {
       toast(`작업지시 저장 완료 (ID: ${data.woId}, NO: ${data.woNo})`, 'success');
       resetForm();
-      // 예약 반영되었으니 자재현황도 갱신
-      fetchMatStatus(form.productCode, form.targetQty);
     } else {
-      // 부족 목록 있으면 모달 표시
-      if (Array.isArray(data?.shortages) && data.shortages.length) {
-        shortageRows.value = data.shortages;
-        shortageDialog.value = true;
-      }
-      toast(data?.msg || '저장 실패', 'error');
+      toast('저장 실패', 'error');
     }
   } catch (e) {
     console.error(e);
     toast('저장 중 오류', 'error');
   }
 }
-
 function resetForm() {
   form.issueNumber = genIssueNo();
   form.orderDate = new Date().toISOString().slice(0, 10);
@@ -443,11 +398,13 @@ function resetForm() {
   checkedPlanIds.value = [];
   bomHeader.value = null;
   bomRows.value = [];
-  matRows.value = [];
 }
 
 /* ───────── 공통 그리드 설정 ───────── */
-const textCell = { cellStyle: { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }, tooltipValueGetter: (p) => p.value };
+const textCell = {
+  cellStyle: { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  tooltipValueGetter: (p) => p.value
+};
 const numRight = { ...textCell, cellClass: 'ag-right-aligned-cell', valueFormatter: (p) => (p.value == null ? '' : String(p.value)) };
 
 const productColDefs = [
@@ -458,32 +415,13 @@ const productColDefs = [
   { headerName: '규격', field: 'spec', flex: 1.2, minWidth: 120, ...textCell }
 ];
 
-/* 자재현황 그리드 */
 const wipColDefs = [
-  { headerName: '자재코드', field: 'matCode', flex: 1.1, minWidth: 110, ...textCell },
-  { headerName: '자재명', field: 'matName', flex: 1.4, minWidth: 120, ...textCell },
-  { headerName: '단위', field: 'unit', flex: 0.6, minWidth: 70, ...textCell },
-  { headerName: 'BOM(단위당)', field: 'bomQty', flex: 0.8, minWidth: 110, ...numRight },
-  { headerName: '필요수량', field: 'requiredQty', flex: 0.8, minWidth: 100, ...numRight },
-  { headerName: '가용재고', field: 'availableQty', flex: 0.8, minWidth: 100, ...numRight },
-  {
-    headerName: '부족수량',
-    field: 'shortage',
-    flex: 0.8,
-    minWidth: 100,
-    ...numRight,
-    cellClassRules: { 'ag-cell--danger': (p) => Number(p.value || 0) > 0 }
-  },
-  {
-    headerName: '상태',
-    field: 'status',
-    width: 90,
-    valueFormatter: (p) => (p.value === '부족' ? '부족' : '가능'),
-    cellClassRules: { 'ag-cell--danger': (p) => p.value === '부족', 'ag-cell--ok': (p) => p.value !== '부족' }
-  }
+  { headerName: '원자재유형', field: 'type', flex: 1.2, minWidth: 120, ...textCell },
+  { headerName: '수량', field: 'qty', flex: 0.6, minWidth: 80, ...numRight },
+  { headerName: '규격', field: 'spec', flex: 1.2, minWidth: 120, ...textCell }
 ];
 
-/* BOM 그리드 */
+/* ✅ BOM 컬럼: 자재코드/자재명/자재유형/소요수량/단위 */
 const bomColDefs = [
   { headerName: '자재코드', field: 'matCode', flex: 1.1, minWidth: 110, ...textCell },
   { headerName: '자재명', field: 'matName', flex: 1.2, minWidth: 110, ...textCell },
@@ -592,25 +530,8 @@ function sizeFitPlan() {
   --ag-font-size: 12px;
   --ag-grid-size: 4px;
 }
-.ag-cell--danger {
-  color: #b91c1c;
-  font-weight: 600;
-}
-.ag-cell--ok {
-  color: #166534;
-  font-weight: 600;
-}
 .plan-card .dialog-body {
   max-height: 80vh;
   overflow: auto;
-}
-.r {
-  text-align: right;
-}
-.text-red {
-  color: #b91c1c;
-}
-.mb-2 {
-  margin-bottom: 0.5rem;
 }
 </style>
